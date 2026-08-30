@@ -1603,6 +1603,19 @@ function FormField({ label, value, onChange, type = "text", placeholder, textare
 
 const CONVENIO_OPTIONS = ["Particular", "Unimed", "Bradesco Saúde", "Amil", "SulAmérica", "Outro"];
 
+/* Título das seções do formulário — rótulo em destaque com um filete até o fim da linha. */
+function FormSectionTitle({ children, first }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, margin: first ? "0 0 12px" : "22px 0 12px" }}>
+      <span style={{
+        fontFamily: FONT_DISPLAY, fontSize: 12.5, fontWeight: 700, color: T.primary,
+        textTransform: "uppercase", letterSpacing: 0.8, whiteSpace: "nowrap",
+      }}>{children}</span>
+      <span style={{ flex: 1, height: 1, background: T.border }} />
+    </div>
+  );
+}
+
 function NewPatientModal({ onClose, onSave, editingPatient }) {
   const { patients } = useAppData();
   const [form, setForm] = useState(() =>
@@ -1636,7 +1649,7 @@ function NewPatientModal({ onClose, onSave, editingPatient }) {
 
   return (
     <Modal title={editingPatient ? "Editar cadastro do paciente" : "Cadastro de paciente"} onClose={onClose} width={640}>
-      <div style={{ fontSize: 25, fontWeight: 1000, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>Dados pessoais</div>
+      <FormSectionTitle first>Dados pessoais</FormSectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
         <FormField label="Nome completo *" value={form.name} onChange={set("name")} placeholder="Nome do paciente" />
         <FormField label="Data de nascimento" value={form.nascimento} onChange={set("nascimento")} placeholder="dd/mm/aaaa" />
@@ -1644,19 +1657,12 @@ function NewPatientModal({ onClose, onSave, editingPatient }) {
         <FormField label="Status" value={form.status} onChange={set("status")} options={["Ativo", "Inativo"]} />
       </div>
 
-      <div style={{ fontSize: 25, fontWeight: 0, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4, margin: "6px 0 8px" }}>Contato</div>
+      <FormSectionTitle>Contato</FormSectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
         <FormField label="Telefone *" value={form.phone} onChange={set("phone")} placeholder="(00) 00000-0000" />
         <FormField label="E-mail" value={form.email} onChange={set("email")} type="email" placeholder="paciente@email.com" />
       </div>
       <FormField label="Endereço completo" value={form.endereco} onChange={set("endereco")} placeholder="Rua, número — bairro, cidade/UF" />
-
-      <div style={{ fontSize: 25, fontWeight: 1000, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4, margin: "6px 0 8px" }}>Convênio e emergência</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0 16px" }}>
-        <FormField label="Convênio" value={form.convenio} onChange={set("convenio")} options={CONVENIO_OPTIONS} />
-        <FormField label="Contato de emergência" value={form.emergenciaNome} onChange={set("emergenciaNome")} placeholder="Nome (parentesco)" />
-        <FormField label="Telefone de emergência" value={form.emergenciaTelefone} onChange={set("emergenciaTelefone")} placeholder="(00) 00000-0000" />
-      </div>
 
       <FormField label="Observações" value={form.observacoes} onChange={set("observacoes")} textarea placeholder="Informações adicionais relevantes" />
 
