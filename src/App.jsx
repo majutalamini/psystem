@@ -13,7 +13,6 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, LineChart, Line
 } from "recharts";
-import mammoth from "mammoth";
 
 /* ------------------------------------------------------------------ */
 /* Design tokens                                                       */
@@ -50,15 +49,15 @@ const EVENT_STYLES = {
 const COLOR_PALETTE = ["purple", "yellow", "pink", "green", "teal"];
 
 const initialPatients = [
-  { id: 1, name: "Maria Aparecida", initials: "MA", phone: "(48) 99123-4501", email: "maria.aparecida@email.com", status: "Ativo", sessions: 24, lastSession: "12/08/2026", nextSession: "19/08/2026", color: "purple", note: "Trabalhando estratégias de regulação emocional; boa adesão às tarefas de casa.", cpf: "123.456.789-01", nascimento: "14/03/1990", endereco: "Rua das Palmeiras, 210 — Centro, Criciúma/SC", convenio: "Particular", emergenciaNome: "José Aparecida (esposo)", emergenciaTelefone: "(48) 99900-1111", observacoes: "", matricula: { weekday: 0, time: "08:00", tipo: "Consulta presencial" } },
-  { id: 2, name: "Pedro Silva", initials: "PS", phone: "(48) 99123-4502", email: "pedro.silva@email.com", status: "Ativo", sessions: 8, lastSession: "10/08/2026", nextSession: "17/08/2026", color: "yellow", note: "Início de processo para ansiedade generalizada; relatou melhora no sono.", cpf: "234.567.890-12", nascimento: "22/07/1988", endereco: "Av. Centenário, 1450 — Pio Corrêa, Criciúma/SC", convenio: "Unimed", emergenciaNome: "Ana Silva (irmã)", emergenciaTelefone: "(48) 99900-2222", observacoes: "" },
-  { id: 3, name: "Jorge Sousa", initials: "JS", phone: "(48) 99123-4503", email: "jorge.sousa@email.com", status: "Ativo", sessions: 15, lastSession: "09/08/2026", nextSession: "17/08/2026", color: "pink", note: "Foco em questões de carreira e autoestima; retomar plano de ação na próxima sessão.", cpf: "345.678.901-23", nascimento: "05/11/1995", endereco: "Rua Coronel Pedro Benedet, 88 — Centro, Criciúma/SC", convenio: "Particular", emergenciaNome: "Marta Sousa (mãe)", emergenciaTelefone: "(48) 99900-3333", observacoes: "" },
-  { id: 4, name: "Patrícia Alves", initials: "PA", phone: "(48) 99123-4504", email: "patricia.alves@email.com", status: "Ativo", sessions: 32, lastSession: "11/08/2026", nextSession: "17/08/2026", color: "green", note: "Acompanhamento de luto; evolução consistente, reduzir para frequência quinzenal.", cpf: "456.789.012-34", nascimento: "30/01/1979", endereco: "Rua Marechal Deodoro, 675 — Centro, Criciúma/SC", convenio: "Bradesco Saúde", emergenciaNome: "Carlos Alves (filho)", emergenciaTelefone: "(48) 99900-4444", observacoes: "" },
-  { id: 5, name: "Luísa Silva", initials: "LS", phone: "(48) 99123-4505", email: "luisa.silva@email.com", status: "Inativo", sessions: 6, lastSession: "22/06/2026", nextSession: "—", color: "teal", note: "Pausa solicitada pela paciente por motivos de agenda; retorno previsto em setembro.", cpf: "567.890.123-45", nascimento: "18/09/1992", endereco: "Rua Henrique Lage, 320 — Próspera, Criciúma/SC", convenio: "Particular", emergenciaNome: "Beatriz Silva (mãe)", emergenciaTelefone: "(48) 99900-5555", observacoes: "" },
-  { id: 6, name: "Mike Pereira", initials: "MP", phone: "(48) 99123-4506", email: "mike.pereira@email.com", status: "Ativo", sessions: 3, lastSession: "14/08/2026", nextSession: "17/08/2026", color: "purple", note: "Sessões iniciais de anamnese; construção de vínculo terapêutico em andamento.", cpf: "678.901.234-56", nascimento: "02/05/2000", endereco: "Rua Fernando Machado, 55 — Centro, Criciúma/SC", convenio: "SulAmérica", emergenciaNome: "Sandra Pereira (mãe)", emergenciaTelefone: "(48) 99900-6666", observacoes: "" },
-  { id: 7, name: "Ana Carolina Santos", initials: "AC", phone: "(48) 99123-4507", email: "ana.carolina@email.com", status: "Ativo", sessions: 41, lastSession: "17/08/2026", nextSession: "24/08/2026", color: "green", note: "Terapia de longo prazo para TOC; manutenção com bons resultados.", cpf: "789.012.345-67", nascimento: "27/12/1985", endereco: "Rua Gustavo Richard, 140 — Centro, Criciúma/SC", convenio: "Particular", emergenciaNome: "Rafael Santos (esposo)", emergenciaTelefone: "(48) 99900-7777", observacoes: "" },
-  { id: 8, name: "João Silva", initials: "JS", phone: "(48) 99123-4508", email: "joao.silva@email.com", status: "Ativo", sessions: 12, lastSession: "17/08/2026", nextSession: "24/08/2026", color: "yellow", note: "Consulta online; trabalhando comunicação assertiva no ambiente de trabalho.", cpf: "890.123.456-78", nascimento: "09/06/1993", endereco: "Rua Desembargador Pedro Silva, 402 — Centro, Criciúma/SC", convenio: "Amil", emergenciaNome: "Renata Silva (esposa)", emergenciaTelefone: "(48) 99900-8888", observacoes: "" },
-  { id: 9, name: "Maria Cardoso", initials: "MC", phone: "(48) 99123-4509", email: "maria.cardoso@email.com", status: "Inativo", sessions: 19, lastSession: "30/05/2026", nextSession: "—", color: "pink", note: "Encerramento de processo terapêutico por alta; acompanhamento concluído com êxito.", cpf: "901.234.567-89", nascimento: "11/02/1983", endereco: "Rua Felipe Schmidt, 96 — Centro, Criciúma/SC", convenio: "Particular", emergenciaNome: "Paulo Cardoso (esposo)", emergenciaTelefone: "(48) 99900-9999", observacoes: "" },
+  { id: 1, name: "Maria Aparecida", initials: "MA", phone: "(48) 99123-4501", email: "maria.aparecida@email.com", status: "Ativo", sessions: 24, lastSession: "12/08/2026", nextSession: "19/08/2026", color: "purple", note: "Trabalhando estratégias de regulação emocional; boa adesão às tarefas de casa.", cpf: "123.456.789-01", nascimento: "14/03/1990", genero: "Feminino", cadastro: "10/01/2025", endereco: "Rua das Palmeiras, 210 — Centro, Criciúma/SC", convenio: "Particular", emergenciaNome: "José Aparecida (esposo)", emergenciaTelefone: "(48) 99900-1111", observacoes: "", matricula: { weekday: 0, time: "08:00", tipo: "Consulta presencial" } },
+  { id: 2, name: "Pedro Silva", initials: "PS", phone: "(48) 99123-4502", email: "pedro.silva@email.com", status: "Ativo", sessions: 8, lastSession: "10/08/2026", nextSession: "17/08/2026", color: "yellow", note: "Início de processo para ansiedade generalizada; relatou melhora no sono.", cpf: "234.567.890-12", nascimento: "22/07/1988", genero: "Masculino", cadastro: "15/05/2026", endereco: "Av. Centenário, 1450 — Pio Corrêa, Criciúma/SC", convenio: "Unimed", emergenciaNome: "Ana Silva (irmã)", emergenciaTelefone: "(48) 99900-2222", observacoes: "" },
+  { id: 3, name: "Jorge Sousa", initials: "JS", phone: "(48) 99123-4503", email: "jorge.sousa@email.com", status: "Ativo", sessions: 15, lastSession: "09/08/2026", nextSession: "17/08/2026", color: "pink", note: "Foco em questões de carreira e autoestima; retomar plano de ação na próxima sessão.", cpf: "345.678.901-23", nascimento: "05/11/1995", genero: "Masculino", cadastro: "02/03/2026", endereco: "Rua Coronel Pedro Benedet, 88 — Centro, Criciúma/SC", convenio: "Particular", emergenciaNome: "Marta Sousa (mãe)", emergenciaTelefone: "(48) 99900-3333", observacoes: "" },
+  { id: 4, name: "Patrícia Alves", initials: "PA", phone: "(48) 99123-4504", email: "patricia.alves@email.com", status: "Ativo", sessions: 32, lastSession: "11/08/2026", nextSession: "17/08/2026", color: "green", note: "Acompanhamento de luto; evolução consistente, reduzir para frequência quinzenal.", cpf: "456.789.012-34", nascimento: "30/01/1979", genero: "Feminino", cadastro: "20/11/2024", endereco: "Rua Marechal Deodoro, 675 — Centro, Criciúma/SC", convenio: "Bradesco Saúde", emergenciaNome: "Carlos Alves (filho)", emergenciaTelefone: "(48) 99900-4444", observacoes: "" },
+  { id: 5, name: "Luísa Silva", initials: "LS", phone: "(48) 99123-4505", email: "luisa.silva@email.com", status: "Inativo", sessions: 6, lastSession: "22/06/2026", nextSession: "—", color: "teal", note: "Pausa solicitada pela paciente por motivos de agenda; retorno previsto em setembro.", cpf: "567.890.123-45", nascimento: "18/09/1992", genero: "Feminino", cadastro: "14/02/2026", endereco: "Rua Henrique Lage, 320 — Próspera, Criciúma/SC", convenio: "Particular", emergenciaNome: "Beatriz Silva (mãe)", emergenciaTelefone: "(48) 99900-5555", observacoes: "" },
+  { id: 6, name: "Mike Pereira", initials: "MP", phone: "(48) 99123-4506", email: "mike.pereira@email.com", status: "Ativo", sessions: 3, lastSession: "14/08/2026", nextSession: "17/08/2026", color: "purple", note: "Sessões iniciais de anamnese; construção de vínculo terapêutico em andamento.", cpf: "678.901.234-56", nascimento: "02/08/2000", genero: "Masculino", cadastro: "05/08/2026", endereco: "Rua Fernando Machado, 55 — Centro, Criciúma/SC", convenio: "SulAmérica", emergenciaNome: "Sandra Pereira (mãe)", emergenciaTelefone: "(48) 99900-6666", observacoes: "" },
+  { id: 7, name: "Ana Carolina Santos", initials: "AC", phone: "(48) 99123-4507", email: "ana.carolina@email.com", status: "Ativo", sessions: 41, lastSession: "17/08/2026", nextSession: "24/08/2026", color: "green", note: "Terapia de longo prazo para TOC; manutenção com bons resultados.", cpf: "789.012.345-67", nascimento: "27/12/1985", genero: "Feminino", cadastro: "18/06/2024", endereco: "Rua Gustavo Richard, 140 — Centro, Criciúma/SC", convenio: "Particular", emergenciaNome: "Rafael Santos (esposo)", emergenciaTelefone: "(48) 99900-7777", observacoes: "" },
+  { id: 8, name: "João Silva", initials: "JS", phone: "(48) 99123-4508", email: "joao.silva@email.com", status: "Ativo", sessions: 12, lastSession: "17/08/2026", nextSession: "24/08/2026", color: "yellow", note: "Consulta online; trabalhando comunicação assertiva no ambiente de trabalho.", cpf: "890.123.456-78", nascimento: "09/06/1993", genero: "Masculino", cadastro: "22/04/2026", endereco: "Rua Desembargador Pedro Silva, 402 — Centro, Criciúma/SC", convenio: "Amil", emergenciaNome: "Renata Silva (esposa)", emergenciaTelefone: "(48) 99900-8888", observacoes: "" },
+  { id: 9, name: "Maria Cardoso", initials: "MC", phone: "(48) 99123-4509", email: "maria.cardoso@email.com", status: "Inativo", sessions: 19, lastSession: "30/05/2026", nextSession: "—", color: "pink", note: "Encerramento de processo terapêutico por alta; acompanhamento concluído com êxito.", cpf: "901.234.567-89", nascimento: "11/02/1983", genero: "Feminino", cadastro: "10/09/2025", endereco: "Rua Felipe Schmidt, 96 — Centro, Criciúma/SC", convenio: "Particular", emergenciaNome: "Paulo Cardoso (esposo)", emergenciaTelefone: "(48) 99900-9999", observacoes: "" },
 ];
 
 const revenueData = [
@@ -104,6 +103,69 @@ const weekSchedules = {
 
 const HOURS = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00"];
 
+/* Histórico de sessões (base para os relatórios de agenda) */
+const initialSessions = [
+  { id: 1, paciente: "Maria Aparecida", data: "01/07/2026", status: "Realizada" },
+  { id: 2, paciente: "Maria Aparecida", data: "08/07/2026", status: "Realizada" },
+  { id: 3, paciente: "Maria Aparecida", data: "15/07/2026", status: "Falta" },
+  { id: 4, paciente: "Maria Aparecida", data: "22/07/2026", status: "Realizada" },
+  { id: 5, paciente: "Maria Aparecida", data: "29/07/2026", status: "Realizada" },
+  { id: 6, paciente: "Maria Aparecida", data: "05/08/2026", status: "Realizada" },
+  { id: 7, paciente: "Maria Aparecida", data: "12/08/2026", status: "Realizada" },
+  { id: 8, paciente: "Maria Aparecida", data: "19/08/2026", status: "Agendada" },
+
+  { id: 9, paciente: "Pedro Silva", data: "15/06/2026", status: "Realizada" },
+  { id: 10, paciente: "Pedro Silva", data: "22/06/2026", status: "Realizada" },
+  { id: 11, paciente: "Pedro Silva", data: "29/06/2026", status: "Cancelada" },
+  { id: 12, paciente: "Pedro Silva", data: "06/07/2026", status: "Realizada" },
+  { id: 13, paciente: "Pedro Silva", data: "13/07/2026", status: "Realizada" },
+  { id: 14, paciente: "Pedro Silva", data: "20/07/2026", status: "Realizada" },
+  { id: 15, paciente: "Pedro Silva", data: "27/07/2026", status: "Falta" },
+  { id: 16, paciente: "Pedro Silva", data: "03/08/2026", status: "Realizada" },
+  { id: 17, paciente: "Pedro Silva", data: "10/08/2026", status: "Realizada" },
+  { id: 18, paciente: "Pedro Silva", data: "17/08/2026", status: "Agendada" },
+
+  { id: 19, paciente: "Jorge Sousa", data: "12/07/2026", status: "Realizada" },
+  { id: 20, paciente: "Jorge Sousa", data: "19/07/2026", status: "Realizada" },
+  { id: 21, paciente: "Jorge Sousa", data: "26/07/2026", status: "Realizada" },
+  { id: 22, paciente: "Jorge Sousa", data: "02/08/2026", status: "Realizada" },
+  { id: 23, paciente: "Jorge Sousa", data: "09/08/2026", status: "Realizada" },
+  { id: 24, paciente: "Jorge Sousa", data: "17/08/2026", status: "Agendada" },
+
+  { id: 25, paciente: "Patrícia Alves", data: "14/07/2026", status: "Realizada" },
+  { id: 26, paciente: "Patrícia Alves", data: "21/07/2026", status: "Realizada" },
+  { id: 27, paciente: "Patrícia Alves", data: "28/07/2026", status: "Falta" },
+  { id: 28, paciente: "Patrícia Alves", data: "04/08/2026", status: "Realizada" },
+  { id: 29, paciente: "Patrícia Alves", data: "11/08/2026", status: "Realizada" },
+  { id: 30, paciente: "Patrícia Alves", data: "17/08/2026", status: "Agendada" },
+
+  { id: 31, paciente: "Ana Carolina Santos", data: "20/07/2026", status: "Realizada" },
+  { id: 32, paciente: "Ana Carolina Santos", data: "27/07/2026", status: "Realizada" },
+  { id: 33, paciente: "Ana Carolina Santos", data: "03/08/2026", status: "Realizada" },
+  { id: 34, paciente: "Ana Carolina Santos", data: "10/08/2026", status: "Realizada" },
+  { id: 35, paciente: "Ana Carolina Santos", data: "17/08/2026", status: "Realizada" },
+  { id: 36, paciente: "Ana Carolina Santos", data: "24/08/2026", status: "Agendada" },
+
+  { id: 37, paciente: "João Silva", data: "22/07/2026", status: "Realizada" },
+  { id: 38, paciente: "João Silva", data: "29/07/2026", status: "Cancelada" },
+  { id: 39, paciente: "João Silva", data: "05/08/2026", status: "Realizada" },
+  { id: 40, paciente: "João Silva", data: "17/08/2026", status: "Realizada" },
+  { id: 41, paciente: "João Silva", data: "24/08/2026", status: "Agendada" },
+
+  { id: 42, paciente: "Luísa Silva", data: "08/06/2026", status: "Realizada" },
+  { id: 43, paciente: "Luísa Silva", data: "15/06/2026", status: "Realizada" },
+  { id: 44, paciente: "Luísa Silva", data: "22/06/2026", status: "Realizada" },
+
+  { id: 45, paciente: "Mike Pereira", data: "31/07/2026", status: "Realizada" },
+  { id: 46, paciente: "Mike Pereira", data: "07/08/2026", status: "Realizada" },
+  { id: 47, paciente: "Mike Pereira", data: "14/08/2026", status: "Realizada" },
+  { id: 48, paciente: "Mike Pereira", data: "17/08/2026", status: "Agendada" },
+
+  { id: 49, paciente: "Maria Cardoso", data: "16/05/2026", status: "Realizada" },
+  { id: 50, paciente: "Maria Cardoso", data: "23/05/2026", status: "Realizada" },
+  { id: 51, paciente: "Maria Cardoso", data: "30/05/2026", status: "Realizada" },
+];
+
 /* Contas a receber (mensalidades dos pacientes) */
 const initialReceivables = [
   { id: 1, paciente: "Maria Aparecida", referencia: "Mensalidade — Agosto/2026", valor: 800, vencimento: "05/08/2026", status: "Pago" },
@@ -131,7 +193,8 @@ const DECLARATION_TEMPLATES = [
     id: "atestado",
     title: "Atestado de comparecimento",
     desc: "Comprova a presença do paciente na sessão em data e horário específicos.",
-    icon: FileCheck2,
+    icon: FileCheck2, badgeIcon: Check,
+    accent: T.primary, accentTint: T.primaryTint,
     fields: [
       { key: "horario", label: "Horário da sessão", type: "text", default: "09:00" },
       { key: "duracao", label: "Duração", type: "text", default: "50 minutos" },
@@ -144,7 +207,8 @@ const DECLARATION_TEMPLATES = [
     id: "acompanhamento",
     title: "Declaração de acompanhamento psicológico",
     desc: "Declara que o paciente está em processo terapêutico regular.",
-    icon: FileSignature,
+    icon: FileSignature, badgeIcon: CalendarClock,
+    accent: EVENT_STYLES.purple.text, accentTint: EVENT_STYLES.purple.bg,
     fields: [
       { key: "desde", label: "Em acompanhamento desde", type: "text", default: "10/01/2026" },
       { key: "frequencia", label: "Frequência", type: "select", options: ["Semanal", "Quinzenal", "Mensal"], default: "Semanal" },
@@ -158,7 +222,8 @@ const DECLARATION_TEMPLATES = [
     id: "imagem",
     title: "Declaração de uso de imagem",
     desc: "Autorização do paciente para uso de imagem e depoimentos.",
-    icon: ImageIcon,
+    icon: ImageIcon, badgeIcon: Eye,
+    accent: T.success, accentTint: T.successTint,
     fields: [
       { key: "finalidade", label: "Finalidade do uso", type: "text", default: "divulgação em redes sociais e site do consultório" },
     ],
@@ -171,7 +236,8 @@ const DECLARATION_TEMPLATES = [
     id: "recibo",
     title: "Recibo de pagamento",
     desc: "Recibo referente a sessões de psicoterapia realizadas.",
-    icon: Receipt,
+    icon: Receipt, badgeIcon: CircleDollarSign,
+    accent: "#8A6413", accentTint: T.warnTint,
     fields: [
       { key: "valor", label: "Valor recebido (R$)", type: "number", default: 200 },
       { key: "forma", label: "Forma de pagamento", type: "select", options: ["Pix", "Cartão", "Dinheiro"], default: "Pix" },
@@ -208,9 +274,17 @@ function useAppData() {
 function DataProvider({ children }) {
   const [patients, setPatients] = useState(initialPatients);
   const [records, setRecords] = useState(() =>
-    Object.fromEntries(initialPatients.map((p) => [p.id, [{ date: p.lastSession, html: `<p>${p.note}</p>` }]]))
+    Object.fromEntries(initialPatients.map((p) => [p.id, [{
+      id: 1,
+      date: p.lastSession,
+      sessao: `Sessão ${p.sessions}`,
+      tecnicas: "Escuta ativa, reestruturação cognitiva",
+      objetivo: "Continuidade do acompanhamento terapêutico",
+      descricao: p.note,
+    }]]))
   );
   const [anamneses, setAnamneses] = useState({});
+  const [documents, setDocuments] = useState({});
   const [receivables, setReceivables] = useState(initialReceivables);
   const [goals, setGoals] = useState({
     faturamentoMensal: 10000,
@@ -232,8 +306,15 @@ function DataProvider({ children }) {
     setPatients((prev) => prev.map((p) => (p.id === id ? { ...p, ...changes } : p)));
   }
 
-  function addRecord(patientId, entry) {
-    setRecords((prev) => ({ ...prev, [patientId]: [entry, ...(prev[patientId] || [])] }));
+  function saveRecord(patientId, entry) {
+    setRecords((prev) => {
+      const list = prev[patientId] || [];
+      const idx = list.findIndex((r) => r.id === entry.id);
+      const nextList = idx >= 0
+        ? list.map((r, i) => (i === idx ? entry : r))
+        : [entry, ...list];
+      return { ...prev, [patientId]: nextList };
+    });
   }
 
   function saveAnamnese(patientId, entry) {
@@ -251,10 +332,19 @@ function DataProvider({ children }) {
     setReceivables((prev) => [{ id: Date.now(), ...entry }, ...prev]);
   }
 
+  function addDocument(patientId, entry) {
+    setDocuments((prev) => ({ ...prev, [patientId]: [entry, ...(prev[patientId] || [])] }));
+  }
+
+  function removeDocument(patientId, id) {
+    setDocuments((prev) => ({ ...prev, [patientId]: (prev[patientId] || []).filter((d) => d.id !== id) }));
+  }
+
   const value = {
     patients, setPatients, addPatient, updatePatient,
-    records, addRecord,
+    records, saveRecord,
     anamneses, saveAnamnese,
+    documents, addDocument, removeDocument,
     receivables, addReceivable,
     goals, updateGoals,
   };
@@ -399,14 +489,14 @@ function SearchInput({ value, onChange, placeholder }) {
 /* Sidebar                                                              */
 /* ------------------------------------------------------------------ */
 const headerIconBtn = {
-  width: 48, height: 48, borderRadius: "50%", border: "none", cursor: "pointer",
+  width: 40, height: 40, borderRadius: "50%", border: "none", cursor: "pointer",
   background: "rgba(255,255,255,0.16)", color: "#fff",
   display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
 };
 
 function Header() {
   return (
-    <header style={{ display: "flex", alignItems: "center", gap: 20, background: T.primary, padding: "20px 28px", flexShrink: 0, width: "100%", boxSizing: "border-box" }}>
+    <header style={{ display: "flex", alignItems: "center", gap: 20, background: T.primary, padding: "16px 28px", flexShrink: 0, width: "100%", boxSizing: "border-box" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
         <div style={{ width: 46, height: 46, borderRadius: 12, background: "rgba(255,255,255,0.16)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Brain size={27} color="#fff" />
@@ -414,22 +504,16 @@ function Header() {
         <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 30, color: "#fff" }}>Psystem</span>
       </div>
 
-      <div style={{ position: "relative", width: "34%", maxWidth: 400, marginLeft: "auto" }}>
-        <Search size={20} color="rgba(255,255,255,0.85)" style={{ position: "absolute", left: 17, top: "50%", transform: "translateY(-50%)" }} />
-        <input
-          className="header-search"
-          placeholder="Pesquisar paciente..."
-          style={{
-            width: "100%", padding: "13px 16px 13px 46px", borderRadius: 999, border: "none",
-            fontSize: 15, outline: "none", background: "rgba(255,255,255,0.16)", color: "#fff",
-            boxSizing: "border-box",
-          }}
-        />
-      </div>
-
-      <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
-        <button style={headerIconBtn}><Bell size={22} /></button>
-        <button style={headerIconBtn}><Settings size={22} /></button>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0, marginLeft: "auto" }}>
+        <button style={headerIconBtn}><Bell size={20} /></button>
+        <button style={headerIconBtn}><Settings size={20} /></button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, paddingLeft: 4 }}>
+          <Avatar initials="IT" color="purple" size={42} />
+          <div style={{ lineHeight: 1.25 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: "#fff" }}>Dra. Isadora Talamini</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.8)" }}>Psicóloga</div>
+          </div>
+        </div>
       </div>
     </header>
   );
@@ -439,11 +523,11 @@ function Sidebar({ page, setPage }) {
   return (
     <aside
       style={{
-        width: 232, flexShrink: 0, background: T.surface, borderRight: `1px solid ${T.border}`,
+        width: 268, flexShrink: 0, background: T.surface, borderRight: `1px solid ${T.border}`,
         display: "flex", flexDirection: "column", height: "100%",
       }}
     >
-      <nav style={{ flex: 1, padding: "16px 12px 6px", display: "flex", flexDirection: "column", gap: 2 }}>
+      <nav style={{ flex: 1, padding: "22px 14px 6px", display: "flex", flexDirection: "column", gap: 6 }}>
         {NAV.map((item) => {
           const active = page === item.key;
           const Icon = item.icon;
@@ -452,30 +536,22 @@ function Sidebar({ page, setPage }) {
               key={item.key}
               onClick={() => setPage(item.key)}
               style={{
-                display: "flex", alignItems: "center", gap: 14, padding: "13px 12px 13px 9px",
-                borderRadius: 10, borderTopLeftRadius: active ? 0 : 10, borderBottomLeftRadius: active ? 0 : 10,
-                border: "none", borderLeft: active ? `3px solid ${T.primary}` : "3px solid transparent",
-                cursor: "pointer", fontSize: 15, fontWeight: active ? 700 : 500,
-                background: active ? T.primaryTint : "transparent", color: active ? T.primaryDark : T.muted,
+                display: "flex", alignItems: "center", gap: 16, padding: "15px 14px 15px 12px",
+                borderRadius: 11, borderTopLeftRadius: active ? 0 : 11, borderBottomLeftRadius: active ? 0 : 11,
+                border: "none", borderLeft: active ? `4px solid ${T.primary}` : "4px solid transparent",
+                cursor: "pointer", fontSize: 16.5, fontWeight: active ? 800 : 600,
+                background: active ? T.primaryTint : "transparent", color: active ? T.primaryDark : T.text,
                 textAlign: "left", width: "100%", transition: "background .12s, color .12s",
               }}
               onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "#F5F6FA"; }}
               onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
             >
-              <Icon size={24} />
+              <Icon size={27} />
               {item.label}
             </button>
           );
         })}
       </nav>
-
-      <div style={{ padding: 16, borderTop: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-        <Avatar initials="IT" color="purple" size={46} />
-        <div style={{ lineHeight: 1.25 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: T.text }}>Dra. Isadora Talamini</div>
-          <div style={{ fontSize: 12, color: T.muted }}>Psicóloga</div>
-        </div>
-      </div>
     </aside>
   );
 }
@@ -1235,7 +1311,7 @@ function NewPatientModal({ onClose, onSave, editingPatient }) {
 
   return (
     <Modal title={editingPatient ? "Editar cadastro do paciente" : "Cadastro de paciente"} onClose={onClose} width={640}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>Dados pessoais</div>
+      <div style={{ fontSize: 25, fontWeight: 1000, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>Dados pessoais</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
         <FormField label="Nome completo *" value={form.name} onChange={set("name")} placeholder="Nome do paciente" />
         <FormField label="Data de nascimento" value={form.nascimento} onChange={set("nascimento")} placeholder="dd/mm/aaaa" />
@@ -1243,14 +1319,14 @@ function NewPatientModal({ onClose, onSave, editingPatient }) {
         <FormField label="Status" value={form.status} onChange={set("status")} options={["Ativo", "Inativo"]} />
       </div>
 
-      <div style={{ fontSize: 12, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4, margin: "6px 0 8px" }}>Contato</div>
+      <div style={{ fontSize: 25, fontWeight: 0, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4, margin: "6px 0 8px" }}>Contato</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
         <FormField label="Telefone *" value={form.phone} onChange={set("phone")} placeholder="(00) 00000-0000" />
         <FormField label="E-mail" value={form.email} onChange={set("email")} type="email" placeholder="paciente@email.com" />
       </div>
       <FormField label="Endereço completo" value={form.endereco} onChange={set("endereco")} placeholder="Rua, número — bairro, cidade/UF" />
 
-      <div style={{ fontSize: 12, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4, margin: "6px 0 8px" }}>Convênio e emergência</div>
+      <div style={{ fontSize: 25, fontWeight: 1000, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4, margin: "6px 0 8px" }}>Convênio e emergência</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0 16px" }}>
         <FormField label="Convênio" value={form.convenio} onChange={set("convenio")} options={CONVENIO_OPTIONS} />
         <FormField label="Contato de emergência" value={form.emergenciaNome} onChange={set("emergenciaNome")} placeholder="Nome (parentesco)" />
@@ -1301,26 +1377,228 @@ function DadosPessoaisTab({ patient }) {
   );
 }
 
-const ANAMNESE_FIELDS = [
-  { key: "queixa", label: "Queixa principal" },
-  { key: "historicoSaude", label: "Histórico de saúde" },
-  { key: "historicoFamiliar", label: "Histórico familiar" },
-  { key: "medicacao", label: "Uso de medicação" },
-  { key: "expectativas", label: "Expectativas com a terapia" },
-  { key: "observacoesAnamnese", label: "Informações adicionais" },
+/* Anamnese — Acolhimento Infantil (todas as perguntas do formulário) */
+const ANAMNESE_SECTIONS = [
+  {
+    title: "Dados de identificação",
+    fields: [
+      { key: "nome", label: "Nome" },
+      { key: "dataNascimentoCrianca", label: "Data de nascimento" },
+      { key: "idadeCrianca", label: "Idade" },
+      { key: "religiao", label: "Religião" },
+      { key: "cidade", label: "Cidade" },
+      { key: "estado", label: "Estado" },
+      { key: "enderecoCrianca", label: "Endereço" },
+      { key: "estadoCivil", label: "Estado civil" },
+      { key: "sexo", label: "Sexo" },
+      { key: "escolaridade", label: "Escolaridade" },
+      { key: "telefoneFixo", label: "Telefone fixo" },
+      { key: "celular", label: "Celular" },
+      { key: "recado", label: "Recado" },
+      { key: "encaminhamento", label: "Encaminhamento", textarea: true },
+      { key: "profissionalEncaminhamento", label: "Profissional responsável pelo encaminhamento" },
+      { key: "buscaIndependente", label: "Busca independente (Sim/Não) — Recomendação" },
+    ],
+  },
+  {
+    title: "Dados de identificação dos pais",
+    fields: [
+      { key: "nomePai", label: "Nome do pai" },
+      { key: "idadePai", label: "Idade do pai" },
+      { key: "profissaoPai", label: "Profissão do pai" },
+      { key: "empresaPai", label: "Empresa do pai" },
+      { key: "escolaridadePais", label: "Escolaridade" },
+      { key: "nomeMae", label: "Nome da mãe" },
+      { key: "idadeMae", label: "Idade da mãe" },
+      { key: "profissaoMae", label: "Profissão da mãe" },
+      { key: "empresaMae", label: "Empresa da mãe" },
+      { key: "enderecoPais", label: "Endereço" },
+    ],
+  },
+  {
+    title: "Queixa principal",
+    fields: [
+      { key: "queixaPrincipal", label: "Queixa principal", textarea: true },
+    ],
+  },
+  {
+    title: "História clínica",
+    fields: [
+      { key: "doencaCronica", label: "Doença crônica (Sim/Não) — Quais" },
+      { key: "laudoDiagnostico", label: "Laudo/Diagnóstico" },
+      { key: "cid", label: "CID" },
+      { key: "tempoDiagnostico", label: "Há quanto tempo recebeu o diagnóstico" },
+      { key: "primeirosSinais", label: "Primeiros sinais que apresentou", textarea: true },
+      { key: "quemPercebeuSinais", label: "Quem percebeu os sinais (Família/Escola/Outros)" },
+      { key: "relateSobre", label: "Relate sobre", textarea: true },
+    ],
+  },
+  {
+    title: "Medicamentos e intervenções",
+    fields: [
+      { key: "usoMedicamentos", label: "Uso de medicamentos (Sim/Não) — Quais" },
+      { key: "quantoTempoMedicamento", label: "Quanto tempo" },
+      { key: "casosInternacao", label: "Casos de internação" },
+      { key: "motivoInternacao", label: "Motivo" },
+      { key: "limitacoes", label: "Limitações (auditiva, visual, motora, fala, outra)" },
+      { key: "psicoterapiaPsiquiatra", label: "Psicoterapia / Psiquiatra / Neurologista" },
+      { key: "outrosEspecialistas", label: "Já procurou outros especialistas? Quais?" },
+      { key: "tratamentoAtual", label: "Está fazendo tratamento médico, psicológico, psiquiátrico ou neurológico?" },
+      { key: "porque", label: "Por quê?" },
+      { key: "convulsoes", label: "A criança tem/teve convulsões (com ou sem febre)?" },
+      { key: "traumatismo", label: "Já teve traumatismo?" },
+      { key: "cirurgia", label: "Já realizou alguma cirurgia? Qual?" },
+    ],
+  },
+  {
+    title: "Período gestacional e pós-parto",
+    fields: [
+      { key: "problemasGestacao", label: "Problemas de saúde na gestação", textarea: true },
+      { key: "condicoesEmocionais", label: "Condições emocionais na gestação e pós-parto", textarea: true },
+      { key: "eventosGestacao", label: "Eventos significativos neste período", textarea: true },
+    ],
+  },
+  {
+    title: "Dados do nascimento",
+    fields: [
+      { key: "peso", label: "Peso" },
+      { key: "centimetros", label: "Centímetros" },
+      { key: "apgar", label: "Apgar" },
+      { key: "coloracao", label: "Coloração" },
+      { key: "problemasPosParto", label: "Relate se houve problemas pós-parto", textarea: true },
+    ],
+  },
+  {
+    title: "Comunicação",
+    fields: [
+      { key: "comunicacaoAtual", label: "Comunicação atual (se fala, quantas palavras, atraso na linguagem, primeiras vocalizações, etc.)", textarea: true },
+      { key: "balbucios", label: "Balbucios" },
+      { key: "ecolalias", label: "Presença de ecolalias (Sim/Não) — Outros/quais" },
+    ],
+  },
+  {
+    title: "Motricidade",
+    fields: [
+      { key: "sentar", label: "Sentar" },
+      { key: "engatinhar", label: "Engatinhar" },
+      { key: "andar", label: "Andar" },
+      { key: "pontaPes", label: "Caminhar na ponta dos pés (Sim/Não) — Quanto tempo" },
+    ],
+  },
+  {
+    title: "Alimentação",
+    fields: [
+      { key: "amamentacao", label: "Amamentação (Sim/Não) — Quanto tempo" },
+      { key: "mamadeiras", label: "Mamadeiras (Sim/Não) — Quanto tempo" },
+      { key: "forcadaAlimentar", label: "A criança é forçada a se alimentar? Explique", textarea: true },
+      { key: "seletividadeAlimentar", label: "Seletividade alimentar (texturas, gosto, cor, temperatura, outros)", textarea: true },
+      { key: "ajudaAlimentacao", label: "Recebe ajuda na alimentação?" },
+    ],
+  },
+  {
+    title: "Sono",
+    fields: [
+      { key: "dormeBem", label: "A criança dorme bem?" },
+      { key: "comoSono", label: "Como é seu sono (agitado, tranquilo)" },
+      { key: "rangeDentes", label: "Range os dentes ao dormir?" },
+      { key: "quartoSeparado", label: "Dorme em quarto separado dos pais?" },
+    ],
+  },
+  {
+    title: "Autonomia",
+    fields: [
+      { key: "vesteSozinho", label: "Veste-se sozinho?" },
+      { key: "banhoSozinho", label: "Toma banho sozinho?" },
+      { key: "controleEsfincteres", label: "Controle de esfíncteres" },
+      { key: "fraldas", label: "Fez ou faz uso de fraldas? Quanto tempo" },
+      { key: "desfralde", label: "Como foi o desfralde" },
+      { key: "chupetas", label: "Chupetas — quanto tempo" },
+      { key: "retiradaChupeta", label: "Como foi a retirada" },
+    ],
+  },
+  {
+    title: "História familiar",
+    fields: [
+      { key: "dinamicaFamiliar", label: "Dinâmica familiar", textarea: true },
+      { key: "relacaoPais", label: "Relação com os pais", textarea: true },
+      { key: "relacaoIrmaos", label: "Relação com irmãos", textarea: true },
+      { key: "transtornosFamilia", label: "Presença de transtornos e/ou deficiências na família", textarea: true },
+    ],
+  },
+  {
+    title: "História social",
+    fields: [
+      { key: "brincarSozinhaAmigos", label: "Prefere brincar sozinha(o) ou com amigos?" },
+      { key: "descrevaBrincar", label: "Descreva o brincar do seu filho(a)", textarea: true },
+      { key: "amigosFacilidade", label: "Faz amigos com facilidade?" },
+      { key: "adaptaMeio", label: "Adapta-se facilmente ao meio?" },
+      { key: "escolaSocializacao", label: "Escola (socialização)", textarea: true },
+      { key: "rotinaCrianca", label: "Rotina da criança (atividades extras, etc.)", textarea: true },
+    ],
+  },
+  {
+    title: "Dados escolares",
+    fields: [
+      { key: "dadosEscola", label: "Dados da escola (ano de inserção, período, queixas, dificuldades, etc.)", textarea: true },
+      { key: "gostaEscola", label: "A criança gosta de ir à escola?" },
+      { key: "aceitaAmigos", label: "É bem aceita pelos amigos ou é isolada?" },
+      { key: "reprovacaoDificuldades", label: "Casos de reprovação / áreas de dificuldades", textarea: true },
+    ],
+  },
+  {
+    title: "Comportamento",
+    fields: [
+      { key: "caracteristicasComportamento", label: "Características predominantes (agressiva, passiva, dependente, independente, inquieta, medrosa, retraída, desligada, excitada, outros)", textarea: true },
+      { key: "reageContrariada", label: "Como reage quando contrariada?" },
+      { key: "eventosSignificativos", label: "Eventos significativos", textarea: true },
+      { key: "autoagressao", label: "Autoagressão — quais e comportamento que antecede o ocorrido", textarea: true },
+      { key: "heteroagressao", label: "Heteroagressão — quais e comportamento que antecede o ocorrido", textarea: true },
+      { key: "comportamentosDestrutivos", label: "Comportamentos destrutivos — quais e comportamento que antecede o ocorrido", textarea: true },
+      { key: "movimentosEstereotipados", label: "Movimentos estereotipados (flap de mãos, balanço, etc.) — quais" },
+      { key: "alinhamentoEmpilhamento", label: "Alinhamento / empilhamento / gosta de objetos que rodam ou piscam" },
+      { key: "outrosComportamentos", label: "Outros" },
+    ],
+  },
+  {
+    title: "Medidas disciplinares",
+    fields: [
+      { key: "medidasDisciplinares", label: "Quais as medidas disciplinares normalmente utilizadas com a criança?", textarea: true },
+      { key: "quemUsaMedidas", label: "Quem as usa?" },
+      { key: "reacaoMedidas", label: "Quais as reações da criança frente a essas medidas?", textarea: true },
+    ],
+  },
+  {
+    title: "Preferências e reforços",
+    fields: [
+      { key: "atividadesPreferidas", label: "Atividades / brinquedos preferidos", textarea: true },
+    ],
+  },
 ];
+
+const ANAMNESE_FIELDS = ANAMNESE_SECTIONS.flatMap((s) => s.fields);
 
 function AnamneseForm({ initial, onCancel, onSave }) {
   const [form, setForm] = useState(initial);
   return (
     <Card style={{ padding: 24, marginBottom: 16 }}>
-      <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 14 }}>
+      <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 18 }}>
         Preencha a anamnese do paciente. Você pode registrar quantas anamneses forem necessárias e editar qualquer uma delas depois.
       </div>
-      {ANAMNESE_FIELDS.map((f) => (
-        <FormField key={f.key} label={f.label} value={form[f.key]} onChange={(v) => setForm({ ...form, [f.key]: v })} textarea />
+      {ANAMNESE_SECTIONS.map((section) => (
+        <div key={section.title} style={{ marginBottom: 22 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: T.primary, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 10 }}>
+            {section.title}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
+            {section.fields.map((f) => (
+              <div key={f.key} style={{ gridColumn: f.textarea ? "1 / -1" : undefined }}>
+                <FormField label={f.label} value={form[f.key]} onChange={(v) => setForm({ ...form, [f.key]: v })} textarea={f.textarea} />
+              </div>
+            ))}
+          </div>
+        </div>
       ))}
-      <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+      <div style={{ display: "flex", gap: 10, marginTop: 8, position: "sticky", bottom: 0, background: T.surface, paddingTop: 10 }}>
         <button onClick={onCancel} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
         <PrimaryButton style={{ flex: 1, justifyContent: "center" }} icon={Check} onClick={() => onSave(form)}>Salvar anamnese</PrimaryButton>
       </div>
@@ -1363,84 +1641,212 @@ function AnamneseTab({ patient }) {
           <div style={{ fontSize: 13.5, color: T.muted }}>Nenhuma anamnese registrada ainda para este paciente.</div>
         </Card>
       ) : (
-        list.map((entry) => (
-          <Card key={entry.id} style={{ padding: 24, marginBottom: 14 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div style={{ fontSize: 12, color: T.muted }}>Preenchida em {entry.preenchidoEm}</div>
-              <button onClick={() => setEditingId(entry.id)} style={{ ...iconBtn, background: "#fff" }} title="Editar anamnese"><Edit3 size={20} /></button>
-            </div>
-            {ANAMNESE_FIELDS.map((f) => (
-              <div key={f.key} style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>{f.label}</div>
-                <div style={{ fontSize: 13.5, color: T.text, lineHeight: 1.6 }}>{entry[f.key] || "—"}</div>
+        list.map((entry) => {
+          const filledSections = ANAMNESE_SECTIONS
+            .map((section) => ({ ...section, fields: section.fields.filter((f) => entry[f.key]) }))
+            .filter((section) => section.fields.length > 0);
+          return (
+            <Card key={entry.id} style={{ padding: 24, marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <div style={{ fontSize: 12, color: T.muted }}>Preenchida em {entry.preenchidoEm}</div>
+                <button onClick={() => setEditingId(entry.id)} style={{ ...iconBtn, background: "#fff" }} title="Editar anamnese"><Edit3 size={20} /></button>
               </div>
-            ))}
-          </Card>
+              {filledSections.length === 0 ? (
+                <div style={{ fontSize: 13.5, color: T.muted }}>Nenhuma pergunta respondida ainda.</div>
+              ) : (
+                filledSections.map((section) => (
+                  <div key={section.title} style={{ marginBottom: 18 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: T.primary, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 10 }}>
+                      {section.title}
+                    </div>
+                    {section.fields.map((f) => (
+                      <div key={f.key} style={{ marginBottom: 12 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>{f.label}</div>
+                        <div style={{ fontSize: 13.5, color: T.text, lineHeight: 1.6 }}>{entry[f.key]}</div>
+                      </div>
+                    ))}
+                  </div>
+                ))
+              )}
+            </Card>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+function blankRecordForm() {
+  return { sessao: "", date: todayLabel(), tecnicas: "", objetivo: "", descricao: "" };
+}
+
+function RecordForm({ initial, onCancel, onSave }) {
+  const [form, setForm] = useState(initial);
+  return (
+    <Card style={{ padding: 24, marginBottom: 16 }}>
+      <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 18 }}>
+        Registre a sessão diretamente no sistema. Você pode criar quantos registros forem necessários e editar qualquer um deles depois.
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
+        <FormField label="Sessão" value={form.sessao} onChange={(v) => setForm({ ...form, sessao: v })} placeholder="Ex: Sessão 12" />
+        <FormField label="Data" value={form.date} onChange={(v) => setForm({ ...form, date: v })} placeholder="dd/mm/aaaa" />
+      </div>
+      <FormField label="Técnicas utilizadas" value={form.tecnicas} onChange={(v) => setForm({ ...form, tecnicas: v })} placeholder="Ex: escuta ativa, reestruturação cognitiva" />
+      <FormField label="Objetivo da sessão" value={form.objetivo} onChange={(v) => setForm({ ...form, objetivo: v })} placeholder="Ex: reduzir sintomas de ansiedade" />
+      <FormField label="Descrição / relato de atendimento" value={form.descricao} onChange={(v) => setForm({ ...form, descricao: v })} textarea placeholder="Descreva o que foi trabalhado na sessão..." />
+      <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+        <button onClick={onCancel} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
+        <PrimaryButton style={{ flex: 1, justifyContent: "center" }} icon={Check} onClick={() => onSave(form)}>Salvar prontuário</PrimaryButton>
+      </div>
+    </Card>
+  );
+}
+
+function RecordCard({ entry, onEdit }) {
+  return (
+    <Card style={{ padding: 22, marginBottom: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, gap: 12 }}>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: T.text }}>{entry.sessao || "Sessão"}</div>
+          <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>{entry.date}</div>
+        </div>
+        <button onClick={onEdit} style={{ ...iconBtn, background: "#fff" }} title="Editar registro"><Edit3 size={20} /></button>
+      </div>
+      {entry.tecnicas && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>Técnicas utilizadas</div>
+          <div style={{ fontSize: 13.5, color: T.text, lineHeight: 1.6 }}>{entry.tecnicas}</div>
+        </div>
+      )}
+      {entry.objetivo && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>Objetivo da sessão</div>
+          <div style={{ fontSize: 13.5, color: T.text, lineHeight: 1.6 }}>{entry.objetivo}</div>
+        </div>
+      )}
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>Descrição / relato de atendimento</div>
+        <div style={{ fontSize: 13.5, color: T.text, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{entry.descricao || "—"}</div>
+      </div>
+    </Card>
+  );
+}
+
+function ProntuarioTab({ patient }) {
+  const { records, saveRecord } = useAppData();
+  const list = records[patient.id] || [];
+  const [editingId, setEditingId] = useState(null); // null | "new" | entry id
+
+  function handleSave(form) {
+    const id = editingId === "new" ? Date.now() : editingId;
+    saveRecord(patient.id, { ...form, id });
+    setEditingId(null);
+  }
+
+  if (editingId !== null) {
+    const editingEntry = editingId === "new" ? blankRecordForm() : list.find((r) => r.id === editingId);
+    return <RecordForm initial={editingEntry} onCancel={() => setEditingId(null)} onSave={handleSave} />;
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4 }}>
+          {list.length} {list.length === 1 ? "registro no prontuário" : "registros no prontuário"}
+        </div>
+        <PrimaryButton icon={Plus} onClick={() => setEditingId("new")}>Novo registro</PrimaryButton>
+      </div>
+
+      {list.length === 0 ? (
+        <Card style={{ padding: 24 }}>
+          <div style={{ fontSize: 13.5, color: T.muted }}>Nenhum registro no prontuário ainda para este paciente.</div>
+        </Card>
+      ) : (
+        list.map((entry) => (
+          <RecordCard key={entry.id} entry={entry} onEdit={() => setEditingId(entry.id)} />
         ))
       )}
     </div>
   );
 }
 
-function ProntuarioTab({ patient }) {
-  const { records, addRecord } = useAppData();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [previewing, setPreviewing] = useState(null);
-  const fileRef = useRef(null);
-  const history = records[patient.id] || [];
+function formatFileSize(bytes) {
+  if (!bytes && bytes !== 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
-  async function handleUpload(file) {
-    setLoading(true);
-    setError(null);
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const result = await mammoth.convertToHtml({ arrayBuffer });
-      addRecord(patient.id, { date: todayLabel(), fileName: file.name, html: result.value });
-    } catch (err) {
-      setError("Não foi possível ler este arquivo. Envie um .docx válido.");
-    } finally {
-      setLoading(false);
-    }
+function DocumentosTab({ patient }) {
+  const { documents, addDocument, removeDocument } = useAppData();
+  const list = documents[patient.id] || [];
+  const [title, setTitle] = useState("");
+  const [pendingFile, setPendingFile] = useState(null);
+  const fileRef = useRef(null);
+
+  function handleAdd() {
+    if (!pendingFile || !title.trim()) return;
+    addDocument(patient.id, {
+      id: Date.now(),
+      title: title.trim(),
+      fileName: pendingFile.name,
+      size: pendingFile.size,
+      url: URL.createObjectURL(pendingFile),
+      date: todayLabel(),
+    });
+    setTitle("");
+    setPendingFile(null);
+    if (fileRef.current) fileRef.current.value = "";
   }
 
   return (
-    <Card style={{ padding: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18, flexWrap: "wrap", gap: 14 }}>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4 }}>Prontuários anexados</div>
-          <div style={{ fontSize: 12.5, color: T.muted, marginTop: 4, maxWidth: 420 }}>
-            Cada arquivo enviado fica guardado com a data de anexo — os anteriores não são substituídos.
+    <div>
+      <Card style={{ padding: 22, marginBottom: 20 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 14 }}>
+          Adicionar documento
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
+          <FormField label="Título do documento" value={title} onChange={setTitle} placeholder="Ex: Laudo médico" />
+          <div>
+            <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Arquivo</label>
+            <input
+              ref={fileRef}
+              type="file"
+              onChange={(e) => setPendingFile(e.target.files[0] || null)}
+              style={{ ...inputStyle, padding: "7px 12px" }}
+            />
           </div>
         </div>
-        <input ref={fileRef} type="file" accept=".docx" style={{ display: "none" }} onChange={(e) => { e.target.files[0] && handleUpload(e.target.files[0]); e.target.value = ""; }} />
-        <PrimaryButton icon={loading ? RefreshCw : Paperclip} onClick={() => fileRef.current?.click()}>
-          {loading ? "Enviando..." : "Adicionar prontuário (.docx)"}
+        <PrimaryButton icon={Paperclip} onClick={handleAdd} style={{ marginTop: 4 }}>
+          Salvar documento
         </PrimaryButton>
-      </div>
-      {error && <div style={{ fontSize: 12.5, color: T.danger, marginBottom: 14 }}>{error}</div>}
+      </Card>
 
-      {history.length === 0 ? (
-        <div style={{ fontSize: 13.5, color: T.muted, padding: "8px 0" }}>Nenhum arquivo anexado ainda para este paciente.</div>
-      ) : (
-        history.map((h, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 2px", borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
-            <div style={{ width: 42, height: 42, borderRadius: 10, background: T.primaryTint, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <FileText size={20} color={T.primary} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {h.fileName || "Registro inicial"}
+      <Card style={{ padding: 0, overflow: "hidden" }}>
+        <div style={{ padding: "14px 20px", borderBottom: `1px solid ${T.border}`, fontSize: 13, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4 }}>
+          {list.length} {list.length === 1 ? "documento anexado" : "documentos anexados"}
+        </div>
+        {list.length === 0 ? (
+          <div style={{ fontSize: 13.5, color: T.muted, padding: 20 }}>Nenhum documento anexado ainda para este paciente.</div>
+        ) : (
+          list.map((d, i) => (
+            <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 20px", borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+              <div style={{ width: 42, height: 42, borderRadius: 10, background: T.primaryTint, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <FileText size={20} color={T.primary} />
               </div>
-              <div style={{ fontSize: 12, color: T.muted }}>Anexado em {h.date}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.title}</div>
+                <div style={{ fontSize: 12, color: T.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {d.fileName} · {formatFileSize(d.size)} · Anexado em {d.date}
+                </div>
+              </div>
+              <a href={d.url} target="_blank" rel="noopener noreferrer" style={{ ...iconBtn, textDecoration: "none" }} title="Abrir documento"><Eye size={20} /></a>
+              <button onClick={() => removeDocument(patient.id, d.id)} style={{ ...iconBtn, background: "#fff" }} title="Remover documento"><Trash2 size={20} /></button>
             </div>
-            <button onClick={() => setPreviewing(h.html)} style={iconBtn} title="Visualizar conteúdo"><Eye size={20} /></button>
-          </div>
-        ))
-      )}
-
-      {previewing && <TemplatePreviewModal html={previewing} onClose={() => setPreviewing(null)} />}
-    </Card>
+          ))
+        )}
+      </Card>
+    </div>
   );
 }
 
@@ -1686,8 +2092,9 @@ function MatriculaTab({ patient }) {
 
 const PROFILE_TABS = [
   { key: "dados", label: "Dados pessoais", icon: User },
+  { key: "prontuario", label: "Prontuários", icon: FileText },
   { key: "anamnese", label: "Anamnese", icon: HeartPulse },
-  { key: "prontuario", label: "Prontuário", icon: FileText },
+  { key: "documentos", label: "Documentos", icon: Paperclip },
   { key: "financeiro", label: "Financeiro", icon: Wallet },
   { key: "matricula", label: "Matrícula", icon: CalendarClock },
 ];
@@ -1721,7 +2128,7 @@ function PatientProfile({ patientId, onBack }) {
         </div>
       </Card>
 
-      <div style={{ display: "flex", gap: 28, marginBottom: 20, borderBottom: `1px solid ${T.border}`, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", marginBottom: 24, borderBottom: `1px solid ${T.border}` }}>
         {PROFILE_TABS.map((t) => {
           const active = tab === t.key;
           return (
@@ -1729,10 +2136,11 @@ function PatientProfile({ patientId, onBack }) {
               key={t.key}
               onClick={() => setTab(t.key)}
               style={{
-                padding: "0 0 12px", background: "none", cursor: "pointer",
-                border: "none", borderBottom: active ? `2px solid ${T.primary}` : "2px solid transparent",
+                flex: 1, padding: "0 0 14px", background: "none", cursor: "pointer",
+                border: "none", borderBottom: active ? `3px solid ${T.primary}` : "3px solid transparent",
                 marginBottom: -1, color: active ? T.primary : T.muted,
-                fontWeight: 700, fontSize: 12.5, textTransform: "uppercase", letterSpacing: 0.4,
+                fontWeight: 800, fontSize: 14.5, textTransform: "uppercase", letterSpacing: 0.5,
+                textAlign: "center", whiteSpace: "nowrap",
               }}
             >
               {t.label}
@@ -1745,6 +2153,7 @@ function PatientProfile({ patientId, onBack }) {
       {tab === "anamnese" && <AnamneseTab patient={patient} />}
       {tab === "prontuario" && <ProntuarioTab patient={patient} />}
       {tab === "financeiro" && <FinanceiroTab patient={patient} />}
+      {tab === "documentos" && <DocumentosTab patient={patient} />}
       {tab === "matricula" && <MatriculaTab patient={patient} />}
 
       {showEdit && (
@@ -1860,168 +2269,24 @@ function Pacientes() {
 /* ------------------------------------------------------------------ */
 /* Prontuários                                                          */
 /* ------------------------------------------------------------------ */
-const DEFAULT_RECORD_SKELETON = `
-  <p><strong>Queixa principal:</strong> descreva aqui.</p>
-  <p><strong>Evolução da sessão:</strong> descreva aqui.</p>
-  <p><strong>Conduta / plano terapêutico:</strong> descreva aqui.</p>
-`;
-
 function todayLabel() {
   return new Date(2026, 7, 17).toLocaleDateString("pt-BR");
 }
 
-function UploadRecordCard({ templateName, onUpload, onClear, loading, error }) {
-  const fileRef = useRef(null);
-  return (
-    <Card style={{ padding: 18, marginBottom: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 10, background: T.primaryTint, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <FileText size={20} color={T.primary} />
-          </div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 14.5, color: T.text }}>Enviar prontuário (.docx)</div>
-            {templateName ? (
-              <div style={{ fontSize: 12.5, color: T.muted, marginTop: 2 }}>
-                Último arquivo enviado: <strong style={{ color: T.text }}>{templateName}</strong> — também usado como base para novos prontuários manuais.
-              </div>
-            ) : (
-              <div style={{ fontSize: 12.5, color: T.muted, marginTop: 2 }}>
-                Envie o arquivo .docx do prontuário — em seguida você escolhe a qual paciente ele pertence.
-              </div>
-            )}
-            {error && <div style={{ fontSize: 12.5, color: T.danger, marginTop: 4 }}>{error}</div>}
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-          <input ref={fileRef} type="file" accept=".docx" style={{ display: "none" }} onChange={(e) => { e.target.files[0] && onUpload(e.target.files[0]); e.target.value = ""; }} />
-          <button
-            onClick={() => fileRef.current?.click()}
-            disabled={loading}
-            style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 14px", borderRadius: 9, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, fontSize: 13, cursor: "pointer" }}
-          >
-            {loading ? <RefreshCw size={18} className="spin" /> : <UploadCloud size={18} />}
-            {templateName ? "Enviar novo (.docx)" : "Enviar arquivo (.docx)"}
-          </button>
-          {templateName && (
-            <button onClick={onClear} style={{ ...iconBtn, background: "#fff" }} title="Remover modelo"><Trash2 size={18} /></button>
-          )}
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function LinkPatientModal({ fileName, html, defaultPatientId, onClose, onConfirm }) {
-  const { patients } = useAppData();
-  const [patientId, setPatientId] = useState(defaultPatientId);
-  const [date, setDate] = useState(todayLabel());
-  return (
-    <Modal title="Vincular prontuário ao paciente" onClose={onClose} width={520}>
-      <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
-        <FileText size={16} /> Arquivo enviado: <strong style={{ color: T.text }}>{fileName}</strong>
-      </div>
-
-      <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Paciente</label>
-      <select value={patientId} onChange={(e) => setPatientId(Number(e.target.value))} style={inputStyle}>
-        {patients.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-      </select>
-
-      <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Data do registro</label>
-      <input value={date} onChange={(e) => setDate(e.target.value)} placeholder="dd/mm/aaaa" style={inputStyle} />
-
-      <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Pré-visualização</label>
-      <div
-        dangerouslySetInnerHTML={{ __html: html }}
-        style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: 14, maxHeight: 220, overflowY: "auto", fontSize: 13, lineHeight: 1.6, color: T.text, background: "#FAFBFE", margin: "6px 0 16px" }}
-      />
-
-      <div style={{ display: "flex", gap: 10 }}>
-        <button onClick={onClose} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
-        <PrimaryButton style={{ flex: 1, justifyContent: "center" }} icon={Check} onClick={() => onConfirm(patientId, date)}>Vincular e salvar</PrimaryButton>
-      </div>
-    </Modal>
-  );
-}
-
-function RecordEditorModal({ patient, initialHtml, onClose, onSave }) {
-  const editorRef = useRef(null);
-  return (
-    <Modal title={`Novo prontuário — ${patient.name}`} onClose={onClose} width={640}>
-      <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 10 }}>
-        Edite livremente o conteúdo abaixo. {initialHtml ? "O texto foi pré-preenchido a partir do último arquivo enviado." : "Nenhum arquivo enviado ainda — usando estrutura padrão."}
-      </div>
-      <div
-        ref={editorRef}
-        contentEditable
-        suppressContentEditableWarning
-        dangerouslySetInnerHTML={{ __html: initialHtml || DEFAULT_RECORD_SKELETON }}
-        style={{
-          border: `1px solid ${T.border}`, borderRadius: 10, padding: 16, minHeight: 260, maxHeight: 420, overflowY: "auto",
-          fontSize: 13.5, lineHeight: 1.7, color: T.text, background: "#FAFBFE", outline: "none",
-        }}
-      />
-      <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-        <button onClick={onClose} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
-        <PrimaryButton style={{ flex: 1, justifyContent: "center" }} onClick={() => onSave(editorRef.current?.innerHTML || "")}>Salvar prontuário</PrimaryButton>
-      </div>
-    </Modal>
-  );
-}
-
-function TemplatePreviewModal({ html, onClose }) {
-  return (
-    <Modal title="Último arquivo enviado" onClose={onClose} width={640}>
-      <div
-        dangerouslySetInnerHTML={{ __html: html }}
-        style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: 16, maxHeight: 460, overflowY: "auto", fontSize: 13.5, lineHeight: 1.7, color: T.text, background: "#FAFBFE" }}
-      />
-    </Modal>
-  );
-}
-
 function Prontuarios() {
-  const { patients, records, addRecord } = useAppData();
+  const { patients, records, saveRecord } = useAppData();
   const [selected, setSelected] = useState(patients[0].id);
   const [query, setQuery] = useState("");
-  const [templateName, setTemplateName] = useState(null);
-  const [templateHtml, setTemplateHtml] = useState(null);
-  const [uploadError, setUploadError] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [showEditor, setShowEditor] = useState(false);
-  const [pendingUpload, setPendingUpload] = useState(null); // { name, html } awaiting patient link
-  const [previewingRecord, setPreviewingRecord] = useState(null);
+  const [editingId, setEditingId] = useState(null); // null | "new" | entry id
 
   const active = patients.find((p) => p.id === selected);
   const filtered = patients.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()));
   const history = records[selected] || [];
 
-  async function handleUpload(file) {
-    setLoading(true);
-    setUploadError(null);
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const result = await mammoth.convertToHtml({ arrayBuffer });
-      setPendingUpload({ name: file.name, html: result.value });
-    } catch (err) {
-      setUploadError("Não foi possível ler este arquivo. Envie um .docx válido.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function confirmLink(patientId, date) {
-    addRecord(patientId, { date, fileName: pendingUpload.name, html: pendingUpload.html });
-    setTemplateName(pendingUpload.name);
-    setTemplateHtml(pendingUpload.html);
-    setSelected(patientId);
-    setPendingUpload(null);
-  }
-
-  function saveRecord(html) {
-    addRecord(selected, { date: todayLabel(), html });
-    setShowEditor(false);
+  function handleSave(form) {
+    const id = editingId === "new" ? Date.now() : editingId;
+    saveRecord(selected, { ...form, id });
+    setEditingId(null);
   }
 
   return (
@@ -2029,15 +2294,7 @@ function Prontuarios() {
       <PageHeader
         title="Prontuários"
         subtitle="Histórico clínico e evolução dos pacientes"
-        action={<PrimaryButton icon={Plus} onClick={() => setShowEditor(true)}>Novo prontuário</PrimaryButton>}
-      />
-
-      <UploadRecordCard
-        templateName={templateName}
-        onUpload={handleUpload}
-        onClear={() => { setTemplateName(null); setTemplateHtml(null); }}
-        loading={loading}
-        error={uploadError}
+        action={<PrimaryButton icon={Plus} onClick={() => setEditingId("new")}>Novo prontuário</PrimaryButton>}
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 20 }}>
@@ -2049,7 +2306,7 @@ function Prontuarios() {
             {filtered.map((p) => (
               <button
                 key={p.id}
-                onClick={() => setSelected(p.id)}
+                onClick={() => { setSelected(p.id); setEditingId(null); }}
                 style={{
                   display: "flex", alignItems: "center", gap: 10, padding: "10px 10px", borderRadius: 10, border: "none",
                   background: selected === p.id ? T.primaryTint : "transparent", cursor: "pointer", textAlign: "left",
@@ -2065,68 +2322,35 @@ function Prontuarios() {
           </div>
         </Card>
 
-        <Card style={{ padding: 24 }}>
+        <div>
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
             <Avatar initials={active.initials} color={active.color} size={50} />
             <div>
               <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 18, color: T.text }}>{active.name}</div>
               <div style={{ fontSize: 13, color: T.muted }}>{active.sessions} sessões · {active.status}</div>
             </div>
-            <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-              {templateHtml && (
-                <button onClick={() => setShowPreview(true)} style={iconBtn} title="Visualizar último arquivo enviado"><Eye size={18} /></button>
-              )}
-              <button onClick={() => setShowEditor(true)} style={iconBtn} title="Novo registro"><Edit3 size={18} /></button>
-            </div>
-          </div>
-
-          <div style={{ fontSize: 13, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 10 }}>Prontuários anexados</div>
-          <div>
-            {history.length === 0 ? (
-              <div style={{ fontSize: 13.5, color: T.muted, padding: "8px 0" }}>Nenhum prontuário registrado ainda para este paciente.</div>
-            ) : (
-              history.map((h, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 2px", borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 10, background: T.primaryTint, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <FileText size={20} color={T.primary} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {h.fileName || "Registro manual"}
-                    </div>
-                    <div style={{ fontSize: 12, color: T.muted }}>Anexado em {h.date}</div>
-                  </div>
-                  <button onClick={() => setPreviewingRecord(h.html)} style={iconBtn} title="Visualizar conteúdo"><Eye size={20} /></button>
-                </div>
-              ))
+            {editingId === null && (
+              <button onClick={() => setEditingId("new")} style={{ ...iconBtn, marginLeft: "auto", background: "#fff" }} title="Novo registro"><Plus size={18} /></button>
             )}
           </div>
-        </Card>
-      </div>
 
-      {pendingUpload && (
-        <LinkPatientModal
-          fileName={pendingUpload.name}
-          html={pendingUpload.html}
-          defaultPatientId={selected}
-          onClose={() => setPendingUpload(null)}
-          onConfirm={confirmLink}
-        />
-      )}
-      {showEditor && (
-        <RecordEditorModal
-          patient={active}
-          initialHtml={templateHtml}
-          onClose={() => setShowEditor(false)}
-          onSave={saveRecord}
-        />
-      )}
-      {showPreview && templateHtml && (
-        <TemplatePreviewModal html={templateHtml} onClose={() => setShowPreview(false)} />
-      )}
-      {previewingRecord && (
-        <TemplatePreviewModal html={previewingRecord} onClose={() => setPreviewingRecord(null)} />
-      )}
+          {editingId !== null ? (
+            <RecordForm
+              initial={editingId === "new" ? blankRecordForm() : history.find((r) => r.id === editingId)}
+              onCancel={() => setEditingId(null)}
+              onSave={handleSave}
+            />
+          ) : history.length === 0 ? (
+            <Card style={{ padding: 24 }}>
+              <div style={{ fontSize: 13.5, color: T.muted }}>Nenhum registro no prontuário ainda para este paciente.</div>
+            </Card>
+          ) : (
+            history.map((entry) => (
+              <RecordCard key={entry.id} entry={entry} onEdit={() => setEditingId(entry.id)} />
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -2134,7 +2358,140 @@ function Prontuarios() {
 /* ------------------------------------------------------------------ */
 /* Relatórios                                                           */
 /* ------------------------------------------------------------------ */
-function Relatorios() {
+const MONTHS_PT = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const REPORT_TODAY = new Date(2026, 7, 17);
+
+function ageFromBrDate(str, ref = REPORT_TODAY) {
+  const d = parseBrDate(str);
+  if (!d) return null;
+  let age = ref.getFullYear() - d.getFullYear();
+  const monthDiff = ref.getMonth() - d.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && ref.getDate() < d.getDate())) age--;
+  return age;
+}
+
+function daysBetweenBr(fromStr, toStr = null) {
+  const from = parseBrDate(fromStr);
+  const to = toStr ? parseBrDate(toStr) : REPORT_TODAY;
+  if (!from || !to) return null;
+  return Math.round((to - from) / 86400000);
+}
+
+const AGE_BUCKETS = [
+  { label: "0–17", test: (a) => a <= 17 },
+  { label: "18–25", test: (a) => a >= 18 && a <= 25 },
+  { label: "26–35", test: (a) => a >= 26 && a <= 35 },
+  { label: "36–45", test: (a) => a >= 36 && a <= 45 },
+  { label: "46–60", test: (a) => a >= 46 && a <= 60 },
+  { label: "60+", test: (a) => a > 60 },
+];
+
+const REPORT_CATEGORIES = [
+  {
+    key: "pacientes", label: "Pacientes", icon: ClipboardList, badgeIcon: Users2,
+    accent: T.primary, accentTint: T.primaryTint,
+    subtitle: "Relatórios completos sobre seus pacientes e atendimentos.",
+    reports: [
+      { key: "lista", label: "Lista de pacientes", desc: "Todos os pacientes, com convênio, sessões e situação." },
+      { key: "aniversariantes", label: "Aniversariantes do mês", desc: "Pacientes que fazem aniversário no mês selecionado." },
+      { key: "inativos", label: "Inativos / risco de abandono", desc: "Pacientes inativos ou sem sessão recente." },
+      { key: "novos", label: "Novos cadastros no período", desc: "Pacientes cadastrados dentro do intervalo escolhido." },
+      { key: "faixa-etaria", label: "Faixa etária", desc: "Distribuição dos pacientes por idade." },
+      { key: "genero", label: "Gênero", desc: "Distribuição dos pacientes por gênero." },
+    ],
+  },
+  {
+    key: "agenda", label: "Agenda", icon: CalendarClock, badgeIcon: Clock,
+    accent: EVENT_STYLES.purple.text, accentTint: EVENT_STYLES.purple.bg,
+    subtitle: "Visualize sua agenda, faltas, remarcações e horários.",
+    reports: [
+      { key: "realizadas-agendadas", label: "Sessões realizadas vs. agendadas", desc: "Comparativo de sessões no período selecionado." },
+      { key: "faltas-cancelamentos", label: "Faltas e cancelamentos", desc: "Faltas e cancelamentos por paciente ou por período." },
+      { key: "frequencia", label: "Frequência de sessões por paciente", desc: "Quantas sessões cada paciente fez e o intervalo médio entre elas." },
+      { key: "ocupacao", label: "Ocupação da agenda", desc: "Horários livres x preenchidos por dia." },
+    ],
+  },
+  {
+    key: "financeiro", label: "Financeiro", icon: CircleDollarSign, badgeIcon: Wallet,
+    accent: T.success, accentTint: T.successTint,
+    subtitle: "Relatórios financeiros, recebimentos, inadimplências e faturamento.",
+    reports: [
+      { key: "receber", label: "Contas a receber", desc: "Mensalidades e cobranças pagas ou em aberto." },
+      { key: "pagar", label: "Contas a pagar", desc: "Despesas do consultório." },
+      { key: "inadimplencia", label: "Inadimplência", desc: "Cobranças vencidas e ainda não pagas." },
+      { key: "recebimento-paciente", label: "Recebimento por paciente", desc: "Total recebido por paciente, pesquisável por nome." },
+    ],
+  },
+  {
+    key: "clinico", label: "Clínico", icon: HeartPulse, badgeIcon: FileText,
+    accent: EVENT_STYLES.teal.text, accentTint: EVENT_STYLES.teal.bg,
+    subtitle: "Acompanhe a documentação clínica dos seus pacientes.",
+    reports: [
+      { key: "com-anamnese", label: "Pacientes com anamnese", desc: "Pacientes que já têm anamnese preenchida." },
+      { key: "sem-anamnese", label: "Pacientes sem anamnese", desc: "Pacientes que ainda não têm anamnese preenchida." },
+      { key: "com-prontuario", label: "Pacientes com prontuários", desc: "Pacientes com registros no prontuário." },
+      { key: "sem-prontuario", label: "Pacientes sem prontuários", desc: "Pacientes sem nenhum registro no prontuário." },
+    ],
+  },
+];
+
+function FilterField({ label, children }) {
+  return (
+    <div>
+      <div style={{ fontSize: 12, color: T.muted, marginBottom: 6 }}>{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function FilterBar({ children, onApply }) {
+  return (
+    <Card style={{ padding: "16px 20px", marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 22, flexWrap: "wrap" }}>
+        {children}
+        <button
+          onClick={onApply}
+          style={{ background: "none", border: "none", color: T.primary, fontWeight: 700, fontSize: 13, cursor: "pointer", textTransform: "uppercase", letterSpacing: 0.3, padding: "10px 0" }}
+        >
+          Aplicar filtros
+        </button>
+      </div>
+    </Card>
+  );
+}
+
+function ReportTableCard({ countLabel, columns, rows, emptyText, renderRow }) {
+  return (
+    <Card style={{ overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderBottom: `1px solid ${T.border}` }}>
+        <span style={{ fontSize: 13.5, color: T.text }}>{countLabel}</span>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button style={{ ...iconBtn, background: "#fff" }} title="Imprimir"><Printer size={20} /></button>
+          <button style={{ ...iconBtn, background: "#fff" }} title="Exportar"><Download size={20} /></button>
+        </div>
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr style={{ background: "#FAFBFE", textAlign: "left" }}>
+            {columns.map((h) => (
+              <th key={h} style={{ padding: "12px 20px", fontSize: 12, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.3 }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 ? (
+            <tr><td colSpan={columns.length} style={{ padding: 24, fontSize: 13.5, color: T.muted }}>{emptyText}</td></tr>
+          ) : rows.map(renderRow)}
+        </tbody>
+      </table>
+    </Card>
+  );
+}
+
+const reportCellStyle = { padding: "14px 20px", fontSize: 13.5, color: T.text };
+
+/* Pacientes ---------------------------------------------------------- */
+function ReportListaPacientes() {
   const { patients } = useAppData();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
@@ -2150,83 +2507,927 @@ function Relatorios() {
     return true;
   });
 
-  function applyFilters() {
-    setApplied({ query, statusFilter, convenioFilter });
-  }
+  return (
+    <div>
+      <FilterBar onApply={() => setApplied({ query, statusFilter, convenioFilter })}>
+        <FilterField label="Paciente">
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por nome" style={filterInputStyle} />
+        </FilterField>
+        <FilterField label="Situação do paciente">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...filterInputStyle, minWidth: 150 }}>
+            {["Todos", "Ativo", "Inativo"].map((s) => <option key={s}>{s}</option>)}
+          </select>
+        </FilterField>
+        <FilterField label="Convênio">
+          <select value={convenioFilter} onChange={(e) => setConvenioFilter(e.target.value)} style={{ ...filterInputStyle, minWidth: 150 }}>
+            {convenios.map((c) => <option key={c}>{c}</option>)}
+          </select>
+        </FilterField>
+      </FilterBar>
+
+      <ReportTableCard
+        countLabel={<>Total de pacientes: <strong>{filtered.length}</strong></>}
+        columns={["Paciente", "Convênio", "Sessões", "Última sessão", "Próxima sessão", "Situação"]}
+        rows={filtered}
+        emptyText="Nenhum paciente encontrado para os filtros selecionados."
+        renderRow={(p, i) => (
+          <tr key={p.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+            <td style={{ ...reportCellStyle, fontWeight: 600 }}>{p.name}</td>
+            <td style={reportCellStyle}>{p.convenio || "—"}</td>
+            <td style={reportCellStyle}>{p.sessions}</td>
+            <td style={reportCellStyle}>{p.lastSession}</td>
+            <td style={reportCellStyle}>{p.nextSession}</td>
+            <td style={{ padding: "14px 20px" }}><Pill tone={p.status === "Ativo" ? "success" : "muted"}>{p.status}</Pill></td>
+          </tr>
+        )}
+      />
+    </div>
+  );
+}
+
+function ReportAniversariantes() {
+  const { patients } = useAppData();
+  const [month, setMonth] = useState(REPORT_TODAY.getMonth());
+  const [includeInactive, setIncludeInactive] = useState(true);
+  const [applied, setApplied] = useState({ month: REPORT_TODAY.getMonth(), includeInactive: true });
+
+  const rows = patients
+    .filter((p) => {
+      const d = parseBrDate(p.nascimento);
+      if (!d || d.getMonth() !== applied.month) return false;
+      if (!applied.includeInactive && p.status !== "Ativo") return false;
+      return true;
+    })
+    .sort((a, b) => parseBrDate(a.nascimento).getDate() - parseBrDate(b.nascimento).getDate());
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-        <div>
-          <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 26, fontWeight: 700, color: T.text, margin: 0 }}>Relatório de pacientes</h1>
-          <p style={{ color: T.muted, fontSize: 14, marginTop: 4 }}>Dados do seu consultório em formato de tabela</p>
+      <FilterBar onApply={() => setApplied({ month, includeInactive })}>
+        <FilterField label="Mês">
+          <select value={month} onChange={(e) => setMonth(Number(e.target.value))} style={{ ...filterInputStyle, minWidth: 150 }}>
+            {MONTHS_PT.map((m, i) => <option key={m} value={i}>{m}</option>)}
+          </select>
+        </FilterField>
+        <FilterField label="Incluir inativos">
+          <div style={{ padding: "9px 0" }}>
+            <Switch checked={includeInactive} onChange={setIncludeInactive} />
+          </div>
+        </FilterField>
+      </FilterBar>
+
+      <ReportTableCard
+        countLabel={<>Aniversariantes em {MONTHS_PT[applied.month]}: <strong>{rows.length}</strong></>}
+        columns={["Paciente", "Telefone", "Data de nascimento", "Situação"]}
+        rows={rows}
+        emptyText="Nenhum aniversariante encontrado para o mês selecionado."
+        renderRow={(p, i) => (
+          <tr key={p.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+            <td style={{ ...reportCellStyle, fontWeight: 600 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Cake size={15} color={T.primary} /> {p.name}</span></td>
+            <td style={reportCellStyle}>{p.phone}</td>
+            <td style={reportCellStyle}>{p.nascimento}</td>
+            <td style={{ padding: "14px 20px" }}><Pill tone={p.status === "Ativo" ? "success" : "muted"}>{p.status}</Pill></td>
+          </tr>
+        )}
+      />
+    </div>
+  );
+}
+
+function ReportInativosRisco() {
+  const { patients } = useAppData();
+  const [threshold, setThreshold] = useState(30);
+  const [applied, setApplied] = useState(30);
+
+  const rows = patients
+    .map((p) => ({ ...p, diasSemSessao: daysBetweenBr(p.lastSession) }))
+    .filter((p) => p.status === "Inativo" || p.diasSemSessao >= applied)
+    .sort((a, b) => b.diasSemSessao - a.diasSemSessao);
+
+  return (
+    <div>
+      <FilterBar onApply={() => setApplied(threshold)}>
+        <FilterField label="Risco a partir de (dias sem sessão)">
+          <input type="number" min={1} value={threshold} onChange={(e) => setThreshold(Number(e.target.value))} style={{ ...filterInputStyle, minWidth: 100 }} />
+        </FilterField>
+      </FilterBar>
+
+      <ReportTableCard
+        countLabel={<>Pacientes inativos ou em risco: <strong>{rows.length}</strong></>}
+        columns={["Paciente", "Situação", "Última sessão", "Dias sem sessão", "Classificação"]}
+        rows={rows}
+        emptyText="Nenhum paciente inativo ou em risco de abandono."
+        renderRow={(p, i) => (
+          <tr key={p.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+            <td style={{ ...reportCellStyle, fontWeight: 600 }}>{p.name}</td>
+            <td style={{ padding: "14px 20px" }}><Pill tone={p.status === "Ativo" ? "success" : "muted"}>{p.status}</Pill></td>
+            <td style={reportCellStyle}>{p.lastSession}</td>
+            <td style={reportCellStyle}>{p.diasSemSessao}</td>
+            <td style={{ padding: "14px 20px" }}>
+              <Pill tone={p.status === "Inativo" ? "muted" : "warn"}>{p.status === "Inativo" ? "Inativo" : "Risco de abandono"}</Pill>
+            </td>
+          </tr>
+        )}
+      />
+    </div>
+  );
+}
+
+function ReportNovosCadastros() {
+  const { patients } = useAppData();
+  const defaultFrom = "17/08/2025";
+  const defaultTo = "17/08/2026";
+  const [dateFrom, setDateFrom] = useState(defaultFrom);
+  const [dateTo, setDateTo] = useState(defaultTo);
+  const [applied, setApplied] = useState({ from: defaultFrom, to: defaultTo });
+
+  const from = parseBrDate(applied.from);
+  const to = parseBrDate(applied.to);
+
+  const rows = patients
+    .filter((p) => {
+      const d = parseBrDate(p.cadastro);
+      if (!d) return false;
+      if (from && d < from) return false;
+      if (to && d > to) return false;
+      return true;
+    })
+    .sort((a, b) => parseBrDate(b.cadastro) - parseBrDate(a.cadastro));
+
+  return (
+    <div>
+      <FilterBar onApply={() => setApplied({ from: dateFrom, to: dateTo })}>
+        <FilterField label="Data inicial">
+          <input value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} placeholder="dd/mm/aaaa" style={{ ...filterInputStyle, minWidth: 130 }} />
+        </FilterField>
+        <FilterField label="Data final">
+          <input value={dateTo} onChange={(e) => setDateTo(e.target.value)} placeholder="dd/mm/aaaa" style={{ ...filterInputStyle, minWidth: 130 }} />
+        </FilterField>
+      </FilterBar>
+
+      <ReportTableCard
+        countLabel={<>Novos cadastros no período: <strong>{rows.length}</strong></>}
+        columns={["Paciente", "Data de cadastro", "Convênio", "Situação"]}
+        rows={rows}
+        emptyText="Nenhum cadastro novo no período selecionado."
+        renderRow={(p, i) => (
+          <tr key={p.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+            <td style={{ ...reportCellStyle, fontWeight: 600 }}>{p.name}</td>
+            <td style={reportCellStyle}>{p.cadastro}</td>
+            <td style={reportCellStyle}>{p.convenio || "—"}</td>
+            <td style={{ padding: "14px 20px" }}><Pill tone={p.status === "Ativo" ? "success" : "muted"}>{p.status}</Pill></td>
+          </tr>
+        )}
+      />
+    </div>
+  );
+}
+
+function ReportFaixaEtaria() {
+  const { patients } = useAppData();
+  const [statusFilter, setStatusFilter] = useState("Todos");
+  const [applied, setApplied] = useState("Todos");
+
+  const base = patients.filter((p) => applied === "Todos" || p.status === applied);
+  const chartData = AGE_BUCKETS.map((b) => ({
+    label: b.label,
+    value: base.filter((p) => { const a = ageFromBrDate(p.nascimento); return a != null && b.test(a); }).length,
+  }));
+  const total = base.length;
+
+  return (
+    <div>
+      <FilterBar onApply={() => setApplied(statusFilter)}>
+        <FilterField label="Situação do paciente">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...filterInputStyle, minWidth: 150 }}>
+            {["Todos", "Ativo", "Inativo"].map((s) => <option key={s}>{s}</option>)}
+          </select>
+        </FilterField>
+      </FilterBar>
+
+      <Card style={{ padding: 20, marginBottom: 20 }}>
+        <div style={{ fontWeight: 700, fontSize: 15, color: T.text, marginBottom: 14 }}>Distribuição por faixa etária</div>
+        <ResponsiveContainer width="100%" height={240}>
+          <BarChart data={chartData} margin={{ top: 10, right: 4, left: -18, bottom: 0 }}>
+            <CartesianGrid vertical={false} stroke="#EEF1F8" />
+            <XAxis dataKey="label" tick={{ fontSize: 12, fill: T.muted }} axisLine={false} tickLine={false} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: T.muted }} axisLine={false} tickLine={false} />
+            <Tooltip cursor={{ fill: "rgba(76,111,255,0.06)" }} contentStyle={{ borderRadius: 10, border: `1px solid ${T.border}`, fontSize: 13 }} />
+            <Bar dataKey="value" radius={[6, 6, 0, 0]} fill={T.primary} />
+          </BarChart>
+        </ResponsiveContainer>
+      </Card>
+
+      <ReportTableCard
+        countLabel={<>Total de pacientes: <strong>{total}</strong></>}
+        columns={["Faixa etária", "Pacientes", "% do total"]}
+        rows={chartData}
+        emptyText="Nenhum paciente encontrado."
+        renderRow={(b, i) => (
+          <tr key={b.label} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+            <td style={{ ...reportCellStyle, fontWeight: 600 }}>{b.label}</td>
+            <td style={reportCellStyle}>{b.value}</td>
+            <td style={reportCellStyle}>{total ? Math.round((b.value / total) * 100) : 0}%</td>
+          </tr>
+        )}
+      />
+    </div>
+  );
+}
+
+const GENDER_COLORS = [T.primary, "#F0A93A", "#1FAE6E", "#8A93AC"];
+
+function ReportGenero() {
+  const { patients } = useAppData();
+  const [statusFilter, setStatusFilter] = useState("Todos");
+  const [applied, setApplied] = useState("Todos");
+
+  const base = patients.filter((p) => applied === "Todos" || p.status === applied);
+  const genders = Array.from(new Set(base.map((p) => p.genero || "Não informado")));
+  const chartData = genders.map((g) => ({ name: g, value: base.filter((p) => (p.genero || "Não informado") === g).length }));
+  const total = base.length;
+
+  return (
+    <div>
+      <FilterBar onApply={() => setApplied(statusFilter)}>
+        <FilterField label="Situação do paciente">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...filterInputStyle, minWidth: 150 }}>
+            {["Todos", "Ativo", "Inativo"].map((s) => <option key={s}>{s}</option>)}
+          </select>
+        </FilterField>
+      </FilterBar>
+
+      <Card style={{ padding: 20, marginBottom: 20 }}>
+        <div style={{ fontWeight: 700, fontSize: 15, color: T.text, marginBottom: 6 }}>Distribuição por gênero</div>
+        <ResponsiveContainer width="100%" height={220}>
+          <PieChart>
+            <Pie data={chartData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={80} paddingAngle={3}>
+              {chartData.map((d, i) => <Cell key={i} fill={GENDER_COLORS[i % GENDER_COLORS.length]} />)}
+            </Pie>
+            <Tooltip contentStyle={{ borderRadius: 10, border: `1px solid ${T.border}`, fontSize: 13 }} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div style={{ display: "flex", justifyContent: "center", gap: 20, flexWrap: "wrap", marginTop: 6 }}>
+          {chartData.map((d, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.muted }}>
+              <span style={{ width: 9, height: 9, borderRadius: 3, background: GENDER_COLORS[i % GENDER_COLORS.length] }} /> {d.name} ({d.value})
+            </div>
+          ))}
         </div>
-        <button style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", color: T.text, fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}>
-          <SlidersHorizontal size={20} /> FILTROS
-        </button>
+      </Card>
+
+      <ReportTableCard
+        countLabel={<>Total de pacientes: <strong>{total}</strong></>}
+        columns={["Gênero", "Pacientes", "% do total"]}
+        rows={chartData}
+        emptyText="Nenhum paciente encontrado."
+        renderRow={(d, i) => (
+          <tr key={d.name} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+            <td style={{ ...reportCellStyle, fontWeight: 600 }}>{d.name}</td>
+            <td style={reportCellStyle}>{d.value}</td>
+            <td style={reportCellStyle}>{total ? Math.round((d.value / total) * 100) : 0}%</td>
+          </tr>
+        )}
+      />
+    </div>
+  );
+}
+
+/* Agenda --------------------------------------------------------------- */
+function sessionStatusTone(status) {
+  if (status === "Realizada") return "success";
+  if (status === "Agendada") return "primary";
+  if (status === "Falta") return "danger";
+  return "warn"; // Cancelada
+}
+
+function ReportSessoesRealizadasAgendadas() {
+  const defaultFrom = "01/07/2026";
+  const defaultTo = "31/08/2026";
+  const [dateFrom, setDateFrom] = useState(defaultFrom);
+  const [dateTo, setDateTo] = useState(defaultTo);
+  const [applied, setApplied] = useState({ from: defaultFrom, to: defaultTo });
+
+  const from = parseBrDate(applied.from);
+  const to = parseBrDate(applied.to);
+
+  const rows = initialSessions
+    .filter((s) => { const d = parseBrDate(s.data); return d && (!from || d >= from) && (!to || d <= to); })
+    .sort((a, b) => parseBrDate(b.data) - parseBrDate(a.data));
+
+  const counts = ["Realizada", "Agendada", "Falta", "Cancelada"].reduce((acc, st) => {
+    acc[st] = rows.filter((s) => s.status === st).length;
+    return acc;
+  }, {});
+
+  return (
+    <div>
+      <FilterBar onApply={() => setApplied({ from: dateFrom, to: dateTo })}>
+        <FilterField label="Data inicial">
+          <input value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} placeholder="dd/mm/aaaa" style={{ ...filterInputStyle, minWidth: 130 }} />
+        </FilterField>
+        <FilterField label="Data final">
+          <input value={dateTo} onChange={(e) => setDateTo(e.target.value)} placeholder="dd/mm/aaaa" style={{ ...filterInputStyle, minWidth: 130 }} />
+        </FilterField>
+      </FilterBar>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
+        <MiniStat label="Realizadas" value={counts.Realizada} icon={Check} tone="success" />
+        <MiniStat label="Agendadas" value={counts.Agendada} icon={CalendarClock} tone="primary" />
+        <MiniStat label="Faltas" value={counts.Falta} icon={X} tone="danger" />
+        <MiniStat label="Canceladas" value={counts.Cancelada} icon={RefreshCw} tone="danger" />
       </div>
 
-      <Card style={{ padding: "16px 20px", marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 22, flexWrap: "wrap" }}>
-          <div>
-            <div style={{ fontSize: 12, color: T.muted, marginBottom: 6 }}>Paciente</div>
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por nome" style={filterInputStyle} />
-          </div>
-          <div>
-            <div style={{ fontSize: 12, color: T.muted, marginBottom: 6 }}>Situação do paciente</div>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...filterInputStyle, minWidth: 150 }}>
-              {["Todos", "Ativo", "Inativo"].map((s) => <option key={s}>{s}</option>)}
-            </select>
-          </div>
-          <div>
-            <div style={{ fontSize: 12, color: T.muted, marginBottom: 6 }}>Convênio</div>
-            <select value={convenioFilter} onChange={(e) => setConvenioFilter(e.target.value)} style={{ ...filterInputStyle, minWidth: 150 }}>
-              {convenios.map((c) => <option key={c}>{c}</option>)}
-            </select>
-          </div>
-          <button
-            onClick={applyFilters}
-            style={{ background: "none", border: "none", color: T.primary, fontWeight: 700, fontSize: 13, cursor: "pointer", textTransform: "uppercase", letterSpacing: 0.3, padding: "10px 0" }}
-          >
-            Aplicar filtros
-          </button>
-        </div>
-      </Card>
+      <ReportTableCard
+        countLabel={<>Sessões no período: <strong>{rows.length}</strong></>}
+        columns={["Data", "Paciente", "Status"]}
+        rows={rows}
+        emptyText="Nenhuma sessão encontrada no período selecionado."
+        renderRow={(s, i) => (
+          <tr key={s.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+            <td style={reportCellStyle}>{s.data}</td>
+            <td style={{ ...reportCellStyle, fontWeight: 600 }}>{s.paciente}</td>
+            <td style={{ padding: "14px 20px" }}><Pill tone={sessionStatusTone(s.status)}>{s.status}</Pill></td>
+          </tr>
+        )}
+      />
+    </div>
+  );
+}
 
-      <Card style={{ overflow: "hidden" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderBottom: `1px solid ${T.border}` }}>
-          <span style={{ fontSize: 13.5, color: T.text }}>Total de pacientes: <strong>{filtered.length}</strong></span>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button style={{ ...iconBtn, background: "#fff" }} title="Imprimir"><Printer size={20} /></button>
-            <button style={{ ...iconBtn, background: "#fff" }} title="Exportar"><Download size={20} /></button>
+function ReportFaltasCancelamentos() {
+  const { patients } = useAppData();
+  const defaultFrom = "01/06/2026";
+  const defaultTo = "31/08/2026";
+  const [patientFilter, setPatientFilter] = useState("Todos");
+  const [dateFrom, setDateFrom] = useState(defaultFrom);
+  const [dateTo, setDateTo] = useState(defaultTo);
+  const [applied, setApplied] = useState({ patient: "Todos", from: defaultFrom, to: defaultTo });
+
+  const from = parseBrDate(applied.from);
+  const to = parseBrDate(applied.to);
+
+  const rows = initialSessions
+    .filter((s) => s.status === "Falta" || s.status === "Cancelada")
+    .filter((s) => applied.patient === "Todos" || s.paciente === applied.patient)
+    .filter((s) => { const d = parseBrDate(s.data); return d && (!from || d >= from) && (!to || d <= to); })
+    .sort((a, b) => parseBrDate(b.data) - parseBrDate(a.data));
+
+  const faltas = rows.filter((s) => s.status === "Falta").length;
+  const cancelamentos = rows.filter((s) => s.status === "Cancelada").length;
+
+  return (
+    <div>
+      <FilterBar onApply={() => setApplied({ patient: patientFilter, from: dateFrom, to: dateTo })}>
+        <FilterField label="Paciente">
+          <select value={patientFilter} onChange={(e) => setPatientFilter(e.target.value)} style={{ ...filterInputStyle, minWidth: 170 }}>
+            <option>Todos</option>
+            {patients.map((p) => <option key={p.id}>{p.name}</option>)}
+          </select>
+        </FilterField>
+        <FilterField label="Data inicial">
+          <input value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} placeholder="dd/mm/aaaa" style={{ ...filterInputStyle, minWidth: 130 }} />
+        </FilterField>
+        <FilterField label="Data final">
+          <input value={dateTo} onChange={(e) => setDateTo(e.target.value)} placeholder="dd/mm/aaaa" style={{ ...filterInputStyle, minWidth: 130 }} />
+        </FilterField>
+      </FilterBar>
+
+      <ReportTableCard
+        countLabel={<>Faltas: <strong>{faltas}</strong> &nbsp;·&nbsp; Cancelamentos: <strong>{cancelamentos}</strong></>}
+        columns={["Data", "Paciente", "Status"]}
+        rows={rows}
+        emptyText="Nenhuma falta ou cancelamento encontrado para os filtros selecionados."
+        renderRow={(s, i) => (
+          <tr key={s.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+            <td style={reportCellStyle}>{s.data}</td>
+            <td style={{ ...reportCellStyle, fontWeight: 600 }}>{s.paciente}</td>
+            <td style={{ padding: "14px 20px" }}><Pill tone={sessionStatusTone(s.status)}>{s.status}</Pill></td>
+          </tr>
+        )}
+      />
+    </div>
+  );
+}
+
+function ReportFrequencia() {
+  const patientNames = Array.from(new Set(initialSessions.map((s) => s.paciente)));
+
+  const rows = patientNames.map((name) => {
+    const realized = initialSessions
+      .filter((s) => s.paciente === name && s.status === "Realizada")
+      .map((s) => parseBrDate(s.data))
+      .sort((a, b) => a - b);
+    let avgInterval = null;
+    if (realized.length > 1) {
+      const diffs = realized.slice(1).map((d, i) => Math.round((d - realized[i]) / 86400000));
+      avgInterval = Math.round(diffs.reduce((s, v) => s + v, 0) / diffs.length);
+    }
+    return {
+      name,
+      count: realized.length,
+      avgInterval,
+      last: realized.length ? realized[realized.length - 1].toLocaleDateString("pt-BR") : "—",
+    };
+  }).sort((a, b) => b.count - a.count);
+
+  return (
+    <ReportTableCard
+      countLabel={<>Pacientes com sessões realizadas: <strong>{rows.length}</strong></>}
+      columns={["Paciente", "Sessões realizadas", "Intervalo médio", "Última sessão realizada"]}
+      rows={rows}
+      emptyText="Nenhuma sessão realizada encontrada."
+      renderRow={(r, i) => (
+        <tr key={r.name} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+          <td style={{ ...reportCellStyle, fontWeight: 600 }}>{r.name}</td>
+          <td style={reportCellStyle}>{r.count}</td>
+          <td style={reportCellStyle}>{r.avgInterval != null ? `${r.avgInterval} dias` : "—"}</td>
+          <td style={reportCellStyle}>{r.last}</td>
+        </tr>
+      )}
+    />
+  );
+}
+
+function ReportOcupacao() {
+  const offsets = Object.keys(weekSchedules).map(Number).sort((a, b) => a - b);
+  const rows = offsets.map((offset) => {
+    const events = weekSchedules[offset];
+    const preenchidos = events.length;
+    const livres = Math.max(HOURS.length - preenchidos, 0);
+    const pct = Math.round((preenchidos / HOURS.length) * 100);
+    return { offset, label: WEEKDAY_FULL[weekdayIndex(offset)], preenchidos, livres, pct };
+  });
+
+  return (
+    <ReportTableCard
+      countLabel={<>Dias analisados: <strong>{rows.length}</strong></>}
+      columns={["Dia", "Horários preenchidos", "Horários livres", "Ocupação"]}
+      rows={rows}
+      emptyText="Nenhum dado de agenda disponível."
+      renderRow={(r, i) => (
+        <tr key={r.offset} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+          <td style={{ ...reportCellStyle, fontWeight: 600 }}>{r.label}</td>
+          <td style={reportCellStyle}>{r.preenchidos} / {HOURS.length}</td>
+          <td style={reportCellStyle}>{r.livres}</td>
+          <td style={{ padding: "14px 20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 90, height: 8, borderRadius: 999, background: T.primaryTint, overflow: "hidden" }}>
+                <div style={{ width: `${r.pct}%`, height: "100%", background: T.primary, borderRadius: 999 }} />
+              </div>
+              <span style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{r.pct}%</span>
+            </div>
+          </td>
+        </tr>
+      )}
+    />
+  );
+}
+
+/* Financeiro ------------------------------------------------------------ */
+function ReportContasReceber() {
+  const { receivables } = useAppData();
+  const [statusFilter, setStatusFilter] = useState("Todos");
+  const [applied, setApplied] = useState("Todos");
+
+  const rows = receivables.filter((r) => applied === "Todos" || r.status === applied);
+  const total = rows.reduce((s, r) => s + r.valor, 0);
+
+  return (
+    <div>
+      <FilterBar onApply={() => setApplied(statusFilter)}>
+        <FilterField label="Status">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...filterInputStyle, minWidth: 150 }}>
+            {["Todos", "Pago", "Pendente", "Atrasado"].map((s) => <option key={s}>{s}</option>)}
+          </select>
+        </FilterField>
+      </FilterBar>
+
+      <ReportTableCard
+        countLabel={<>Total: <strong>R$ {total.toLocaleString("pt-BR")}</strong> &nbsp;·&nbsp; {rows.length} lançamento(s)</>}
+        columns={["Paciente", "Referência", "Valor", "Vencimento", "Status"]}
+        rows={rows}
+        emptyText="Nenhuma conta a receber encontrada."
+        renderRow={(r, i) => (
+          <tr key={r.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+            <td style={{ ...reportCellStyle, fontWeight: 600 }}>{r.paciente}</td>
+            <td style={reportCellStyle}>{r.referencia}</td>
+            <td style={reportCellStyle}>R$ {r.valor.toLocaleString("pt-BR")}</td>
+            <td style={reportCellStyle}>{r.vencimento}</td>
+            <td style={{ padding: "14px 20px" }}><Pill tone={statusTone(r.status)}>{r.status}</Pill></td>
+          </tr>
+        )}
+      />
+    </div>
+  );
+}
+
+function ReportContasPagar() {
+  const [statusFilter, setStatusFilter] = useState("Todos");
+  const [applied, setApplied] = useState("Todos");
+
+  const rows = initialPayables.filter((p) => applied === "Todos" || p.status === applied);
+  const total = rows.reduce((s, p) => s + p.valor, 0);
+
+  return (
+    <div>
+      <FilterBar onApply={() => setApplied(statusFilter)}>
+        <FilterField label="Status">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...filterInputStyle, minWidth: 150 }}>
+            {["Todos", "Pago", "Pendente", "Atrasado"].map((s) => <option key={s}>{s}</option>)}
+          </select>
+        </FilterField>
+      </FilterBar>
+
+      <ReportTableCard
+        countLabel={<>Total: <strong>R$ {total.toLocaleString("pt-BR")}</strong> &nbsp;·&nbsp; {rows.length} lançamento(s)</>}
+        columns={["Descrição", "Categoria", "Valor", "Vencimento", "Status"]}
+        rows={rows}
+        emptyText="Nenhuma conta a pagar encontrada."
+        renderRow={(p, i) => (
+          <tr key={p.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+            <td style={{ ...reportCellStyle, fontWeight: 600 }}>{p.descricao}</td>
+            <td style={reportCellStyle}>{p.categoria}</td>
+            <td style={reportCellStyle}>R$ {p.valor.toLocaleString("pt-BR")}</td>
+            <td style={reportCellStyle}>{p.vencimento}</td>
+            <td style={{ padding: "14px 20px" }}><Pill tone={statusTone(p.status)}>{p.status}</Pill></td>
+          </tr>
+        )}
+      />
+    </div>
+  );
+}
+
+function ReportInadimplencia() {
+  const { receivables } = useAppData();
+  const rows = receivables
+    .filter((r) => r.status !== "Pago" && (r.status === "Atrasado" || parseBrDate(r.vencimento) < REPORT_TODAY))
+    .map((r) => ({ ...r, diasAtraso: Math.max(daysBetweenBr(r.vencimento), 0) }))
+    .sort((a, b) => b.diasAtraso - a.diasAtraso);
+
+  const total = rows.reduce((s, r) => s + r.valor, 0);
+
+  return (
+    <ReportTableCard
+      countLabel={<>Total em atraso: <strong>R$ {total.toLocaleString("pt-BR")}</strong> &nbsp;·&nbsp; {rows.length} cobrança(s)</>}
+      columns={["Paciente", "Referência", "Valor", "Vencimento", "Dias em atraso"]}
+      rows={rows}
+      emptyText="Nenhuma cobrança em atraso."
+      renderRow={(r, i) => (
+        <tr key={r.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+          <td style={{ ...reportCellStyle, fontWeight: 600 }}>{r.paciente}</td>
+          <td style={reportCellStyle}>{r.referencia}</td>
+          <td style={reportCellStyle}>R$ {r.valor.toLocaleString("pt-BR")}</td>
+          <td style={reportCellStyle}>{r.vencimento}</td>
+          <td style={{ padding: "14px 20px" }}><Pill tone="danger">{r.diasAtraso} dias</Pill></td>
+        </tr>
+      )}
+    />
+  );
+}
+
+function ReportRecebimentoPaciente() {
+  const { receivables } = useAppData();
+  const [query, setQuery] = useState("");
+  const [applied, setApplied] = useState("");
+
+  const names = Array.from(new Set(receivables.map((r) => r.paciente)));
+  const rows = names
+    .map((name) => {
+      const paid = receivables.filter((r) => r.paciente === name && r.status === "Pago");
+      const total = paid.reduce((s, r) => s + r.valor, 0);
+      return { name, total, count: paid.length };
+    })
+    .filter((r) => r.count > 0)
+    .filter((r) => !applied || r.name.toLowerCase().includes(applied.toLowerCase()))
+    .sort((a, b) => b.total - a.total);
+
+  const total = rows.reduce((s, r) => s + r.total, 0);
+
+  return (
+    <div>
+      <FilterBar onApply={() => setApplied(query)}>
+        <FilterField label="Paciente">
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por nome" style={filterInputStyle} />
+        </FilterField>
+      </FilterBar>
+
+      <ReportTableCard
+        countLabel={<>Total recebido: <strong>R$ {total.toLocaleString("pt-BR")}</strong></>}
+        columns={["Paciente", "Cobranças pagas", "Total recebido"]}
+        rows={rows}
+        emptyText="Nenhum recebimento encontrado para o paciente pesquisado."
+        renderRow={(r, i) => (
+          <tr key={r.name} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+            <td style={{ ...reportCellStyle, fontWeight: 600 }}>{r.name}</td>
+            <td style={reportCellStyle}>{r.count}</td>
+            <td style={reportCellStyle}>R$ {r.total.toLocaleString("pt-BR")}</td>
+          </tr>
+        )}
+      />
+    </div>
+  );
+}
+
+/* Clínico ---------------------------------------------------------------- */
+function mostRecentBrDate(dates) {
+  const parsed = dates.map(parseBrDate).filter(Boolean);
+  if (!parsed.length) return null;
+  return new Date(Math.max(...parsed.map((d) => d.getTime())));
+}
+
+function ReportComAnamnese() {
+  const { patients, anamneses } = useAppData();
+  const [statusFilter, setStatusFilter] = useState("Todos");
+  const [applied, setApplied] = useState("Todos");
+
+  const rows = patients
+    .map((p) => ({ ...p, anamneseList: anamneses[p.id] || [] }))
+    .filter((p) => p.anamneseList.length > 0)
+    .filter((p) => applied === "Todos" || p.status === applied)
+    .map((p) => ({ ...p, ultimaAnamnese: mostRecentBrDate(p.anamneseList.map((a) => a.preenchidoEm)) }))
+    .sort((a, b) => (b.ultimaAnamnese?.getTime() || 0) - (a.ultimaAnamnese?.getTime() || 0));
+
+  return (
+    <div>
+      <FilterBar onApply={() => setApplied(statusFilter)}>
+        <FilterField label="Situação do paciente">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...filterInputStyle, minWidth: 150 }}>
+            {["Todos", "Ativo", "Inativo"].map((s) => <option key={s}>{s}</option>)}
+          </select>
+        </FilterField>
+      </FilterBar>
+
+      <ReportTableCard
+        countLabel={<>Pacientes com anamnese: <strong>{rows.length}</strong></>}
+        columns={["Paciente", "Convênio", "Nº de anamneses", "Última anamnese", "Situação"]}
+        rows={rows}
+        emptyText="Nenhum paciente com anamnese preenchida."
+        renderRow={(p, i) => (
+          <tr key={p.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+            <td style={{ ...reportCellStyle, fontWeight: 600 }}>{p.name}</td>
+            <td style={reportCellStyle}>{p.convenio || "—"}</td>
+            <td style={reportCellStyle}>{p.anamneseList.length}</td>
+            <td style={reportCellStyle}>{p.ultimaAnamnese ? p.ultimaAnamnese.toLocaleDateString("pt-BR") : "—"}</td>
+            <td style={{ padding: "14px 20px" }}><Pill tone={p.status === "Ativo" ? "success" : "muted"}>{p.status}</Pill></td>
+          </tr>
+        )}
+      />
+    </div>
+  );
+}
+
+function ReportSemAnamnese() {
+  const { patients, anamneses } = useAppData();
+  const [statusFilter, setStatusFilter] = useState("Todos");
+  const [applied, setApplied] = useState("Todos");
+
+  const rows = patients
+    .filter((p) => (anamneses[p.id] || []).length === 0)
+    .filter((p) => applied === "Todos" || p.status === applied);
+
+  return (
+    <div>
+      <FilterBar onApply={() => setApplied(statusFilter)}>
+        <FilterField label="Situação do paciente">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...filterInputStyle, minWidth: 150 }}>
+            {["Todos", "Ativo", "Inativo"].map((s) => <option key={s}>{s}</option>)}
+          </select>
+        </FilterField>
+      </FilterBar>
+
+      <ReportTableCard
+        countLabel={<>Pacientes sem anamnese: <strong>{rows.length}</strong></>}
+        columns={["Paciente", "Convênio", "Última sessão", "Situação"]}
+        rows={rows}
+        emptyText="Todos os pacientes já têm anamnese preenchida."
+        renderRow={(p, i) => (
+          <tr key={p.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+            <td style={{ ...reportCellStyle, fontWeight: 600 }}>{p.name}</td>
+            <td style={reportCellStyle}>{p.convenio || "—"}</td>
+            <td style={reportCellStyle}>{p.lastSession}</td>
+            <td style={{ padding: "14px 20px" }}><Pill tone={p.status === "Ativo" ? "success" : "muted"}>{p.status}</Pill></td>
+          </tr>
+        )}
+      />
+    </div>
+  );
+}
+
+function ReportComProntuario() {
+  const { patients, records } = useAppData();
+  const [statusFilter, setStatusFilter] = useState("Todos");
+  const [applied, setApplied] = useState("Todos");
+
+  const rows = patients
+    .map((p) => ({ ...p, recordList: records[p.id] || [] }))
+    .filter((p) => p.recordList.length > 0)
+    .filter((p) => applied === "Todos" || p.status === applied)
+    .map((p) => ({ ...p, ultimoRegistro: mostRecentBrDate(p.recordList.map((r) => r.date)) }))
+    .sort((a, b) => (b.ultimoRegistro?.getTime() || 0) - (a.ultimoRegistro?.getTime() || 0));
+
+  return (
+    <div>
+      <FilterBar onApply={() => setApplied(statusFilter)}>
+        <FilterField label="Situação do paciente">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...filterInputStyle, minWidth: 150 }}>
+            {["Todos", "Ativo", "Inativo"].map((s) => <option key={s}>{s}</option>)}
+          </select>
+        </FilterField>
+      </FilterBar>
+
+      <ReportTableCard
+        countLabel={<>Pacientes com prontuários: <strong>{rows.length}</strong></>}
+        columns={["Paciente", "Convênio", "Nº de registros", "Último registro", "Situação"]}
+        rows={rows}
+        emptyText="Nenhum paciente com registros no prontuário."
+        renderRow={(p, i) => (
+          <tr key={p.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+            <td style={{ ...reportCellStyle, fontWeight: 600 }}>{p.name}</td>
+            <td style={reportCellStyle}>{p.convenio || "—"}</td>
+            <td style={reportCellStyle}>{p.recordList.length}</td>
+            <td style={reportCellStyle}>{p.ultimoRegistro ? p.ultimoRegistro.toLocaleDateString("pt-BR") : "—"}</td>
+            <td style={{ padding: "14px 20px" }}><Pill tone={p.status === "Ativo" ? "success" : "muted"}>{p.status}</Pill></td>
+          </tr>
+        )}
+      />
+    </div>
+  );
+}
+
+function ReportSemProntuario() {
+  const { patients, records } = useAppData();
+  const [statusFilter, setStatusFilter] = useState("Todos");
+  const [applied, setApplied] = useState("Todos");
+
+  const rows = patients
+    .filter((p) => (records[p.id] || []).length === 0)
+    .filter((p) => applied === "Todos" || p.status === applied);
+
+  return (
+    <div>
+      <FilterBar onApply={() => setApplied(statusFilter)}>
+        <FilterField label="Situação do paciente">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...filterInputStyle, minWidth: 150 }}>
+            {["Todos", "Ativo", "Inativo"].map((s) => <option key={s}>{s}</option>)}
+          </select>
+        </FilterField>
+      </FilterBar>
+
+      <ReportTableCard
+        countLabel={<>Pacientes sem prontuários: <strong>{rows.length}</strong></>}
+        columns={["Paciente", "Convênio", "Última sessão", "Situação"]}
+        rows={rows}
+        emptyText="Todos os pacientes já têm registros no prontuário."
+        renderRow={(p, i) => (
+          <tr key={p.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+            <td style={{ ...reportCellStyle, fontWeight: 600 }}>{p.name}</td>
+            <td style={reportCellStyle}>{p.convenio || "—"}</td>
+            <td style={reportCellStyle}>{p.lastSession}</td>
+            <td style={{ padding: "14px 20px" }}><Pill tone={p.status === "Ativo" ? "success" : "muted"}>{p.status}</Pill></td>
+          </tr>
+        )}
+      />
+    </div>
+  );
+}
+
+/* Hub + navegação --------------------------------------------------------- */
+const REPORT_COMPONENTS = {
+  lista: ReportListaPacientes,
+  aniversariantes: ReportAniversariantes,
+  inativos: ReportInativosRisco,
+  novos: ReportNovosCadastros,
+  "faixa-etaria": ReportFaixaEtaria,
+  genero: ReportGenero,
+  "realizadas-agendadas": ReportSessoesRealizadasAgendadas,
+  "faltas-cancelamentos": ReportFaltasCancelamentos,
+  frequencia: ReportFrequencia,
+  ocupacao: ReportOcupacao,
+  receber: ReportContasReceber,
+  pagar: ReportContasPagar,
+  inadimplencia: ReportInadimplencia,
+  "recebimento-paciente": ReportRecebimentoPaciente,
+  "com-anamnese": ReportComAnamnese,
+  "sem-anamnese": ReportSemAnamnese,
+  "com-prontuario": ReportComProntuario,
+  "sem-prontuario": ReportSemProntuario,
+};
+
+function CategoryIllustration({ icon: Icon, badgeIcon: BadgeIcon, accent, accentTint }) {
+  return (
+    <div style={{ position: "absolute", right: 0, bottom: 0, width: 220, height: 220, pointerEvents: "none" }}>
+      <div style={{ position: "absolute", right: -40, bottom: -40, width: 220, height: 220, borderRadius: "50%", background: accentTint, opacity: 0.6 }} />
+      <div style={{ position: "absolute", right: 30, bottom: 34, width: 100, height: 100, borderRadius: 24, background: "#fff", boxShadow: "0 14px 30px rgba(28,34,51,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Icon size={42} color={accent} />
+      </div>
+      <div style={{ position: "absolute", right: 20, bottom: 124, width: 44, height: 44, borderRadius: "50%", background: "#fff", boxShadow: "0 8px 18px rgba(28,34,51,0.14)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <BadgeIcon size={20} color={accent} />
+      </div>
+    </div>
+  );
+}
+
+function RelatoriosHub({ onSelect }) {
+  return (
+    <div>
+      <PageHeader title="Relatórios" subtitle="A sua gestão em um só lugar." />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 20 }}>
+        {REPORT_CATEGORIES.map((cat) => {
+          const Icon = cat.icon;
+          return (
+            <Card key={cat.key} style={{ padding: 0, overflow: "hidden", position: "relative", minHeight: 260, display: "flex", flexDirection: "column" }}>
+              <div style={{ padding: "32px 32px 28px", position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column" }}>
+                <div style={{ width: 54, height: 54, borderRadius: "50%", background: cat.accentTint, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18 }}>
+                  <Icon size={26} color={cat.accent} />
+                </div>
+                <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 22, color: cat.accent, marginBottom: 8 }}>{cat.label}</div>
+                <p style={{ color: T.muted, fontSize: 14.5, lineHeight: 1.6, margin: "0 0 22px", maxWidth: 260 }}>{cat.subtitle}</p>
+                <button
+                  onClick={() => onSelect(cat.key)}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, background: cat.accentTint, color: cat.accent, border: "none", borderRadius: 10, padding: "11px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", marginTop: "auto", alignSelf: "flex-start" }}
+                >
+                  Acessar relatório <ChevronRight size={16} />
+                </button>
+              </div>
+              <CategoryIllustration icon={cat.icon} badgeIcon={cat.badgeIcon} accent={cat.accent} accentTint={cat.accentTint} />
+              <div style={{ height: 5, background: cat.accent }} />
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function CategoryReportList({ category, onBack, onSelectReport }) {
+  return (
+    <div>
+      <button
+        onClick={onBack}
+        style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: T.muted, fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 14, padding: 0 }}
+      >
+        <ArrowLeft size={16} /> Voltar para Relatórios
+      </button>
+      <PageHeader title={`Relatórios de ${category.label.toLowerCase()}`} subtitle={category.subtitle} />
+      <Card style={{ padding: "4px 24px" }}>
+        {category.reports.map((r, i) => (
+          <div
+            key={r.key}
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "16px 0", borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}
+          >
+            <div>
+              <div style={{ fontSize: 14.5, fontWeight: 600, color: T.text }}>{r.label}</div>
+              <div style={{ fontSize: 12.5, color: T.muted, marginTop: 2 }}>{r.desc}</div>
+            </div>
+            <button
+              onClick={() => onSelectReport(r.key)}
+              style={{ background: "none", border: "none", color: category.accent, fontWeight: 700, fontSize: 12.5, letterSpacing: 0.3, textTransform: "uppercase", cursor: "pointer", flexShrink: 0 }}
+            >
+              Visualizar
+            </button>
           </div>
-        </div>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ background: "#FAFBFE", textAlign: "left" }}>
-              {["Paciente", "Convênio", "Sessões", "Última sessão", "Próxima sessão", "Situação"].map((h) => (
-                <th key={h} style={{ padding: "12px 20px", fontSize: 12, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.3 }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding: 24, fontSize: 13.5, color: T.muted }}>Nenhum paciente encontrado para os filtros selecionados.</td></tr>
-            ) : filtered.map((p, i) => (
-              <tr key={p.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
-                <td style={{ padding: "14px 20px", fontSize: 14, fontWeight: 600, color: T.text }}>{p.name}</td>
-                <td style={{ padding: "14px 20px", fontSize: 13.5, color: T.text }}>{p.convenio || "—"}</td>
-                <td style={{ padding: "14px 20px", fontSize: 13.5, color: T.text }}>{p.sessions}</td>
-                <td style={{ padding: "14px 20px", fontSize: 13.5, color: T.text }}>{p.lastSession}</td>
-                <td style={{ padding: "14px 20px", fontSize: 13.5, color: T.text }}>{p.nextSession}</td>
-                <td style={{ padding: "14px 20px" }}>
-                  <Pill tone={p.status === "Ativo" ? "success" : "muted"}>{p.status}</Pill>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        ))}
       </Card>
+    </div>
+  );
+}
+
+function Relatorios() {
+  const [categoryKey, setCategoryKey] = useState(null);
+  const [reportKey, setReportKey] = useState(null);
+
+  const category = REPORT_CATEGORIES.find((c) => c.key === categoryKey);
+
+  if (!category) {
+    return <RelatoriosHub onSelect={(k) => setCategoryKey(k)} />;
+  }
+
+  if (!reportKey) {
+    return (
+      <CategoryReportList
+        category={category}
+        onBack={() => setCategoryKey(null)}
+        onSelectReport={(k) => setReportKey(k)}
+      />
+    );
+  }
+
+  const report = category.reports.find((r) => r.key === reportKey);
+  const ReportComponent = REPORT_COMPONENTS[reportKey];
+
+  return (
+    <div>
+      <button
+        onClick={() => setReportKey(null)}
+        style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: T.muted, fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 14, padding: 0 }}
+      >
+        <ArrowLeft size={16} /> Voltar para relatórios de {category.label.toLowerCase()}
+      </button>
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 26, fontWeight: 700, color: T.text, margin: 0 }}>{report ? report.label : ""}</h1>
+        <p style={{ color: T.muted, fontSize: 14, marginTop: 4 }}>{report ? report.desc : ""}</p>
+      </div>
+      {ReportComponent && <ReportComponent />}
     </div>
   );
 }
@@ -2549,28 +3750,30 @@ function Declaracoes({ setPrintContent }) {
     <div>
       <PageHeader title="Declarações" subtitle="Modelos prontos de atestados, declarações e recibos" />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 20 }}>
         {DECLARATION_TEMPLATES.map((t) => {
           const Icon = t.icon;
           return (
-            <Card key={t.id} style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: T.primaryTint, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Icon size={19} color={T.primary} />
+            <Card key={t.id} style={{ padding: 0, overflow: "hidden", position: "relative", minHeight: 260, display: "flex", flexDirection: "column" }}>
+              <div style={{ padding: "32px 32px 28px", position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column" }}>
+                <div style={{ width: 54, height: 54, borderRadius: "50%", background: t.accentTint, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18 }}>
+                  <Icon size={26} color={t.accent} />
+                </div>
+                <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 20, color: t.accent, marginBottom: 8 }}>{t.title}</div>
+                <p style={{ color: T.muted, fontSize: 14.5, lineHeight: 1.6, margin: "0 0 22px", maxWidth: 320 }}>{t.desc}</p>
+                <button
+                  onClick={() => setActiveTemplate(t)}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 8, background: t.accentTint, color: t.accent,
+                    border: "none", borderRadius: 10, padding: "11px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer",
+                    marginTop: "auto", alignSelf: "flex-start",
+                  }}
+                >
+                  <FileSignature size={16} /> Gerar declaração
+                </button>
               </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 15, color: T.text, marginBottom: 6 }}>{t.title}</div>
-                <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.5 }}>{t.desc}</div>
-              </div>
-              <button
-                onClick={() => setActiveTemplate(t)}
-                style={{
-                  marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  padding: "9px 0", borderRadius: 9, border: `1px solid ${T.primaryTint}`, background: T.primaryTint,
-                  color: T.primaryDark, fontWeight: 700, fontSize: 13.5, cursor: "pointer",
-                }}
-              >
-                <FileSignature size={18} /> Gerar declaração
-              </button>
+              <CategoryIllustration icon={t.icon} badgeIcon={t.badgeIcon} accent={t.accent} accentTint={t.accentTint} />
+              <div style={{ height: 5, background: t.accent }} />
             </Card>
           );
         })}
@@ -2605,37 +3808,38 @@ function Declaracoes({ setPrintContent }) {
 /* ------------------------------------------------------------------ */
 function SettingsSection({ title, children }) {
   return (
-    <Card style={{ padding: 22, marginBottom: 18 }}>
-      <div style={{ fontWeight: 700, fontSize: 15.5, color: T.text, marginBottom: 16 }}>{title}</div>
+    <Card style={{ padding: 28, marginBottom: 18, flex: "1 1 auto", minHeight: 220 }}>
+      <div style={{ fontWeight: 800, fontSize: 19, color: T.text, marginBottom: 20 }}>{title}</div>
       {children}
     </Card>
   );
 }
 
-const settingsLabelStyle = { fontSize: 12.5, fontWeight: 600, color: T.muted, display: "block", marginBottom: 6 };
+const settingsLabelStyle = { fontSize: 14, fontWeight: 700, color: T.muted, display: "block", marginBottom: 8 };
+const settingsInputStyle = { ...inputStyle, margin: 0, fontSize: 15.5, padding: "12px 14px" };
 
 function Field({ label, defaultValue, type = "text" }) {
   return (
-    <div style={{ marginBottom: 14 }}>
+    <div style={{ marginBottom: 18 }}>
       <label style={settingsLabelStyle}>{label}</label>
-      <input type={type} defaultValue={defaultValue} style={{ ...inputStyle, margin: 0 }} />
+      <input type={type} defaultValue={defaultValue} style={settingsInputStyle} />
     </div>
   );
 }
 
 function GoalField({ label, value, onChange, prefix }) {
   return (
-    <div style={{ marginBottom: 14 }}>
+    <div style={{ marginBottom: 18 }}>
       <label style={settingsLabelStyle}>{label}</label>
       <div style={{ position: "relative" }}>
         {prefix && (
-          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 14, color: T.muted }}>{prefix}</span>
+          <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 15.5, color: T.muted }}>{prefix}</span>
         )}
         <input
           type="number"
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          style={{ ...inputStyle, margin: 0, paddingLeft: prefix ? 30 : 12 }}
+          style={{ ...settingsInputStyle, paddingLeft: prefix ? 32 : 14 }}
         />
       </div>
     </div>
@@ -2646,7 +3850,7 @@ function MetasTab() {
   const { goals, updateGoals } = useAppData();
   return (
     <SettingsSection title="Metas do consultório">
-      <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 18, maxWidth: 460 }}>
+      <div style={{ fontSize: 14, color: T.muted, marginBottom: 20, maxWidth: 520 }}>
         Essas metas alimentam os indicadores do Dashboard (como "Faturamento no mês" e "Horas na semana"), mostrando se você está no caminho certo.
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
@@ -2673,10 +3877,10 @@ function WhatsappTab() {
   return (
     <>
       <SettingsSection title="Envio automático">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 0 18px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 0 22px" }}>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>Enviar cobranças e lembretes via WhatsApp</div>
-            <div style={{ fontSize: 12.5, color: T.muted, marginTop: 2, maxWidth: 380 }}>Ativa o envio automático das mensagens configuradas abaixo para os pacientes.</div>
+            <div style={{ fontSize: 15.5, fontWeight: 700, color: T.text }}>Enviar cobranças e lembretes via WhatsApp</div>
+            <div style={{ fontSize: 13.5, color: T.muted, marginTop: 3, maxWidth: 420 }}>Ativa o envio automático das mensagens configuradas abaixo para os pacientes.</div>
           </div>
           <Switch checked={enabled} onChange={setEnabled} />
         </div>
@@ -2691,9 +3895,9 @@ function WhatsappTab() {
           value={mensagemLembrete}
           onChange={(e) => setMensagemLembrete(e.target.value)}
           rows={3}
-          style={{ ...inputStyle, margin: 0, resize: "vertical", fontFamily: "inherit" }}
+          style={{ ...settingsInputStyle, resize: "vertical", fontFamily: "inherit" }}
         />
-        <div style={{ fontSize: 12, color: T.muted, marginTop: 8 }}>
+        <div style={{ fontSize: 13, color: T.muted, marginTop: 10 }}>
           Variáveis disponíveis: {"{paciente}"}, {"{data}"}, {"{hora}"}
         </div>
       </SettingsSection>
@@ -2703,9 +3907,9 @@ function WhatsappTab() {
           value={mensagemCobranca}
           onChange={(e) => setMensagemCobranca(e.target.value)}
           rows={3}
-          style={{ ...inputStyle, margin: 0, resize: "vertical", fontFamily: "inherit" }}
+          style={{ ...settingsInputStyle, resize: "vertical", fontFamily: "inherit" }}
         />
-        <div style={{ fontSize: 12, color: T.muted, marginTop: 8 }}>
+        <div style={{ fontSize: 13, color: T.muted, marginTop: 10 }}>
           Variáveis disponíveis: {"{paciente}"}, {"{referencia}"}, {"{valor}"}, {"{vencimento}"}
         </div>
       </SettingsSection>
@@ -2715,7 +3919,6 @@ function WhatsappTab() {
 
 const SETTINGS_TABS = [
   { key: "pessoais", label: "Dados pessoais" },
-  { key: "empresa", label: "Dados da empresa" },
   { key: "seguranca", label: "Segurança" },
   { key: "horario", label: "Horário de atendimento" },
   { key: "metas", label: "Configurações de metas" },
@@ -2724,7 +3927,6 @@ const SETTINGS_TABS = [
 
 function Configuracoes() {
   const [tab, setTab] = useState("pessoais");
-  const [notifs, setNotifs] = useState({ email: true, sms: false, push: true, autoConfirm: true });
   const [twoFactor, setTwoFactor] = useState(false);
   const [days, setDays] = useState(["Seg", "Ter", "Qua", "Qui", "Sex"]);
   const allDays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
@@ -2735,7 +3937,7 @@ function Configuracoes() {
     <div>
       <PageHeader title="Configurações" subtitle="Gerencie seu perfil e preferências do consultório" />
 
-      <div style={{ display: "flex", gap: 28, marginBottom: 24, borderBottom: `1px solid ${T.border}`, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", marginBottom: 24, borderBottom: `1px solid ${T.border}` }}>
         {SETTINGS_TABS.map((t) => {
           const active = tab === t.key;
           return (
@@ -2743,10 +3945,11 @@ function Configuracoes() {
               key={t.key}
               onClick={() => setTab(t.key)}
               style={{
-                padding: "0 0 12px", background: "none", cursor: "pointer",
-                border: "none", borderBottom: active ? `2px solid ${T.primary}` : "2px solid transparent",
+                flex: 1, padding: "0 0 14px", background: "none", cursor: "pointer",
+                border: "none", borderBottom: active ? `3px solid ${T.primary}` : "3px solid transparent",
                 marginBottom: -1, color: active ? T.primary : T.muted,
-                fontWeight: 700, fontSize: 13, whiteSpace: "nowrap",
+                fontWeight: 800, fontSize: 14.5, textTransform: "uppercase", letterSpacing: 0.5,
+                textAlign: "center", whiteSpace: "nowrap",
               }}
             >
               {t.label}
@@ -2755,89 +3958,63 @@ function Configuracoes() {
         })}
       </div>
 
-      <div style={{ maxWidth: 640 }}>
+      <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 260px)" }}>
         {tab === "pessoais" && (
-          <>
-            <SettingsSection title="Perfil profissional">
-              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
-                <Avatar initials="IT" color="purple" size={56} />
-                <button style={{ padding: "8px 14px", borderRadius: 9, border: `1px solid ${T.border}`, background: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Alterar foto</button>
+          <SettingsSection title="Perfil profissional">
+            <div style={{ maxWidth: 560 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 22 }}>
+                <Avatar initials="IT" color="purple" size={64} />
+                <button style={{ padding: "10px 16px", borderRadius: 9, border: `1px solid ${T.border}`, background: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Alterar foto</button>
               </div>
               <Field label="Nome completo" defaultValue="Dra. Isadora Talamini" />
               <Field label="CRP" defaultValue="12/34567" />
               <Field label="E-mail" defaultValue="isadora.talamini@psystem.com" type="email" />
               <Field label="Telefone" defaultValue="(48) 99876-5432" />
-            </SettingsSection>
-
-            <SettingsSection title="Notificações">
-              {[
-                { key: "email", label: "Lembretes por e-mail", desc: "Enviar lembrete de sessão para pacientes por e-mail." },
-                { key: "sms", label: "Lembretes por SMS", desc: "Enviar lembrete de sessão por mensagem de texto." },
-                { key: "push", label: "Notificações push", desc: "Receber alertas no navegador e no app." },
-                { key: "autoConfirm", label: "Confirmação automática", desc: "Confirmar agendamentos assim que forem criados." },
-              ].map((row) => (
-                <div key={row.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderTop: `1px solid ${T.border}` }}>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{row.label}</div>
-                    <div style={{ fontSize: 12.5, color: T.muted, marginTop: 2, maxWidth: 380 }}>{row.desc}</div>
-                  </div>
-                  <Switch checked={notifs[row.key]} onChange={(v) => setNotifs({ ...notifs, [row.key]: v })} />
-                </div>
-              ))}
-            </SettingsSection>
-          </>
-        )}
-
-        {tab === "empresa" && (
-          <SettingsSection title="Dados da empresa">
-            <Field label="Nome do consultório / clínica" defaultValue="Psystem — Consultório de Psicologia" />
-            <Field label="Razão social" defaultValue="Isadora Talamini Psicologia Ltda." />
-            <Field label="CNPJ" defaultValue="12.345.678/0001-90" />
-            <Field label="Endereço" defaultValue="Rua das Palmeiras, 210 — Centro, Criciúma/SC" />
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
-              <Field label="Telefone comercial" defaultValue="(48) 3433-0000" />
-              <Field label="E-mail comercial" defaultValue="contato@psystem.com" type="email" />
             </div>
           </SettingsSection>
         )}
 
         {tab === "seguranca" && (
           <SettingsSection title="Segurança">
-            <Field label="Senha atual" type="password" defaultValue="" />
-            <Field label="Nova senha" type="password" defaultValue="" />
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderTop: `1px solid ${T.border}`, marginTop: 6 }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>Autenticação em duas etapas</div>
-                <div style={{ fontSize: 12.5, color: T.muted, marginTop: 2 }}>Exigir um código adicional ao entrar na conta.</div>
+            <div style={{ maxWidth: 560 }}>
+              <Field label="Senha atual" type="password" defaultValue="" />
+              <Field label="Nova senha" type="password" defaultValue="" />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0", borderTop: `1px solid ${T.border}`, marginTop: 6 }}>
+                <div>
+                  <div style={{ fontSize: 15.5, fontWeight: 700, color: T.text }}>Autenticação em duas etapas</div>
+                  <div style={{ fontSize: 13.5, color: T.muted, marginTop: 3 }}>Exigir um código adicional ao entrar na conta.</div>
+                </div>
+                <Switch checked={twoFactor} onChange={setTwoFactor} />
               </div>
-              <Switch checked={twoFactor} onChange={setTwoFactor} />
             </div>
           </SettingsSection>
         )}
 
         {tab === "horario" && (
           <SettingsSection title="Horário de atendimento">
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-              {allDays.map((d) => {
-                const on = days.includes(d);
-                return (
-                  <button
-                    key={d}
-                    onClick={() => toggleDay(d)}
-                    style={{
-                      width: 48, height: 42, borderRadius: 9, border: `1px solid ${on ? T.primary : T.border}`,
-                      background: on ? T.primaryTint : "#fff", color: on ? T.primaryDark : T.muted,
-                      fontWeight: 700, fontSize: 13, cursor: "pointer",
-                    }}
-                  >
-                    {d}
-                  </button>
-                );
-              })}
-            </div>
-            <div style={{ display: "flex", gap: 14 }}>
-              <Field label="Início" defaultValue="08:00" />
-              <Field label="Término" defaultValue="18:00" />
+            <div style={{ maxWidth: 560 }}>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
+                {allDays.map((d) => {
+                  const on = days.includes(d);
+                  return (
+                    <button
+                      key={d}
+                      onClick={() => toggleDay(d)}
+                      style={{
+                        width: 56, height: 48, borderRadius: 9, border: `1px solid ${on ? T.primary : T.border}`,
+                        background: on ? T.primaryTint : "#fff", color: on ? T.primaryDark : T.muted,
+                        fontWeight: 700, fontSize: 14.5, cursor: "pointer",
+                      }}
+                    >
+                      {d}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ display: "flex", gap: 16 }}>
+                <Field label="Início" defaultValue="08:00" />
+                <Field label="Término" defaultValue="18:00" />
+              </div>
             </div>
           </SettingsSection>
         )}
@@ -2845,7 +4022,7 @@ function Configuracoes() {
         {tab === "metas" && <MetasTab />}
         {tab === "whatsapp" && <WhatsappTab />}
 
-        <PrimaryButton style={{ width: "100%", justifyContent: "center", padding: "12px 0" }} icon={Check}>Salvar alterações</PrimaryButton>
+        <PrimaryButton style={{ width: "100%", justifyContent: "center", padding: "14px 0", fontSize: 15 }} icon={Check}>Salvar alterações</PrimaryButton>
       </div>
     </div>
   );
@@ -2902,7 +4079,6 @@ export default function App() {
           table { font-family: 'Inter', sans-serif; }
           select { font-family: 'Inter', sans-serif; }
           input:focus, select:focus { border-color: ${T.primary} !important; }
-          .header-search::placeholder { color: rgba(255,255,255,0.8); }
           ::-webkit-scrollbar { width: 8px; height: 8px; }
           ::-webkit-scrollbar-thumb { background: #D8DCE9; border-radius: 8px; }
           .spin { animation: spin 0.8s linear infinite; }
