@@ -7,7 +7,8 @@ import {
   ArrowDownCircle, ArrowUpCircle, UploadCloud, FileSignature, FileCheck2,
   Image as ImageIcon, Receipt, Landmark, Printer, Copy, Eye, RefreshCw,
   ArrowLeft, ClipboardList, HeartPulse, User, Home, ShieldCheck, Cake, CreditCard,
-  ExternalLink, Paperclip, SlidersHorizontal, Download
+  ExternalLink, Paperclip, SlidersHorizontal, Download, Camera, BadgeCheck,
+  Banknote, Undo2, Send, MessageSquare
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -33,6 +34,9 @@ const T = {
   warn: "#F0A93A",
   warnTint: "#FDF2E1",
 };
+
+/* Fonte de exibição — usada na marca, na navegação lateral e nos títulos. */
+const FONT_DISPLAY = "'Outfit', 'Plus Jakarta Sans', sans-serif";
 
 const EVENT_STYLES = {
   purple: { bg: "#F1E8FC", border: "#D9C4F5", text: "#6E3FA8" },
@@ -168,12 +172,12 @@ const initialSessions = [
 
 /* Contas a receber (mensalidades dos pacientes) */
 const initialReceivables = [
-  { id: 1, paciente: "Maria Aparecida", referencia: "Mensalidade — Agosto/2026", valor: 800, vencimento: "05/08/2026", status: "Pago" },
-  { id: 2, paciente: "Pedro Silva", referencia: "Mensalidade — Agosto/2026", valor: 720, vencimento: "05/08/2026", status: "Pago" },
-  { id: 3, paciente: "Jorge Sousa", referencia: "Mensalidade — Agosto/2026", valor: 800, vencimento: "10/08/2026", status: "Pendente" },
-  { id: 4, paciente: "Patrícia Alves", referencia: "Mensalidade — Agosto/2026", valor: 880, vencimento: "08/08/2026", status: "Pago" },
-  { id: 5, paciente: "Luísa Silva", referencia: "Mensalidade — Julho/2026", valor: 600, vencimento: "05/07/2026", status: "Atrasado" },
-  { id: 6, paciente: "Mike Pereira", referencia: "Mensalidade — Agosto/2026", valor: 200, vencimento: "20/08/2026", status: "Pendente" },
+  { id: 1, paciente: "Maria Aparecida", referencia: "Mensalidade — Agosto/2026", valor: 800, vencimento: "05/08/2026", status: "Pago", recebimento: "05/08/2026", recebido: 800, forma: "Pix" },
+  { id: 2, paciente: "Pedro Silva", referencia: "Mensalidade — Agosto/2026", valor: 720, vencimento: "05/08/2026", status: "Pago", recebimento: "06/08/2026", recebido: 720, forma: "Cartão de crédito" },
+  { id: 3, paciente: "Jorge Sousa", referencia: "Mensalidade — Agosto/2026", valor: 800, vencimento: "10/08/2026", status: "Pendente", recebimento: null, recebido: null, forma: null },
+  { id: 4, paciente: "Patrícia Alves", referencia: "Mensalidade — Agosto/2026", valor: 880, vencimento: "08/08/2026", status: "Pago", recebimento: "08/08/2026", recebido: 880, forma: "Pix" },
+  { id: 5, paciente: "Luísa Silva", referencia: "Mensalidade — Julho/2026", valor: 600, vencimento: "05/07/2026", status: "Atrasado", recebimento: null, recebido: null, forma: null },
+  { id: 6, paciente: "Mike Pereira", referencia: "Mensalidade — Agosto/2026", valor: 200, vencimento: "20/08/2026", status: "Pendente", recebimento: null, recebido: null, forma: null },
 ];
 
 /* Contas a pagar (despesas do consultório) */
@@ -255,8 +259,8 @@ const NAV = [
   { key: "pacientes", label: "Pacientes", icon: Users },
   { key: "prontuarios", label: "Prontuários", icon: FileText },
   { key: "relatorios", label: "Relatórios", icon: BarChart3 },
-  { key: "financeiro", label: "Financeiro", icon: Wallet },
   { key: "declaracoes", label: "Declarações", icon: FileSignature },
+  { key: "financeiro", label: "Financeiro", icon: Wallet },
   { key: "configuracoes", label: "Configurações", icon: Settings },
 ];
 
@@ -292,6 +296,20 @@ function DataProvider({ children }) {
     horasSemanais: 20,
     novosPacientesMes: 5,
   });
+  /* Mensagens do WhatsApp — configuradas em Configurações e usadas
+     pelo atalho de envio do topo, do perfil e do Financeiro. */
+  const [whatsapp, setWhatsapp] = useState({
+    enabled: true,
+    numero: "(48) 99876-5432",
+    diasAntes: 2,
+    lembrete: "Olá {paciente}! Passando para lembrar que sua sessão está confirmada para {data} às {hora}. Até lá!",
+    retorno: "Olá {paciente}! Faz um tempo desde a nossa última sessão, em {ultimaSessao}. Se quiser retomar o acompanhamento, tenho horários disponíveis nesta semana. Um abraço!",
+    cobranca: "Olá {paciente}, tudo bem? Sua mensalidade de {referencia} no valor de {valor} vence em {vencimento}. Qualquer dúvida, estou à disposição!",
+  });
+
+  function updateWhatsapp(changes) {
+    setWhatsapp((prev) => ({ ...prev, ...changes }));
+  }
 
   function updateGoals(changes) {
     setGoals((prev) => ({ ...prev, ...changes }));
@@ -329,7 +347,33 @@ function DataProvider({ children }) {
   }
 
   function addReceivable(entry) {
-    setReceivables((prev) => [{ id: Date.now(), ...entry }, ...prev]);
+    const pago = entry.status === "Pago";
+    setReceivables((prev) => [{
+      id: Date.now(),
+      recebimento: pago ? entry.vencimento : null,
+      recebido: pago ? entry.valor : null,
+      forma: pago ? "Pix" : null,
+      ...entry,
+    }, ...prev]);
+  }
+
+  /* Baixa de um lançamento: marca como recebido e guarda data/valor/forma. */
+  function receiveReceivable(id, payment) {
+    setReceivables((prev) => prev.map((r) => (
+      r.id === id
+        ? { ...r, status: "Pago", recebimento: payment.data, recebido: Number(payment.valor), forma: payment.forma }
+        : r
+    )));
+  }
+
+  /* Estorno: volta o lançamento para em aberto (ou em atraso, se venceu). */
+  function reopenReceivable(id) {
+    setReceivables((prev) => prev.map((r) => {
+      if (r.id !== id) return r;
+      const venc = parseBrDate(r.vencimento);
+      const vencido = venc && venc < REPORT_TODAY;
+      return { ...r, status: vencido ? "Atrasado" : "Pendente", recebimento: null, recebido: null, forma: null };
+    }));
   }
 
   function addDocument(patientId, entry) {
@@ -345,8 +389,9 @@ function DataProvider({ children }) {
     records, saveRecord,
     anamneses, saveAnamnese,
     documents, addDocument, removeDocument,
-    receivables, addReceivable,
+    receivables, addReceivable, receiveReceivable, reopenReceivable,
     goals, updateGoals,
+    whatsapp, updateWhatsapp,
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
@@ -355,7 +400,7 @@ function DataProvider({ children }) {
 /* ------------------------------------------------------------------ */
 /* Small building blocks                                                */
 /* ------------------------------------------------------------------ */
-function Avatar({ initials, size = 36, color = "purple" }) {
+function Avatar({ initials, size = 36, color = "purple", src = null, style = {} }) {
   const c = EVENT_STYLES[color] || EVENT_STYLES.purple;
   return (
     <div
@@ -364,9 +409,12 @@ function Avatar({ initials, size = 36, color = "purple" }) {
         background: c.bg, color: c.text, border: `1px solid ${c.border}`,
         display: "flex", alignItems: "center", justifyContent: "center",
         fontWeight: 700, fontSize: size * 0.36, flexShrink: 0,
+        overflow: "hidden", ...style,
       }}
     >
-      {initials}
+      {src
+        ? <img src={src} alt={initials} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        : initials}
     </div>
   );
 }
@@ -486,6 +534,263 @@ function SearchInput({ value, onChange, placeholder }) {
 }
 
 /* ------------------------------------------------------------------ */
+/* WhatsApp — atalho de envio de mensagens                              */
+/* ------------------------------------------------------------------ */
+function WhatsappIcon({ size = 20, color = "currentColor" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} aria-hidden="true" style={{ flexShrink: 0 }}>
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+    </svg>
+  );
+}
+
+function onlyDigits(v) {
+  return String(v || "").replace(/\D/g, "");
+}
+
+/* Normaliza para o formato aceito pelo wa.me (DDI + DDD + número). */
+function waNumber(phone) {
+  const d = onlyDigits(phone);
+  if (!d) return "";
+  return d.startsWith("55") ? d : `55${d}`;
+}
+
+function openWhatsapp(phone, text) {
+  const n = waNumber(phone);
+  const query = text ? `?text=${encodeURIComponent(text)}` : "";
+  window.open(n ? `https://wa.me/${n}${query}` : `https://wa.me/${query}`, "_blank", "noopener");
+}
+
+function firstName(name) {
+  return String(name || "").trim().split(" ")[0] || "";
+}
+
+/* Cada modelo aponta para o texto configurado em Configurações › WhatsApp. */
+const WA_TEMPLATES = [
+  { key: "lembrete", label: "Lembrete de sessão", field: "lembrete" },
+  { key: "retorno", label: "Lembrete de retorno", field: "retorno" },
+  { key: "cobranca", label: "Cobrança de mensalidade", field: "cobranca" },
+  { key: "livre", label: "Mensagem livre", field: null },
+];
+
+const WA_VARIABLES = {
+  lembrete: ["{paciente}", "{data}", "{hora}"],
+  retorno: ["{paciente}", "{ultimaSessao}"],
+  cobranca: ["{paciente}", "{referencia}", "{valor}", "{vencimento}"],
+};
+
+/* Substitui as variáveis do modelo pelos dados reais do paciente. */
+function fillWaVars(template, patient, receivable) {
+  if (!template) return "";
+  const values = {
+    "{paciente}": firstName(patient && patient.name),
+    "{data}": patient && patient.nextSession && patient.nextSession !== "—" ? patient.nextSession : "a definir",
+    "{hora}": patient && patient.matricula ? patient.matricula.time : "09:00",
+    "{ultimaSessao}": (patient && patient.lastSession) || "—",
+    "{referencia}": receivable ? receivable.referencia : "das sessões",
+    "{valor}": receivable ? `R$ ${receivable.valor.toLocaleString("pt-BR")}` : "—",
+    "{vencimento}": receivable ? receivable.vencimento : "—",
+  };
+  return Object.keys(values).reduce((acc, k) => acc.split(k).join(values[k]), template);
+}
+
+const WA_GREEN = "#25D366";
+const WA_GREEN_DARK = "#1EBE5B";
+
+function WhatsappQuickModal({ onClose, initialPatientId = null, initialTemplate = "lembrete" }) {
+  const { patients, receivables, whatsapp } = useAppData();
+  const [patientId, setPatientId] = useState(initialPatientId ?? (patients[0] ? patients[0].id : null));
+  const [templateKey, setTemplateKey] = useState(initialTemplate);
+  const [text, setText] = useState("");
+
+  const patient = patients.find((p) => p.id === patientId) || null;
+  const pendente = patient
+    ? receivables.find((r) => r.paciente === patient.name && r.status !== "Pago")
+    : null;
+
+  useEffect(() => {
+    const tpl = WA_TEMPLATES.find((t) => t.key === templateKey);
+    setText(patient && tpl && tpl.field ? fillWaVars(whatsapp[tpl.field], patient, pendente) : "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientId, templateKey, whatsapp]);
+
+  function handleSend() {
+    if (!text.trim()) return;
+    openWhatsapp(patient ? patient.phone : "", text);
+    onClose();
+  }
+
+  return (
+    <Modal title="Enviar mensagem no WhatsApp" onClose={onClose} width={520}>
+      <label style={{ fontSize: 13, fontWeight: 600, color: T.muted }}>Paciente</label>
+      <select value={patientId ?? ""} onChange={(e) => setPatientId(Number(e.target.value))} style={inputStyle}>
+        {patients.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+      </select>
+
+      {patient && (
+        <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#F1FCF5", border: "1px solid #CFEEDC", borderRadius: 12, padding: "12px 14px", marginBottom: 16 }}>
+          <Avatar initials={patient.initials} color={patient.color} src={patient.photo} size={42} />
+          <div>
+            <div style={{ fontSize: 14.5, fontWeight: 700, color: T.text }}>{patient.name}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.muted }}>
+              <Phone size={15} /> {patient.phone}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <label style={{ fontSize: 13, fontWeight: 600, color: T.muted }}>Modelo de mensagem</label>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "8px 0 16px" }}>
+        {WA_TEMPLATES.map((t) => {
+          const active = t.key === templateKey;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTemplateKey(t.key)}
+              style={{
+                padding: "8px 14px", borderRadius: 999, cursor: "pointer", fontSize: 13.5, fontWeight: 600,
+                border: `1px solid ${active ? T.primary : T.border}`,
+                background: active ? T.primaryTint : "#fff",
+                color: active ? T.primaryDark : T.text,
+              }}
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <label style={{ fontSize: 13, fontWeight: 600, color: T.muted }}>Mensagem</label>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={6}
+        placeholder="Escreva a mensagem que será aberta no WhatsApp..."
+        style={{ ...inputStyle, minHeight: 130, resize: "vertical", fontFamily: "inherit", lineHeight: 1.6 }}
+      />
+      <div style={{ fontSize: 12.5, color: T.muted, marginTop: -6, marginBottom: 16 }}>
+        A conversa abre no WhatsApp Web (ou no aplicativo) já com o texto pronto para envio.
+      </div>
+
+      <div style={{ display: "flex", gap: 10 }}>
+        <button onClick={onClose} style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, cursor: "pointer", fontSize: 14 }}>Cancelar</button>
+        <button
+          onClick={handleSend}
+          disabled={!text.trim()}
+          style={{
+            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            padding: "11px 0", borderRadius: 10, border: "none", cursor: text.trim() ? "pointer" : "default",
+            background: text.trim() ? WA_GREEN : "#BFE8CD", color: "#fff", fontWeight: 700, fontSize: 14,
+          }}
+        >
+          <Send size={18} /> Abrir no WhatsApp
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+/* Menu de ações de linha (⋮) — posicionado em `fixed` para não ser
+   cortado por tabelas com overflow hidden. */
+function RowMenu({ items }) {
+  const btnRef = useRef(null);
+  const [pos, setPos] = useState(null);
+
+  function toggle() {
+    if (pos) { setPos(null); return; }
+    const r = btnRef.current.getBoundingClientRect();
+    setPos({ top: r.bottom + 6, left: Math.max(12, r.right - 230) });
+  }
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        onClick={toggle}
+        style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, display: "flex" }}
+        title="Mais ações"
+      >
+        <MoreVertical size={19} />
+      </button>
+      {pos && (
+        <>
+          <div onClick={() => setPos(null)} style={{ position: "fixed", inset: 0, zIndex: 60 }} />
+          <div style={{ position: "fixed", top: pos.top, left: pos.left, width: 230, background: "#fff", border: `1px solid ${T.border}`, borderRadius: 12, boxShadow: "0 12px 34px rgba(20,24,38,0.16)", padding: 6, zIndex: 61 }}>
+            {items.map((it) => (
+              <button
+                key={it.label}
+                onClick={() => { setPos(null); it.onClick(); }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left",
+                  padding: "10px 12px", borderRadius: 8, border: "none", background: "none", cursor: "pointer",
+                  fontSize: 13.5, fontWeight: 600, color: it.tone === "danger" ? T.danger : T.text,
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "#F5F6FA")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+              >
+                {it.icon && <it.icon size={17} />} {it.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Baixa financeira (receber / pagar)                                   */
+/* ------------------------------------------------------------------ */
+const PAYMENT_METHODS = ["Pix", "Cartão de crédito", "Cartão de débito", "Dinheiro", "Transferência", "Boleto"];
+
+function ReceivePaymentModal({ title, subtitle, valor, vencimento, kind = "receber", onClose, onConfirm }) {
+  const isPay = kind === "pagar";
+  const [data, setData] = useState(todayLabel());
+  const [valorRecebido, setValorRecebido] = useState(valor);
+  const [forma, setForma] = useState("Pix");
+
+  return (
+    <Modal title={isPay ? "Registrar pagamento" : "Registrar recebimento"} onClose={onClose} width={430}>
+      <div style={{ background: isPay ? T.dangerTint : T.successTint, borderRadius: 12, padding: "14px 16px", marginBottom: 18 }}>
+        <div style={{ fontSize: 14.5, fontWeight: 700, color: T.text }}>{title}</div>
+        {subtitle && <div style={{ fontSize: 13, color: T.muted, marginTop: 2 }}>{subtitle}</div>}
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 8 }}>
+          <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 22, fontWeight: 800, color: isPay ? T.danger : T.success }}>
+            R$ {Number(valor).toLocaleString("pt-BR")}
+          </span>
+          <span style={{ fontSize: 12.5, color: T.muted }}>vence em {vencimento}</span>
+        </div>
+      </div>
+
+      <label style={{ fontSize: 13, fontWeight: 600, color: T.muted }}>Data do {isPay ? "pagamento" : "recebimento"}</label>
+      <input value={data} onChange={(e) => setData(e.target.value)} placeholder="dd/mm/aaaa" style={inputStyle} />
+
+      <label style={{ fontSize: 13, fontWeight: 600, color: T.muted }}>Valor {isPay ? "pago" : "recebido"} (R$)</label>
+      <input type="number" value={valorRecebido} onChange={(e) => setValorRecebido(e.target.value)} style={inputStyle} />
+
+      <label style={{ fontSize: 13, fontWeight: 600, color: T.muted }}>Forma de {isPay ? "pagamento" : "recebimento"}</label>
+      <select value={forma} onChange={(e) => setForma(e.target.value)} style={inputStyle}>
+        {PAYMENT_METHODS.map((m) => <option key={m}>{m}</option>)}
+      </select>
+
+      <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+        <button onClick={onClose} style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, cursor: "pointer", fontSize: 14 }}>Cancelar</button>
+        <button
+          onClick={() => onConfirm({ data, valor: Number(valorRecebido), forma })}
+          style={{
+            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            padding: "11px 0", borderRadius: 10, border: "none", cursor: "pointer",
+            background: isPay ? T.danger : T.success, color: "#fff", fontWeight: 700, fontSize: 14,
+          }}
+        >
+          <Check size={18} /> Confirmar {isPay ? "pagamento" : "recebimento"}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Sidebar                                                              */
 /* ------------------------------------------------------------------ */
 const headerIconBtn = {
@@ -494,17 +799,34 @@ const headerIconBtn = {
   display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
 };
 
+const waHeaderBtn = {
+  display: "flex", alignItems: "center", gap: 9, height: 42, padding: "0 18px",
+  borderRadius: 999, border: "none", cursor: "pointer", background: WA_GREEN, color: "#fff",
+  fontSize: 14, fontWeight: 700, flexShrink: 0, boxShadow: "0 4px 12px rgba(0,0,0,0.16)",
+  whiteSpace: "nowrap",
+};
+
 function Header() {
+  const [showWhats, setShowWhats] = useState(false);
   return (
     <header style={{ display: "flex", alignItems: "center", gap: 20, background: T.primary, padding: "16px 28px", flexShrink: 0, width: "100%", boxSizing: "border-box" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
         <div style={{ width: 46, height: 46, borderRadius: 12, background: "rgba(255,255,255,0.16)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Brain size={27} color="#fff" />
         </div>
-        <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 30, color: "#fff" }}>Psystem</span>
+        <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 31, letterSpacing: -0.6, color: "#fff" }}>Psystem</span>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0, marginLeft: "auto" }}>
+        <button
+          onClick={() => setShowWhats(true)}
+          title="Enviar mensagem no WhatsApp"
+          style={waHeaderBtn}
+          onMouseEnter={(e) => (e.currentTarget.style.background = WA_GREEN_DARK)}
+          onMouseLeave={(e) => (e.currentTarget.style.background = WA_GREEN)}
+        >
+          <WhatsappIcon size={20} color="#fff" /> WhatsApp
+        </button>
         <button style={headerIconBtn}><Bell size={20} /></button>
         <button style={headerIconBtn}><Settings size={20} /></button>
         <div style={{ display: "flex", alignItems: "center", gap: 10, paddingLeft: 4 }}>
@@ -515,6 +837,8 @@ function Header() {
           </div>
         </div>
       </div>
+
+      {showWhats && <WhatsappQuickModal onClose={() => setShowWhats(false)} />}
     </header>
   );
 }
@@ -539,14 +863,15 @@ function Sidebar({ page, setPage }) {
                 display: "flex", alignItems: "center", gap: 16, padding: "15px 14px 15px 12px",
                 borderRadius: 11, borderTopLeftRadius: active ? 0 : 11, borderBottomLeftRadius: active ? 0 : 11,
                 border: "none", borderLeft: active ? `4px solid ${T.primary}` : "4px solid transparent",
-                cursor: "pointer", fontSize: 16.5, fontWeight: active ? 800 : 600,
+                cursor: "pointer", fontFamily: FONT_DISPLAY, fontSize: 17.5,
+                fontWeight: active ? 700 : 500, letterSpacing: -0.25,
                 background: active ? T.primaryTint : "transparent", color: active ? T.primaryDark : T.text,
                 textAlign: "left", width: "100%", transition: "background .12s, color .12s",
               }}
               onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "#F5F6FA"; }}
               onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
             >
-              <Icon size={27} />
+              <Icon size={26} strokeWidth={active ? 2.4 : 1.9} />
               {item.label}
             </button>
           );
@@ -1003,8 +1328,8 @@ function AppointmentDetailModal({ event, dateLabel, onClose, onCancelAppointment
 }
 
 const inputStyle = {
-  width: "100%", padding: "9px 12px", borderRadius: 9, border: `1px solid ${T.border}`,
-  fontSize: 14, margin: "6px 0 14px", boxSizing: "border-box", background: "#fff", color: T.text,
+  width: "100%", padding: "11px 13px", borderRadius: 10, border: `1px solid ${T.border}`,
+  fontSize: 14.5, margin: "7px 0 16px", boxSizing: "border-box", background: "#fff", color: T.text,
 };
 
 const filterInputStyle = {
@@ -1257,12 +1582,12 @@ function initials2(name) {
   return name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
 
-const textareaStyle = { ...inputStyle, minHeight: 72, resize: "vertical", fontFamily: "inherit" };
+const textareaStyle = { ...inputStyle, minHeight: 110, resize: "vertical", fontFamily: "inherit", lineHeight: 1.6 };
 
 function FormField({ label, value, onChange, type = "text", placeholder, textarea, options }) {
   return (
     <div>
-      <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>{label}</label>
+      <label style={{ fontSize: 13.5, fontWeight: 600, color: T.muted }}>{label}</label>
       {options ? (
         <select value={value} onChange={(e) => onChange(e.target.value)} style={inputStyle}>
           {options.map((o) => <option key={o}>{o}</option>)}
@@ -1347,13 +1672,13 @@ function NewPatientModal({ onClose, onSave, editingPatient }) {
 
 function InfoRow({ icon: Icon, label, value }) {
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 0", borderBottom: `1px solid ${T.border}` }}>
-      <div style={{ width: 32, height: 32, borderRadius: 8, background: T.primaryTint, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-        <Icon size={18} color={T.primary} />
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 14, padding: "16px 0", borderBottom: `1px solid ${T.border}` }}>
+      <div style={{ width: 40, height: 40, borderRadius: 10, background: T.primaryTint, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <Icon size={20} color={T.primary} />
       </div>
       <div>
-        <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 3 }}>{label}</div>
-        <div style={{ fontSize: 14, color: T.text, fontWeight: 600 }}>{value || "Não informado"}</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 }}>{label}</div>
+        <div style={{ fontSize: 15.5, color: T.text, fontWeight: 600 }}>{value || "Não informado"}</div>
       </div>
     </div>
   );
@@ -1361,7 +1686,7 @@ function InfoRow({ icon: Icon, label, value }) {
 
 function DadosPessoaisTab({ patient }) {
   return (
-    <Card style={{ padding: "4px 24px" }}>
+    <Card style={{ padding: "8px 28px" }}>
       <InfoRow icon={Cake} label="Data de nascimento" value={patient.nascimento} />
       <InfoRow icon={CreditCard} label="CPF" value={patient.cpf} />
       <InfoRow icon={Phone} label="Telefone" value={patient.phone} />
@@ -1369,9 +1694,9 @@ function DadosPessoaisTab({ patient }) {
       <InfoRow icon={Home} label="Endereço" value={patient.endereco} />
       <InfoRow icon={ShieldCheck} label="Convênio" value={patient.convenio} />
       <InfoRow icon={User} label="Contato de emergência" value={patient.emergenciaNome && patient.emergenciaTelefone ? `${patient.emergenciaNome} · ${patient.emergenciaTelefone}` : patient.emergenciaNome} />
-      <div style={{ padding: "12px 0" }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 6 }}>Observações</div>
-        <div style={{ fontSize: 13.5, color: T.text, lineHeight: 1.6 }}>{patient.observacoes || "Nenhuma observação registrada."}</div>
+      <div style={{ padding: "16px 0" }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>Observações</div>
+        <div style={{ fontSize: 15.5, color: T.text, lineHeight: 1.7 }}>{patient.observacoes || "Nenhuma observação registrada."}</div>
       </div>
     </Card>
   );
@@ -1683,8 +2008,11 @@ function blankRecordForm() {
 function RecordForm({ initial, onCancel, onSave }) {
   const [form, setForm] = useState(initial);
   return (
-    <Card style={{ padding: 24, marginBottom: 16 }}>
-      <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 18 }}>
+    <Card style={{ padding: 30, marginBottom: 18 }}>
+      <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 19, fontWeight: 700, color: T.text, marginBottom: 6 }}>
+        Registro de sessão
+      </div>
+      <div style={{ fontSize: 14, color: T.muted, marginBottom: 22, lineHeight: 1.6 }}>
         Registre a sessão diretamente no sistema. Você pode criar quantos registros forem necessários e editar qualquer um deles depois.
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
@@ -1694,39 +2022,52 @@ function RecordForm({ initial, onCancel, onSave }) {
       <FormField label="Técnicas utilizadas" value={form.tecnicas} onChange={(v) => setForm({ ...form, tecnicas: v })} placeholder="Ex: escuta ativa, reestruturação cognitiva" />
       <FormField label="Objetivo da sessão" value={form.objetivo} onChange={(v) => setForm({ ...form, objetivo: v })} placeholder="Ex: reduzir sintomas de ansiedade" />
       <FormField label="Descrição / relato de atendimento" value={form.descricao} onChange={(v) => setForm({ ...form, descricao: v })} textarea placeholder="Descreva o que foi trabalhado na sessão..." />
-      <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-        <button onClick={onCancel} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
-        <PrimaryButton style={{ flex: 1, justifyContent: "center" }} icon={Check} onClick={() => onSave(form)}>Salvar prontuário</PrimaryButton>
+      <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
+        <button onClick={onCancel} style={{ flex: 1, padding: "13px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, fontSize: 14.5, cursor: "pointer" }}>Cancelar</button>
+        <PrimaryButton style={{ flex: 1, justifyContent: "center", padding: "13px 16px", fontSize: 15 }} icon={Check} onClick={() => onSave(form)}>Salvar prontuário</PrimaryButton>
       </div>
     </Card>
   );
 }
 
+const recordLabelStyle = {
+  fontSize: 12.5, fontWeight: 700, color: T.muted, textTransform: "uppercase",
+  letterSpacing: 0.4, marginBottom: 6,
+};
+const recordTextStyle = { fontSize: 15.5, color: T.text, lineHeight: 1.75 };
+
 function RecordCard({ entry, onEdit }) {
   return (
-    <Card style={{ padding: 22, marginBottom: 14 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, gap: 12 }}>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 15, color: T.text }}>{entry.sessao || "Sessão"}</div>
-          <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>{entry.date}</div>
+    <Card style={{ padding: 28, marginBottom: 18 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, gap: 14, paddingBottom: 16, borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 46, height: 46, borderRadius: 12, background: T.primaryTint, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <ClipboardList size={23} color={T.primary} />
+          </div>
+          <div>
+            <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 18.5, color: T.text }}>{entry.sessao || "Sessão"}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5, color: T.muted, marginTop: 3 }}>
+              <CalendarDays size={16} /> {entry.date}
+            </div>
+          </div>
         </div>
-        <button onClick={onEdit} style={{ ...iconBtn, background: "#fff" }} title="Editar registro"><Edit3 size={20} /></button>
+        <button onClick={onEdit} style={{ ...iconBtn, width: 44, height: 44, background: "#fff" }} title="Editar registro"><Edit3 size={21} /></button>
       </div>
       {entry.tecnicas && (
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>Técnicas utilizadas</div>
-          <div style={{ fontSize: 13.5, color: T.text, lineHeight: 1.6 }}>{entry.tecnicas}</div>
+        <div style={{ marginBottom: 18 }}>
+          <div style={recordLabelStyle}>Técnicas utilizadas</div>
+          <div style={recordTextStyle}>{entry.tecnicas}</div>
         </div>
       )}
       {entry.objetivo && (
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>Objetivo da sessão</div>
-          <div style={{ fontSize: 13.5, color: T.text, lineHeight: 1.6 }}>{entry.objetivo}</div>
+        <div style={{ marginBottom: 18 }}>
+          <div style={recordLabelStyle}>Objetivo da sessão</div>
+          <div style={recordTextStyle}>{entry.objetivo}</div>
         </div>
       )}
       <div>
-        <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 }}>Descrição / relato de atendimento</div>
-        <div style={{ fontSize: 13.5, color: T.text, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{entry.descricao || "—"}</div>
+        <div style={recordLabelStyle}>Descrição / relato de atendimento</div>
+        <div style={{ ...recordTextStyle, whiteSpace: "pre-wrap" }}>{entry.descricao || "—"}</div>
       </div>
     </Card>
   );
@@ -1751,15 +2092,16 @@ function ProntuarioTab({ patient }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4 }}>
+        <div style={{ fontSize: 14.5, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4 }}>
           {list.length} {list.length === 1 ? "registro no prontuário" : "registros no prontuário"}
         </div>
-        <PrimaryButton icon={Plus} onClick={() => setEditingId("new")}>Novo registro</PrimaryButton>
+        <PrimaryButton icon={Plus} style={{ padding: "12px 18px", fontSize: 14.5 }} onClick={() => setEditingId("new")}>Novo registro</PrimaryButton>
       </div>
 
       {list.length === 0 ? (
-        <Card style={{ padding: 24 }}>
-          <div style={{ fontSize: 13.5, color: T.muted }}>Nenhum registro no prontuário ainda para este paciente.</div>
+        <Card style={{ padding: 34, textAlign: "center" }}>
+          <ClipboardList size={34} color={T.muted} style={{ opacity: 0.5 }} />
+          <div style={{ fontSize: 15.5, color: T.muted, marginTop: 10 }}>Nenhum registro no prontuário ainda para este paciente.</div>
         </Card>
       ) : (
         list.map((entry) => (
@@ -1864,8 +2206,10 @@ function parseBrDate(str) {
 }
 
 function FinanceiroTab({ patient }) {
-  const { receivables, addReceivable } = useAppData();
+  const { receivables, addReceivable, receiveReceivable, reopenReceivable } = useAppData();
   const [showModal, setShowModal] = useState(false);
+  const [receiving, setReceiving] = useState(null);   // lançamento em baixa
+  const [cobrando, setCobrando] = useState(false);    // cobrança via WhatsApp
   const mine = receivables.filter((r) => r.paciente === patient.name);
   const totalPago = mine.filter((r) => r.status === "Pago").reduce((s, r) => s + r.valor, 0);
   const totalAberto = mine.filter((r) => r.status !== "Pago").reduce((s, r) => s + r.valor, 0);
@@ -1911,9 +2255,17 @@ function FinanceiroTab({ patient }) {
         <StatCard label="Em aberto" value={`R$ ${totalAberto.toLocaleString("pt-BR")}`} icon={Clock} tone={totalAberto > 0 ? "danger" : "primary"} />
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <span style={{ fontWeight: 700, fontSize: 14.5, color: T.text }}>Lançamentos</span>
-        <PrimaryButton icon={Plus} onClick={() => setShowModal(true)}>Novo lançamento</PrimaryButton>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, gap: 12, flexWrap: "wrap" }}>
+        <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 18, color: T.text }}>Lançamentos</span>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={() => setCobrando(true)}
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 16px", borderRadius: 10, border: "none", background: WA_GREEN, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}
+          >
+            <WhatsappIcon size={18} color="#fff" /> Cobrar no WhatsApp
+          </button>
+          <PrimaryButton icon={Plus} style={{ padding: "11px 16px", fontSize: 14 }} onClick={() => setShowModal(true)}>Novo lançamento</PrimaryButton>
+        </div>
       </div>
 
       <Card style={{ padding: "16px 20px", marginBottom: 16, overflow: "visible" }}>
@@ -1978,20 +2330,43 @@ function FinanceiroTab({ patient }) {
                 <tr key={r.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
                   <td style={{ padding: "14px 20px", fontSize: 13.5, color: T.text, fontWeight: 600 }}>{r.referencia}</td>
                   <td style={{ padding: "14px 20px", fontSize: 13.5, color: T.text }}>{r.vencimento}</td>
-                  <td style={{ padding: "14px 20px", fontSize: 13.5, color: T.text }}>{r.status === "Pago" ? r.vencimento : "—"}</td>
+                  <td style={{ padding: "14px 20px", fontSize: 13.5, color: T.text }}>{r.recebimento || "—"}</td>
                   <td style={{ padding: "14px 20px", fontSize: 13.5, color: T.text, fontWeight: 600 }}>R$ {r.valor.toLocaleString("pt-BR")}</td>
-                  <td style={{ padding: "14px 20px", fontSize: 13.5, color: r.status === "Pago" ? T.success : T.muted, fontWeight: 600 }}>
-                    {r.status === "Pago" ? `R$ ${r.valor.toLocaleString("pt-BR")}` : "—"}
+                  <td style={{ padding: "14px 20px", fontSize: 13.5, color: r.recebido != null ? T.success : T.muted, fontWeight: 600 }}>
+                    {r.recebido != null ? `R$ ${r.recebido.toLocaleString("pt-BR")}` : "—"}
                   </td>
                   <td style={{ padding: "14px 20px" }}>
-                    <Pill tone={situ.tone}>{situ.label}</Pill>
+                    {r.status === "Pago" ? (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: T.success, color: "#fff", borderRadius: 8, padding: "9px 14px", fontSize: 13.5, fontWeight: 700 }}>
+                        Recebido
+                      </div>
+                    ) : (
+                      <Pill tone={situ.tone}>{situ.label}</Pill>
+                    )}
                   </td>
                   <td style={{ padding: "14px 20px", textAlign: "right" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 16 }}>
-                      {r.status !== "Pago" && (
-                        <button style={{ background: "none", border: "none", color: T.primary, fontWeight: 700, fontSize: 12.5, cursor: "pointer", letterSpacing: 0.3 }}>RECEBER</button>
-                      )}
-                      <MoreVertical size={19} color={T.muted} />
+                      <button
+                        onClick={() => r.status !== "Pago" && setReceiving(r)}
+                        disabled={r.status === "Pago"}
+                        style={{
+                          background: "none", border: `1px solid ${r.status === "Pago" ? "transparent" : T.border}`,
+                          borderRadius: 8, padding: "8px 14px",
+                          color: r.status === "Pago" ? "#C7CCDA" : T.primary,
+                          fontWeight: 700, fontSize: 12.5, letterSpacing: 0.3,
+                          cursor: r.status === "Pago" ? "default" : "pointer",
+                        }}
+                      >
+                        RECEBER
+                      </button>
+                      <RowMenu
+                        items={r.status === "Pago"
+                          ? [{ label: "Estornar recebimento", icon: Undo2, tone: "danger", onClick: () => reopenReceivable(r.id) }]
+                          : [
+                              { label: "Registrar recebimento", icon: Banknote, onClick: () => setReceiving(r) },
+                              { label: "Cobrar no WhatsApp", icon: MessageSquare, onClick: () => setCobrando(true) },
+                            ]}
+                      />
                     </div>
                   </td>
                 </tr>
@@ -2006,6 +2381,25 @@ function FinanceiroTab({ patient }) {
           defaultPatientName={patient.name}
           onClose={() => setShowModal(false)}
           onSave={(entry) => { addReceivable(entry); setShowModal(false); }}
+        />
+      )}
+
+      {receiving && (
+        <ReceivePaymentModal
+          title={receiving.referencia}
+          subtitle={receiving.paciente}
+          valor={receiving.valor}
+          vencimento={receiving.vencimento}
+          onClose={() => setReceiving(null)}
+          onConfirm={(payment) => { receiveReceivable(receiving.id, payment); setReceiving(null); }}
+        />
+      )}
+
+      {cobrando && (
+        <WhatsappQuickModal
+          initialPatientId={patient.id}
+          initialTemplate="cobranca"
+          onClose={() => setCobrando(false)}
         />
       )}
     </div>
@@ -2099,54 +2493,196 @@ const PROFILE_TABS = [
   { key: "matricula", label: "Matrícula", icon: CalendarClock },
 ];
 
+/* Botão de ação do cabeçalho do perfil (CADASTRO / WHATSAPP / MAIS AÇÕES) */
+function ProfileActionButton({ icon: Icon, children, onClick, variant = "primary", innerRef }) {
+  const variants = {
+    primary: { bg: T.primary, color: "#fff", border: "none" },
+    whatsapp: { bg: WA_GREEN, color: "#fff", border: "none" },
+    ghost: { bg: "#fff", color: T.text, border: `1px solid ${T.border}` },
+  };
+  const v = variants[variant];
+  return (
+    <button
+      ref={innerRef}
+      onClick={onClick}
+      style={{
+        display: "flex", alignItems: "center", gap: 10, padding: "14px 22px", borderRadius: 12,
+        background: v.bg, color: v.color, border: v.border, cursor: "pointer",
+        fontSize: 15, fontWeight: 800, letterSpacing: 0.5, textTransform: "uppercase", whiteSpace: "nowrap",
+      }}
+    >
+      {Icon && <Icon size={21} color={v.color} />}
+      {children}
+    </button>
+  );
+}
+
+const profileTabArrow = {
+  width: 40, height: 40, borderRadius: "50%", border: "none", background: "transparent",
+  color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+};
+
 function PatientProfile({ patientId, onBack }) {
-  const { patients, updatePatient } = useAppData();
+  const { patients, updatePatient, addReceivable } = useAppData();
   const [tab, setTab] = useState("dados");
   const [showEdit, setShowEdit] = useState(false);
+  const [showWhats, setShowWhats] = useState(false);
+  const [showReceivable, setShowReceivable] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const fileRef = useRef(null);
+  const tabsRef = useRef(null);
+
   const patient = patients.find((p) => p.id === patientId);
   if (!patient) return null;
 
+  const ativo = patient.status === "Ativo";
+  const idade = ageFromBrDate(patient.nascimento);
+
+  function handlePhoto(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => updatePatient(patient.id, { photo: reader.result });
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
+
+  function scrollTabs(dir) {
+    if (tabsRef.current) tabsRef.current.scrollBy({ left: dir * 280, behavior: "smooth" });
+  }
+
   return (
     <div>
-      <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: T.primary, fontWeight: 700, fontSize: 13.5, cursor: "pointer", padding: 0, marginBottom: 16 }}>
-        <ArrowLeft size={18} /> Voltar para pacientes
+      <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: T.primary, fontWeight: 700, fontSize: 14, cursor: "pointer", padding: 0, marginBottom: 16 }}>
+        <ArrowLeft size={19} /> Voltar para pacientes
       </button>
 
-      <Card style={{ padding: 22, marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
-          <Avatar initials={patient.initials} color={patient.color} size={72} />
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 22, color: T.text }}>{patient.name}</span>
-              <Pill tone={patient.status === "Ativo" ? "success" : "muted"}>{patient.status}</Pill>
+      {/* Cabeçalho do paciente */}
+      <Card style={{ padding: "28px 30px", marginBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 26, flexWrap: "wrap" }}>
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            <Avatar
+              initials={patient.initials}
+              color={patient.color}
+              src={patient.photo}
+              size={118}
+              style={{ border: `4px solid ${ativo ? T.success : "#C7CCDA"}` }}
+            />
+            <button
+              onClick={() => fileRef.current && fileRef.current.click()}
+              title="Alterar foto do paciente"
+              style={{
+                position: "absolute", right: 2, bottom: 6, width: 36, height: 36, borderRadius: "50%",
+                background: T.primary, border: "3px solid #fff", color: "#fff", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <Camera size={17} />
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" onChange={handlePhoto} style={{ display: "none" }} />
+          </div>
+
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 32, color: T.text, lineHeight: 1.15 }}>
+                {patient.name}
+              </span>
+              <BadgeCheck size={26} color={T.primary} />
+              <span style={{
+                display: "flex", alignItems: "center", gap: 7, padding: "7px 16px", borderRadius: 999,
+                background: ativo ? T.successTint : "#F1F3F9", color: ativo ? T.success : T.muted,
+                fontSize: 14.5, fontWeight: 700,
+              }}>
+                <Check size={17} /> {patient.status}
+              </span>
             </div>
-            <div style={{ fontSize: 13, color: T.muted, marginTop: 4 }}>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 16, color: T.muted, marginTop: 8, flexWrap: "wrap" }}>
+              <span>
+                {idade != null ? `${idade} anos, ` : ""}{patient.genero || "Não informado"} | Convênio: {patient.convenio || "—"}
+              </span>
+              <button
+                onClick={() => setTab("dados")}
+                title="Ver dados pessoais"
+                style={{ background: "none", border: "none", cursor: "pointer", color: T.primary, display: "flex", padding: 0 }}
+              >
+                <ExternalLink size={19} />
+              </button>
+            </div>
+
+            <div style={{ fontSize: 14, color: T.muted, marginTop: 6 }}>
               {patient.sessions} sessões · última em {patient.lastSession} · próxima {patient.nextSession}
             </div>
+
+            <div style={{ display: "flex", gap: 12, marginTop: 20, flexWrap: "wrap", position: "relative" }}>
+              <ProfileActionButton icon={Edit3} onClick={() => setShowEdit(true)}>Cadastro</ProfileActionButton>
+              <ProfileActionButton icon={WhatsappIcon} variant="whatsapp" onClick={() => setShowWhats(true)}>WhatsApp</ProfileActionButton>
+              <div style={{ position: "relative" }}>
+                <ProfileActionButton icon={ClipboardList} variant="ghost" onClick={() => setShowMenu((v) => !v)}>Mais ações</ProfileActionButton>
+                {showMenu && (
+                  <>
+                    <div onClick={() => setShowMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+                    <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, width: 268, background: "#fff", border: `1px solid ${T.border}`, borderRadius: 14, boxShadow: "0 14px 38px rgba(20,24,38,0.16)", padding: 8, zIndex: 41 }}>
+                      {[
+                        { label: "Novo registro no prontuário", icon: FileText, onClick: () => setTab("prontuario") },
+                        { label: "Nova conta a receber", icon: CircleDollarSign, onClick: () => setShowReceivable(true) },
+                        { label: "Ver anamnese", icon: HeartPulse, onClick: () => setTab("anamnese") },
+                        { label: "Anexar documento", icon: Paperclip, onClick: () => setTab("documentos") },
+                        { label: "Alterar foto", icon: Camera, onClick: () => fileRef.current && fileRef.current.click() },
+                        {
+                          label: ativo ? "Marcar como inativo" : "Marcar como ativo",
+                          icon: RefreshCw,
+                          tone: ativo ? "danger" : undefined,
+                          onClick: () => updatePatient(patient.id, { status: ativo ? "Inativo" : "Ativo" }),
+                        },
+                      ].map((it) => (
+                        <button
+                          key={it.label}
+                          onClick={() => { setShowMenu(false); it.onClick(); }}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 11, width: "100%", textAlign: "left",
+                            padding: "12px 13px", borderRadius: 9, border: "none", background: "none", cursor: "pointer",
+                            fontSize: 14.5, fontWeight: 600, color: it.tone === "danger" ? T.danger : T.text,
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = "#F5F6FA")}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+                        >
+                          <it.icon size={18} /> {it.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
-          <PrimaryButton icon={Edit3} onClick={() => setShowEdit(true)}>Editar cadastro</PrimaryButton>
         </div>
       </Card>
 
-      <div style={{ display: "flex", marginBottom: 24, borderBottom: `1px solid ${T.border}` }}>
-        {PROFILE_TABS.map((t) => {
-          const active = tab === t.key;
-          return (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              style={{
-                flex: 1, padding: "0 0 14px", background: "none", cursor: "pointer",
-                border: "none", borderBottom: active ? `3px solid ${T.primary}` : "3px solid transparent",
-                marginBottom: -1, color: active ? T.primary : T.muted,
-                fontWeight: 800, fontSize: 14.5, textTransform: "uppercase", letterSpacing: 0.5,
-                textAlign: "center", whiteSpace: "nowrap",
-              }}
-            >
-              {t.label}
-            </button>
-          );
-        })}
+      {/* Abas do perfil — roláveis horizontalmente, como no sistema de referência */}
+      <div style={{ display: "flex", alignItems: "center", gap: 4, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, padding: "0 10px", marginBottom: 24 }}>
+        <button onClick={() => scrollTabs(-1)} style={profileTabArrow} title="Abas anteriores"><ChevronLeft size={24} /></button>
+        <div ref={tabsRef} className="profile-tabs" style={{ display: "flex", gap: 2, overflowX: "auto", flex: 1 }}>
+          {PROFILE_TABS.map((t) => {
+            const active = tab === t.key;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                style={{
+                  padding: "22px 24px 18px", background: "none", cursor: "pointer",
+                  border: "none", borderBottom: active ? `4px solid ${T.primary}` : "4px solid transparent",
+                  color: active ? T.primary : T.muted,
+                  fontWeight: 800, fontSize: 16, textTransform: "uppercase", letterSpacing: 0.7,
+                  whiteSpace: "nowrap", flexShrink: 0,
+                }}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+        <button onClick={() => scrollTabs(1)} style={profileTabArrow} title="Próximas abas"><ChevronRight size={24} /></button>
       </div>
 
       {tab === "dados" && <DadosPessoaisTab patient={patient} />}
@@ -2161,6 +2697,18 @@ function PatientProfile({ patientId, onBack }) {
           editingPatient={patient}
           onClose={() => setShowEdit(false)}
           onSave={(updated) => { updatePatient(patient.id, updated); setShowEdit(false); }}
+        />
+      )}
+
+      {showWhats && (
+        <WhatsappQuickModal initialPatientId={patient.id} onClose={() => setShowWhats(false)} />
+      )}
+
+      {showReceivable && (
+        <NewReceivableModal
+          defaultPatientName={patient.name}
+          onClose={() => setShowReceivable(false)}
+          onSave={(entry) => { addReceivable(entry); setShowReceivable(false); setTab("financeiro"); }}
         />
       )}
     </div>
@@ -2213,7 +2761,7 @@ function Pacientes() {
               >
                 <td style={{ padding: "14px 20px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <Avatar initials={p.initials} color={p.color} size={40} />
+                    <Avatar initials={p.initials} color={p.color} src={p.photo} size={40} />
                     <span style={{ fontWeight: 600, fontSize: 14.5, color: T.text }}>{p.name}</span>
                   </div>
                 </td>
@@ -2294,28 +2842,30 @@ function Prontuarios() {
       <PageHeader
         title="Prontuários"
         subtitle="Histórico clínico e evolução dos pacientes"
-        action={<PrimaryButton icon={Plus} onClick={() => setEditingId("new")}>Novo prontuário</PrimaryButton>}
+        action={<PrimaryButton icon={Plus} style={{ padding: "12px 18px", fontSize: 15 }} onClick={() => setEditingId("new")}>Novo prontuário</PrimaryButton>}
       />
 
-      <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 20 }}>
-        <Card style={{ padding: 12, height: "fit-content" }}>
-          <div style={{ padding: "4px 6px 10px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "340px 1fr", gap: 26, alignItems: "start" }}>
+        <Card style={{ padding: 16, position: "sticky", top: 0 }}>
+          <div style={{ padding: "2px 4px 14px" }}>
             <SearchInput value={query} onChange={setQuery} placeholder="Buscar paciente..." />
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 2, maxHeight: 480, overflowY: "auto" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: "calc(100vh - 320px)", minHeight: 280, overflowY: "auto" }}>
             {filtered.map((p) => (
               <button
                 key={p.id}
                 onClick={() => { setSelected(p.id); setEditingId(null); }}
                 style={{
-                  display: "flex", alignItems: "center", gap: 10, padding: "10px 10px", borderRadius: 10, border: "none",
+                  display: "flex", alignItems: "center", gap: 13, padding: "13px 12px", borderRadius: 12, border: "none",
                   background: selected === p.id ? T.primaryTint : "transparent", cursor: "pointer", textAlign: "left",
                 }}
+                onMouseEnter={(e) => { if (selected !== p.id) e.currentTarget.style.background = "#F5F6FA"; }}
+                onMouseLeave={(e) => { if (selected !== p.id) e.currentTarget.style.background = "transparent"; }}
               >
-                <Avatar initials={p.initials} color={p.color} size={32} />
-                <div>
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: T.text }}>{p.name}</div>
-                  <div style={{ fontSize: 12, color: T.muted }}>{(records[p.id] || []).length} registros</div>
+                <Avatar initials={p.initials} color={p.color} src={p.photo} size={44} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 15.5, fontWeight: selected === p.id ? 700 : 600, color: selected === p.id ? T.primaryDark : T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+                  <div style={{ fontSize: 13, color: T.muted, marginTop: 2 }}>{(records[p.id] || []).length} registros</div>
                 </div>
               </button>
             ))}
@@ -2323,16 +2873,18 @@ function Prontuarios() {
         </Card>
 
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
-            <Avatar initials={active.initials} color={active.color} size={50} />
-            <div>
-              <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 18, color: T.text }}>{active.name}</div>
-              <div style={{ fontSize: 13, color: T.muted }}>{active.sessions} sessões · {active.status}</div>
+          <Card style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 20, padding: "18px 22px", flexWrap: "wrap" }}>
+            <Avatar initials={active.initials} color={active.color} src={active.photo} size={66} />
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 23, color: T.text }}>{active.name}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14.5, color: T.muted, marginTop: 4 }}>
+                {active.sessions} sessões · <Pill tone={active.status === "Ativo" ? "success" : "muted"}>{active.status}</Pill>
+              </div>
             </div>
             {editingId === null && (
-              <button onClick={() => setEditingId("new")} style={{ ...iconBtn, marginLeft: "auto", background: "#fff" }} title="Novo registro"><Plus size={18} /></button>
+              <PrimaryButton icon={Plus} style={{ padding: "12px 18px", fontSize: 14.5 }} onClick={() => setEditingId("new")}>Novo registro</PrimaryButton>
             )}
-          </div>
+          </Card>
 
           {editingId !== null ? (
             <RecordForm
@@ -2341,8 +2893,9 @@ function Prontuarios() {
               onSave={handleSave}
             />
           ) : history.length === 0 ? (
-            <Card style={{ padding: 24 }}>
-              <div style={{ fontSize: 13.5, color: T.muted }}>Nenhum registro no prontuário ainda para este paciente.</div>
+            <Card style={{ padding: 40, textAlign: "center" }}>
+              <ClipboardList size={38} color={T.muted} style={{ opacity: 0.5 }} />
+              <div style={{ fontSize: 16, color: T.muted, marginTop: 12 }}>Nenhum registro no prontuário ainda para este paciente.</div>
             </Card>
           ) : (
             history.map((entry) => (
@@ -3514,11 +4067,29 @@ function NewPayableModal({ onClose, onSave }) {
 }
 
 function Financeiro() {
-  const { receivables, addReceivable } = useAppData();
+  const { patients, receivables, addReceivable, receiveReceivable, reopenReceivable } = useAppData();
   const [tab, setTab] = useState("receber"); // 'receber' | 'pagar'
   const [payables, setPayables] = useState(initialPayables);
   const [showReceivableModal, setShowReceivableModal] = useState(false);
   const [showPayableModal, setShowPayableModal] = useState(false);
+  const [receiving, setReceiving] = useState(null);   // conta a receber em baixa
+  const [paying, setPaying] = useState(null);         // conta a pagar em baixa
+  const [cobrandoId, setCobrandoId] = useState(null); // cobrança via WhatsApp
+
+  /* Baixa de uma despesa: marca como paga e guarda data/valor/forma. */
+  function payPayable(id, payment) {
+    setPayables((prev) => prev.map((x) => (
+      x.id === id ? { ...x, status: "Pago", pagamento: payment.data, pago: Number(payment.valor), forma: payment.forma } : x
+    )));
+  }
+
+  function reopenPayable(id) {
+    setPayables((prev) => prev.map((x) => {
+      if (x.id !== id) return x;
+      const venc = parseBrDate(x.vencimento);
+      return { ...x, status: venc && venc < REPORT_TODAY ? "Atrasado" : "Pendente", pagamento: null, pago: null, forma: null };
+    }));
+  }
 
   const totalReceber = receivables.reduce((s, r) => s + r.valor, 0);
   const recebido = receivables.filter((r) => r.status === "Pago").reduce((s, r) => s + r.valor, 0);
@@ -3581,19 +4152,49 @@ function Financeiro() {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "#FAFBFE", textAlign: "left" }}>
-                  {["Paciente", "Referência", "Valor", "Vencimento", "Status"].map((h) => (
-                    <th key={h} style={{ padding: "10px 20px", fontSize: 12, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.3 }}>{h}</th>
+                  {["Paciente", "Referência", "Valor", "Vencimento", "Recebimento", "Status", ""].map((h) => (
+                    <th key={h} style={{ padding: "12px 20px", fontSize: 12, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.3 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {receivables.map((r, i) => (
+                {receivables.map((r) => (
                   <tr key={r.id} style={{ borderTop: `1px solid ${T.border}` }}>
-                    <td style={{ padding: "12px 20px", fontSize: 13.5, fontWeight: 600, color: T.text }}>{r.paciente}</td>
-                    <td style={{ padding: "12px 20px", fontSize: 13, color: T.muted }}>{r.referencia}</td>
-                    <td style={{ padding: "12px 20px", fontSize: 13.5, fontWeight: 700, color: T.success }}>R$ {r.valor.toLocaleString("pt-BR")}</td>
-                    <td style={{ padding: "12px 20px", fontSize: 13, color: T.text }}>{r.vencimento}</td>
-                    <td style={{ padding: "12px 20px" }}><Pill tone={statusTone(r.status)}>{r.status}</Pill></td>
+                    <td style={{ padding: "13px 20px", fontSize: 13.5, fontWeight: 600, color: T.text }}>{r.paciente}</td>
+                    <td style={{ padding: "13px 20px", fontSize: 13, color: T.muted }}>{r.referencia}</td>
+                    <td style={{ padding: "13px 20px", fontSize: 13.5, fontWeight: 700, color: T.success }}>R$ {r.valor.toLocaleString("pt-BR")}</td>
+                    <td style={{ padding: "13px 20px", fontSize: 13, color: T.text }}>{r.vencimento}</td>
+                    <td style={{ padding: "13px 20px", fontSize: 13, color: r.recebimento ? T.text : T.muted }}>
+                      {r.recebimento ? `${r.recebimento}${r.forma ? ` · ${r.forma}` : ""}` : "—"}
+                    </td>
+                    <td style={{ padding: "13px 20px" }}><Pill tone={statusTone(r.status)}>{r.status}</Pill></td>
+                    <td style={{ padding: "13px 20px", textAlign: "right" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 }}>
+                        {r.status !== "Pago" ? (
+                          <button
+                            onClick={() => setReceiving(r)}
+                            style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 8, border: "none", background: T.success, color: "#fff", fontWeight: 700, fontSize: 12.5, cursor: "pointer", letterSpacing: 0.3 }}
+                          >
+                            <Banknote size={16} /> RECEBER
+                          </button>
+                        ) : (
+                          <span style={{ display: "flex", alignItems: "center", gap: 6, color: T.success, fontWeight: 700, fontSize: 12.5 }}>
+                            <Check size={16} /> RECEBIDO
+                          </span>
+                        )}
+                        <RowMenu
+                          items={r.status === "Pago"
+                            ? [{ label: "Estornar recebimento", icon: Undo2, tone: "danger", onClick: () => reopenReceivable(r.id) }]
+                            : [
+                                { label: "Registrar recebimento", icon: Banknote, onClick: () => setReceiving(r) },
+                                { label: "Cobrar no WhatsApp", icon: MessageSquare, onClick: () => {
+                                    const alvo = patients.find((p) => p.name === r.paciente);
+                                    setCobrandoId(alvo ? alvo.id : null);
+                                  } },
+                              ]}
+                        />
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -3616,19 +4217,43 @@ function Financeiro() {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "#FAFBFE", textAlign: "left" }}>
-                  {["Descrição", "Categoria", "Valor", "Vencimento", "Status"].map((h) => (
-                    <th key={h} style={{ padding: "10px 20px", fontSize: 12, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.3 }}>{h}</th>
+                  {["Descrição", "Categoria", "Valor", "Vencimento", "Pagamento", "Status", ""].map((h) => (
+                    <th key={h} style={{ padding: "12px 20px", fontSize: 12, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.3 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {payables.map((p) => (
                   <tr key={p.id} style={{ borderTop: `1px solid ${T.border}` }}>
-                    <td style={{ padding: "12px 20px", fontSize: 13.5, fontWeight: 600, color: T.text }}>{p.descricao}</td>
-                    <td style={{ padding: "12px 20px" }}><Pill tone="muted">{p.categoria}</Pill></td>
-                    <td style={{ padding: "12px 20px", fontSize: 13.5, fontWeight: 700, color: T.danger }}>R$ {p.valor.toLocaleString("pt-BR")}</td>
-                    <td style={{ padding: "12px 20px", fontSize: 13, color: T.text }}>{p.vencimento}</td>
-                    <td style={{ padding: "12px 20px" }}><Pill tone={statusTone(p.status)}>{p.status}</Pill></td>
+                    <td style={{ padding: "13px 20px", fontSize: 13.5, fontWeight: 600, color: T.text }}>{p.descricao}</td>
+                    <td style={{ padding: "13px 20px" }}><Pill tone="muted">{p.categoria}</Pill></td>
+                    <td style={{ padding: "13px 20px", fontSize: 13.5, fontWeight: 700, color: T.danger }}>R$ {p.valor.toLocaleString("pt-BR")}</td>
+                    <td style={{ padding: "13px 20px", fontSize: 13, color: T.text }}>{p.vencimento}</td>
+                    <td style={{ padding: "13px 20px", fontSize: 13, color: p.pagamento ? T.text : T.muted }}>
+                      {p.pagamento ? `${p.pagamento}${p.forma ? ` · ${p.forma}` : ""}` : "—"}
+                    </td>
+                    <td style={{ padding: "13px 20px" }}><Pill tone={statusTone(p.status)}>{p.status}</Pill></td>
+                    <td style={{ padding: "13px 20px", textAlign: "right" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 }}>
+                        {p.status !== "Pago" ? (
+                          <button
+                            onClick={() => setPaying(p)}
+                            style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "#fff", color: T.danger, fontWeight: 700, fontSize: 12.5, cursor: "pointer", letterSpacing: 0.3 }}
+                          >
+                            <Banknote size={16} /> PAGAR
+                          </button>
+                        ) : (
+                          <span style={{ display: "flex", alignItems: "center", gap: 6, color: T.success, fontWeight: 700, fontSize: 12.5 }}>
+                            <Check size={16} /> PAGO
+                          </span>
+                        )}
+                        <RowMenu
+                          items={p.status === "Pago"
+                            ? [{ label: "Estornar pagamento", icon: Undo2, tone: "danger", onClick: () => reopenPayable(p.id) }]
+                            : [{ label: "Registrar pagamento", icon: Banknote, onClick: () => setPaying(p) }]}
+                        />
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -3653,6 +4278,37 @@ function Financeiro() {
             setPayables((prev) => [{ id: Date.now(), ...entry }, ...prev]);
             setShowPayableModal(false);
           }}
+        />
+      )}
+
+      {receiving && (
+        <ReceivePaymentModal
+          title={receiving.referencia}
+          subtitle={receiving.paciente}
+          valor={receiving.valor}
+          vencimento={receiving.vencimento}
+          onClose={() => setReceiving(null)}
+          onConfirm={(payment) => { receiveReceivable(receiving.id, payment); setReceiving(null); }}
+        />
+      )}
+
+      {paying && (
+        <ReceivePaymentModal
+          kind="pagar"
+          title={paying.descricao}
+          subtitle={paying.categoria}
+          valor={paying.valor}
+          vencimento={paying.vencimento}
+          onClose={() => setPaying(null)}
+          onConfirm={(payment) => { payPayable(paying.id, payment); setPaying(null); }}
+        />
+      )}
+
+      {cobrandoId && (
+        <WhatsappQuickModal
+          initialPatientId={cobrandoId}
+          initialTemplate="cobranca"
+          onClose={() => setCobrandoId(null)}
         />
       )}
     </div>
@@ -3806,41 +4462,68 @@ function Declaracoes({ setPrintContent }) {
 /* ------------------------------------------------------------------ */
 /* Configurações                                                        */
 /* ------------------------------------------------------------------ */
-function SettingsSection({ title, children }) {
+function SettingsSection({ title, description, icon: Icon, action, children, tone = "primary" }) {
+  const tones = {
+    primary: { bg: T.primaryTint, fg: T.primary },
+    success: { bg: T.successTint, fg: T.success },
+    warn: { bg: T.warnTint, fg: "#9C7A16" },
+    whatsapp: { bg: "#E7F9EE", fg: WA_GREEN_DARK },
+  };
+  const c = tones[tone] || tones.primary;
   return (
-    <Card style={{ padding: 28, marginBottom: 18, flex: "1 1 auto", minHeight: 220 }}>
-      <div style={{ fontWeight: 800, fontSize: 19, color: T.text, marginBottom: 20 }}>{title}</div>
+    <Card style={{ padding: 30, marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 15, marginBottom: 24, paddingBottom: 20, borderBottom: `1px solid ${T.border}`, flexWrap: "wrap" }}>
+        {Icon && (
+          <div style={{ width: 46, height: 46, borderRadius: 13, background: c.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Icon size={23} color={c.fg} />
+          </div>
+        )}
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 20, letterSpacing: -0.3, color: T.text }}>{title}</div>
+          {description && <div style={{ fontSize: 14, color: T.muted, marginTop: 4, lineHeight: 1.55, maxWidth: 560 }}>{description}</div>}
+        </div>
+        {action}
+      </div>
       {children}
     </Card>
   );
 }
 
-const settingsLabelStyle = { fontSize: 14, fontWeight: 700, color: T.muted, display: "block", marginBottom: 8 };
-const settingsInputStyle = { ...inputStyle, margin: 0, fontSize: 15.5, padding: "12px 14px" };
+const settingsLabelStyle = { fontSize: 13.5, fontWeight: 700, color: T.muted, display: "block", marginBottom: 8 };
+const settingsInputStyle = { ...inputStyle, margin: 0, fontSize: 15.5, padding: "13px 15px" };
 
-function Field({ label, defaultValue, type = "text" }) {
+function Field({ label, defaultValue, value, onChange, type = "text", hint }) {
+  const controlled = value !== undefined;
   return (
     <div style={{ marginBottom: 18 }}>
       <label style={settingsLabelStyle}>{label}</label>
-      <input type={type} defaultValue={defaultValue} style={settingsInputStyle} />
+      <input
+        type={type}
+        {...(controlled ? { value, onChange: (e) => onChange(e.target.value) } : { defaultValue })}
+        style={settingsInputStyle}
+      />
+      {hint && <div style={{ fontSize: 12.5, color: T.muted, marginTop: 6 }}>{hint}</div>}
     </div>
   );
 }
 
-function GoalField({ label, value, onChange, prefix }) {
+function GoalField({ label, value, onChange, prefix, suffix }) {
   return (
     <div style={{ marginBottom: 18 }}>
       <label style={settingsLabelStyle}>{label}</label>
       <div style={{ position: "relative" }}>
         {prefix && (
-          <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 15.5, color: T.muted }}>{prefix}</span>
+          <span style={{ position: "absolute", left: 15, top: "50%", transform: "translateY(-50%)", fontSize: 15.5, fontWeight: 600, color: T.muted }}>{prefix}</span>
         )}
         <input
           type="number"
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          style={{ ...settingsInputStyle, paddingLeft: prefix ? 32 : 14 }}
+          style={{ ...settingsInputStyle, paddingLeft: prefix ? 40 : 15, paddingRight: suffix ? 64 : 15 }}
         />
+        {suffix && (
+          <span style={{ position: "absolute", right: 15, top: "50%", transform: "translateY(-50%)", fontSize: 13.5, color: T.muted }}>{suffix}</span>
+        )}
       </div>
     </div>
   );
@@ -3849,180 +4532,416 @@ function GoalField({ label, value, onChange, prefix }) {
 function MetasTab() {
   const { goals, updateGoals } = useAppData();
   return (
-    <SettingsSection title="Metas do consultório">
-      <div style={{ fontSize: 14, color: T.muted, marginBottom: 20, maxWidth: 520 }}>
-        Essas metas alimentam os indicadores do Dashboard (como "Faturamento no mês" e "Horas na semana"), mostrando se você está no caminho certo.
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
+    <SettingsSection
+      icon={Star}
+      tone="warn"
+      title="Metas do consultório"
+      description={'Essas metas alimentam os indicadores do Dashboard (como "Faturamento no mês" e "Horas na semana"), mostrando se você está no caminho certo.'}
+    >
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "0 20px" }}>
         <GoalField label="Meta de faturamento mensal" value={goals.faturamentoMensal} onChange={(v) => updateGoals({ faturamentoMensal: v })} prefix="R$" />
-        <GoalField label="Meta de horas semanais" value={goals.horasSemanais} onChange={(v) => updateGoals({ horasSemanais: v })} />
-        <GoalField label="Meta de sessões semanais" value={goals.sessoesSemanais} onChange={(v) => updateGoals({ sessoesSemanais: v })} />
-        <GoalField label="Meta de novos pacientes / mês" value={goals.novosPacientesMes} onChange={(v) => updateGoals({ novosPacientesMes: v })} />
+        <GoalField label="Meta de horas semanais" value={goals.horasSemanais} onChange={(v) => updateGoals({ horasSemanais: v })} suffix="horas" />
+        <GoalField label="Meta de sessões semanais" value={goals.sessoesSemanais} onChange={(v) => updateGoals({ sessoesSemanais: v })} suffix="sessões" />
+        <GoalField label="Meta de novos pacientes / mês" value={goals.novosPacientesMes} onChange={(v) => updateGoals({ novosPacientesMes: v })} suffix="pacientes" />
+      </div>
+    </SettingsSection>
+  );
+}
+
+/* ---------------- Configurações › WhatsApp -------------------------- */
+
+/* Valores de exemplo usados só na pré-visualização da mensagem. */
+const WA_SAMPLE = {
+  "{paciente}": "Maria",
+  "{data}": "19/08/2026",
+  "{hora}": "09:00",
+  "{ultimaSessao}": "22/06/2026",
+  "{referencia}": "Agosto/2026",
+  "{valor}": "R$ 800",
+  "{vencimento}": "05/08/2026",
+};
+
+function fillWaSample(text) {
+  return Object.keys(WA_SAMPLE).reduce((acc, k) => acc.split(k).join(WA_SAMPLE[k]), text || "");
+}
+
+function MessageTemplateField({ icon, tone, title, description, value, onChange, variables, onTest }) {
+  const areaRef = useRef(null);
+
+  /* Insere a variável na posição do cursor, sem perder o que já foi escrito. */
+  function insertVariable(v) {
+    const el = areaRef.current;
+    if (!el) { onChange(`${value}${v}`); return; }
+    const start = el.selectionStart == null ? value.length : el.selectionStart;
+    const end = el.selectionEnd == null ? value.length : el.selectionEnd;
+    onChange(value.slice(0, start) + v + value.slice(end));
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(start + v.length, start + v.length);
+    });
+  }
+
+  return (
+    <SettingsSection
+      icon={icon}
+      tone={tone}
+      title={title}
+      description={description}
+      action={
+        <button
+          onClick={onTest}
+          style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 15px", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", color: T.text, fontSize: 13.5, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}
+        >
+          <Send size={17} /> Testar envio
+        </button>
+      }
+    >
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 22 }}>
+        <div>
+          <label style={settingsLabelStyle}>Texto da mensagem</label>
+          <textarea
+            ref={areaRef}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            rows={5}
+            style={{ ...settingsInputStyle, minHeight: 132, resize: "vertical", fontFamily: "inherit", lineHeight: 1.65 }}
+          />
+          <div style={{ fontSize: 12.5, color: T.muted, margin: "12px 0 8px" }}>
+            Clique em uma variável para inseri-la no texto:
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {variables.map((v) => (
+              <button
+                key={v}
+                onClick={() => insertVariable(v)}
+                style={{
+                  padding: "7px 13px", borderRadius: 999, border: `1px dashed ${T.primary}`,
+                  background: T.primaryTint, color: T.primaryDark, fontSize: 13, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "monospace",
+                }}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label style={settingsLabelStyle}>Pré-visualização</label>
+          <div style={{ background: "#E9E2DA", borderRadius: 14, padding: 18, minHeight: 132, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            <div style={{
+              background: "#DCF8C6", borderRadius: "16px 16px 4px 16px", padding: "13px 15px",
+              marginLeft: "auto", maxWidth: "94%", fontSize: 14.5, lineHeight: 1.6, color: "#101B14",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.12)", whiteSpace: "pre-wrap", wordBreak: "break-word",
+            }}>
+              {fillWaSample(value) || "Escreva a mensagem ao lado para ver a pré-visualização."}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4, fontSize: 11, color: "#5C8F66", marginTop: 6 }}>
+                09:41 <Check size={13} />
+              </div>
+            </div>
+          </div>
+          <div style={{ fontSize: 12.5, color: T.muted, marginTop: 10 }}>
+            Exemplo com dados fictícios — no envio real as variáveis são preenchidas com os dados do paciente.
+          </div>
+        </div>
       </div>
     </SettingsSection>
   );
 }
 
 function WhatsappTab() {
-  const [enabled, setEnabled] = useState(true);
-  const [numero, setNumero] = useState("(48) 99876-5432");
-  const [diasAntes, setDiasAntes] = useState(2);
-  const [mensagemLembrete, setMensagemLembrete] = useState(
-    "Olá {paciente}! Passando para lembrar que sua sessão está confirmada para {data} às {hora}. Até lá!"
-  );
-  const [mensagemCobranca, setMensagemCobranca] = useState(
-    "Olá {paciente}, tudo bem? Sua mensalidade de {referencia} no valor de {valor} vence em {vencimento}. Qualquer dúvida, estou à disposição!"
-  );
+  const { whatsapp, updateWhatsapp } = useAppData();
+  const [testing, setTesting] = useState(null); // chave do modelo em teste
 
   return (
     <>
-      <SettingsSection title="Envio automático">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 0 22px" }}>
+      <SettingsSection
+        icon={WhatsappIcon}
+        tone="whatsapp"
+        title="Envio automático"
+        description="Ativa o disparo automático das mensagens configuradas abaixo. Com o envio desligado, você ainda pode mandar tudo manualmente pelo atalho do WhatsApp no topo."
+      >
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
+          background: whatsapp.enabled ? "#F1FCF5" : "#F7F8FC",
+          border: `1px solid ${whatsapp.enabled ? "#CFEEDC" : T.border}`,
+          borderRadius: 12, padding: "16px 18px", marginBottom: 22,
+        }}>
           <div>
             <div style={{ fontSize: 15.5, fontWeight: 700, color: T.text }}>Enviar cobranças e lembretes via WhatsApp</div>
-            <div style={{ fontSize: 13.5, color: T.muted, marginTop: 3, maxWidth: 420 }}>Ativa o envio automático das mensagens configuradas abaixo para os pacientes.</div>
+            <div style={{ fontSize: 13.5, color: T.muted, marginTop: 3 }}>
+              {whatsapp.enabled ? "Envio automático ativo para todos os pacientes." : "Envio automático desligado."}
+            </div>
           </div>
-          <Switch checked={enabled} onChange={setEnabled} />
+          <Switch checked={whatsapp.enabled} onChange={(v) => updateWhatsapp({ enabled: v })} />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
-          <Field label="Número do WhatsApp comercial" defaultValue={numero} />
-          <GoalField label="Enviar cobrança X dias antes do vencimento" value={diasAntes} onChange={setDiasAntes} />
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "0 20px" }}>
+          <Field
+            label="Número do WhatsApp comercial"
+            value={whatsapp.numero}
+            onChange={(v) => updateWhatsapp({ numero: v })}
+            hint="É o número que aparece como remetente das mensagens."
+          />
+          <GoalField
+            label="Enviar cobrança antes do vencimento"
+            value={whatsapp.diasAntes}
+            onChange={(v) => updateWhatsapp({ diasAntes: v })}
+            suffix="dias antes"
+          />
         </div>
       </SettingsSection>
 
-      <SettingsSection title="Mensagem de lembrete de sessão">
-        <textarea
-          value={mensagemLembrete}
-          onChange={(e) => setMensagemLembrete(e.target.value)}
-          rows={3}
-          style={{ ...settingsInputStyle, resize: "vertical", fontFamily: "inherit" }}
-        />
-        <div style={{ fontSize: 13, color: T.muted, marginTop: 10 }}>
-          Variáveis disponíveis: {"{paciente}"}, {"{data}"}, {"{hora}"}
-        </div>
-      </SettingsSection>
+      <MessageTemplateField
+        icon={CalendarClock}
+        tone="primary"
+        title="Mensagem de lembrete de sessão"
+        description="Enviada antes da consulta agendada, para confirmar a presença do paciente."
+        value={whatsapp.lembrete}
+        onChange={(v) => updateWhatsapp({ lembrete: v })}
+        variables={WA_VARIABLES.lembrete}
+        onTest={() => setTesting("lembrete")}
+      />
 
-      <SettingsSection title="Mensagem de cobrança">
-        <textarea
-          value={mensagemCobranca}
-          onChange={(e) => setMensagemCobranca(e.target.value)}
-          rows={3}
-          style={{ ...settingsInputStyle, resize: "vertical", fontFamily: "inherit" }}
-        />
-        <div style={{ fontSize: 13, color: T.muted, marginTop: 10 }}>
-          Variáveis disponíveis: {"{paciente}"}, {"{referencia}"}, {"{valor}"}, {"{vencimento}"}
-        </div>
-      </SettingsSection>
+      <MessageTemplateField
+        icon={RefreshCw}
+        tone="success"
+        title="Mensagem de lembrete de retorno"
+        description="Enviada a pacientes que estão há um tempo sem sessão, convidando para retomar o acompanhamento."
+        value={whatsapp.retorno}
+        onChange={(v) => updateWhatsapp({ retorno: v })}
+        variables={WA_VARIABLES.retorno}
+        onTest={() => setTesting("retorno")}
+      />
+
+      <MessageTemplateField
+        icon={CircleDollarSign}
+        tone="warn"
+        title="Mensagem de cobrança"
+        description="Enviada quando a mensalidade está próxima do vencimento ou em atraso."
+        value={whatsapp.cobranca}
+        onChange={(v) => updateWhatsapp({ cobranca: v })}
+        variables={WA_VARIABLES.cobranca}
+        onTest={() => setTesting("cobranca")}
+      />
+
+      {testing && (
+        <WhatsappQuickModal initialTemplate={testing} onClose={() => setTesting(null)} />
+      )}
     </>
   );
 }
 
-const SETTINGS_TABS = [
-  { key: "pessoais", label: "Dados pessoais" },
-  { key: "seguranca", label: "Segurança" },
-  { key: "horario", label: "Horário de atendimento" },
-  { key: "metas", label: "Configurações de metas" },
-  { key: "whatsapp", label: "WhatsApp" },
-];
+/* ---------------- Configurações › Perfil / Segurança / Horário ------ */
 
-function Configuracoes() {
-  const [tab, setTab] = useState("pessoais");
+function PerfilTab() {
+  const [photo, setPhoto] = useState(null);
+  const fileRef = useRef(null);
+
+  function handlePhoto(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setPhoto(reader.result);
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
+
+  return (
+    <SettingsSection
+      icon={User}
+      title="Perfil profissional"
+      description="Esses dados aparecem no topo do sistema e nas declarações e recibos emitidos para os pacientes."
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 26, flexWrap: "wrap" }}>
+        <div style={{ position: "relative", flexShrink: 0 }}>
+          <Avatar initials="IT" color="purple" src={photo} size={86} style={{ border: `3px solid ${T.primaryTint}` }} />
+          <button
+            onClick={() => fileRef.current && fileRef.current.click()}
+            title="Alterar foto"
+            style={{ position: "absolute", right: -2, bottom: 0, width: 32, height: 32, borderRadius: "50%", background: T.primary, border: "3px solid #fff", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <Camera size={15} />
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" onChange={handlePhoto} style={{ display: "none" }} />
+        </div>
+        <div>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 21, fontWeight: 700, color: T.text }}>Dra. Isadora Talamini</div>
+          <div style={{ fontSize: 14, color: T.muted, marginTop: 3 }}>Psicóloga · CRP 12/34567</div>
+          <button
+            onClick={() => fileRef.current && fileRef.current.click()}
+            style={{ marginTop: 10, padding: "9px 15px", borderRadius: 9, border: `1px solid ${T.border}`, background: "#fff", fontSize: 13.5, fontWeight: 700, cursor: "pointer", color: T.text }}
+          >
+            Alterar foto
+          </button>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "0 20px" }}>
+        <Field label="Nome completo" defaultValue="Dra. Isadora Talamini" />
+        <Field label="CRP" defaultValue="12/34567" />
+        <Field label="E-mail" defaultValue="isadora.talamini@psystem.com" type="email" />
+        <Field label="Telefone" defaultValue="(48) 99876-5432" />
+      </div>
+    </SettingsSection>
+  );
+}
+
+function SegurancaTab() {
   const [twoFactor, setTwoFactor] = useState(false);
-  const [days, setDays] = useState(["Seg", "Ter", "Qua", "Qui", "Sex"]);
-  const allDays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+  return (
+    <SettingsSection
+      icon={ShieldCheck}
+      tone="success"
+      title="Segurança da conta"
+      description="Prontuários são dados sensíveis. Use uma senha forte e mantenha a verificação em duas etapas ativa."
+    >
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "0 20px" }}>
+        <Field label="Senha atual" type="password" defaultValue="" />
+        <Field label="Nova senha" type="password" defaultValue="" hint="Use ao menos 8 caracteres, com números e símbolos." />
+      </div>
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
+        border: `1px solid ${T.border}`, borderRadius: 12, padding: "16px 18px", marginTop: 8,
+      }}>
+        <div>
+          <div style={{ fontSize: 15.5, fontWeight: 700, color: T.text }}>Autenticação em duas etapas</div>
+          <div style={{ fontSize: 13.5, color: T.muted, marginTop: 3 }}>Exigir um código adicional ao entrar na conta.</div>
+        </div>
+        <Switch checked={twoFactor} onChange={setTwoFactor} />
+      </div>
+    </SettingsSection>
+  );
+}
 
+const ALL_DAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+
+function HorarioTab() {
+  const [days, setDays] = useState(["Seg", "Ter", "Qua", "Qui", "Sex"]);
   const toggleDay = (d) => setDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]));
 
   return (
-    <div>
-      <PageHeader title="Configurações" subtitle="Gerencie seu perfil e preferências do consultório" />
-
-      <div style={{ display: "flex", marginBottom: 24, borderBottom: `1px solid ${T.border}` }}>
-        {SETTINGS_TABS.map((t) => {
-          const active = tab === t.key;
+    <SettingsSection
+      icon={Clock}
+      title="Horário de atendimento"
+      description="Define os dias e a faixa de horário disponíveis na agenda para novos agendamentos."
+    >
+      <label style={settingsLabelStyle}>Dias de atendimento</label>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 24 }}>
+        {ALL_DAYS.map((d) => {
+          const on = days.includes(d);
           return (
             <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
+              key={d}
+              onClick={() => toggleDay(d)}
               style={{
-                flex: 1, padding: "0 0 14px", background: "none", cursor: "pointer",
-                border: "none", borderBottom: active ? `3px solid ${T.primary}` : "3px solid transparent",
-                marginBottom: -1, color: active ? T.primary : T.muted,
-                fontWeight: 800, fontSize: 14.5, textTransform: "uppercase", letterSpacing: 0.5,
-                textAlign: "center", whiteSpace: "nowrap",
+                width: 64, height: 54, borderRadius: 12, border: `1.5px solid ${on ? T.primary : T.border}`,
+                background: on ? T.primaryTint : "#fff", color: on ? T.primaryDark : T.muted,
+                fontWeight: 700, fontSize: 15, cursor: "pointer", transition: "all .12s",
               }}
             >
-              {t.label}
+              {d}
             </button>
           );
         })}
       </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0 20px" }}>
+        <Field label="Início do expediente" defaultValue="08:00" />
+        <Field label="Término do expediente" defaultValue="18:00" />
+        <Field label="Duração padrão da sessão" defaultValue="50 minutos" />
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13.5, color: T.muted, marginTop: 6 }}>
+        <CalendarDays size={17} /> {days.length} {days.length === 1 ? "dia" : "dias"} por semana selecionados.
+      </div>
+    </SettingsSection>
+  );
+}
 
-      <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100vh - 260px)" }}>
-        {tab === "pessoais" && (
-          <SettingsSection title="Perfil profissional">
-            <div style={{ maxWidth: 560 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 22 }}>
-                <Avatar initials="IT" color="purple" size={64} />
-                <button style={{ padding: "10px 16px", borderRadius: 9, border: `1px solid ${T.border}`, background: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Alterar foto</button>
-              </div>
-              <Field label="Nome completo" defaultValue="Dra. Isadora Talamini" />
-              <Field label="CRP" defaultValue="12/34567" />
-              <Field label="E-mail" defaultValue="isadora.talamini@psystem.com" type="email" />
-              <Field label="Telefone" defaultValue="(48) 99876-5432" />
-            </div>
-          </SettingsSection>
-        )}
+const SETTINGS_TABS = [
+  { key: "pessoais", label: "Dados pessoais", desc: "Perfil e contato", icon: User },
+  { key: "seguranca", label: "Segurança", desc: "Senha e acesso", icon: ShieldCheck },
+  { key: "horario", label: "Horário de atendimento", desc: "Dias e expediente", icon: Clock },
+  { key: "metas", label: "Metas", desc: "Objetivos do consultório", icon: Star },
+  { key: "whatsapp", label: "WhatsApp", desc: "Mensagens automáticas", icon: WhatsappIcon },
+];
 
-        {tab === "seguranca" && (
-          <SettingsSection title="Segurança">
-            <div style={{ maxWidth: 560 }}>
-              <Field label="Senha atual" type="password" defaultValue="" />
-              <Field label="Nova senha" type="password" defaultValue="" />
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0", borderTop: `1px solid ${T.border}`, marginTop: 6 }}>
-                <div>
-                  <div style={{ fontSize: 15.5, fontWeight: 700, color: T.text }}>Autenticação em duas etapas</div>
-                  <div style={{ fontSize: 13.5, color: T.muted, marginTop: 3 }}>Exigir um código adicional ao entrar na conta.</div>
+function Configuracoes() {
+  const [tab, setTab] = useState("pessoais");
+  const [saved, setSaved] = useState(false);
+
+  function handleSave() {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2600);
+  }
+
+  return (
+    <div>
+      <PageHeader title="Configurações" subtitle="Gerencie seu perfil e as preferências do consultório" />
+
+      <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 26, alignItems: "start" }}>
+        {/* Navegação das configurações */}
+        <Card style={{ padding: 10, position: "sticky", top: 0 }}>
+          {SETTINGS_TABS.map((t) => {
+            const active = tab === t.key;
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 13, width: "100%", textAlign: "left",
+                  padding: "13px 13px", borderRadius: 12, border: "none", cursor: "pointer",
+                  background: active ? T.primaryTint : "transparent", marginBottom: 2,
+                  transition: "background .12s",
+                }}
+                onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "#F5F6FA"; }}
+                onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
+              >
+                <div style={{
+                  width: 40, height: 40, borderRadius: 11, flexShrink: 0,
+                  background: active ? "#fff" : "#F3F5FB",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <Icon size={20} color={active ? T.primary : T.muted} />
                 </div>
-                <Switch checked={twoFactor} onChange={setTwoFactor} />
-              </div>
-            </div>
-          </SettingsSection>
-        )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: FONT_DISPLAY, fontSize: 15.5, fontWeight: active ? 700 : 600, color: active ? T.primaryDark : T.text, letterSpacing: -0.2 }}>
+                    {t.label}
+                  </div>
+                  <div style={{ fontSize: 12.5, color: T.muted, marginTop: 1 }}>{t.desc}</div>
+                </div>
+                {active && <ChevronRight size={18} color={T.primary} />}
+              </button>
+            );
+          })}
+        </Card>
 
-        {tab === "horario" && (
-          <SettingsSection title="Horário de atendimento">
-            <div style={{ maxWidth: 560 }}>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
-                {allDays.map((d) => {
-                  const on = days.includes(d);
-                  return (
-                    <button
-                      key={d}
-                      onClick={() => toggleDay(d)}
-                      style={{
-                        width: 56, height: 48, borderRadius: 9, border: `1px solid ${on ? T.primary : T.border}`,
-                        background: on ? T.primaryTint : "#fff", color: on ? T.primaryDark : T.muted,
-                        fontWeight: 700, fontSize: 14.5, cursor: "pointer",
-                      }}
-                    >
-                      {d}
-                    </button>
-                  );
-                })}
-              </div>
-              <div style={{ display: "flex", gap: 16 }}>
-                <Field label="Início" defaultValue="08:00" />
-                <Field label="Término" defaultValue="18:00" />
-              </div>
-            </div>
-          </SettingsSection>
-        )}
+        {/* Conteúdo */}
+        <div>
+          {tab === "pessoais" && <PerfilTab />}
+          {tab === "seguranca" && <SegurancaTab />}
+          {tab === "horario" && <HorarioTab />}
+          {tab === "metas" && <MetasTab />}
+          {tab === "whatsapp" && <WhatsappTab />}
 
-        {tab === "metas" && <MetasTab />}
-        {tab === "whatsapp" && <WhatsappTab />}
-
-        <PrimaryButton style={{ width: "100%", justifyContent: "center", padding: "14px 0", fontSize: 15 }} icon={Check}>Salvar alterações</PrimaryButton>
+          <div style={{
+            position: "sticky", bottom: 0, display: "flex", alignItems: "center", justifyContent: "flex-end",
+            gap: 16, flexWrap: "wrap", padding: "16px 0 6px",
+            background: `linear-gradient(to top, ${T.bg} 62%, rgba(245,247,252,0))`,
+          }}>
+            <span style={{
+              display: "flex", alignItems: "center", gap: 7, fontSize: 13.5, fontWeight: 600,
+              color: saved ? T.success : T.muted, marginRight: "auto",
+            }}>
+              {saved
+                ? <><Check size={17} /> Alterações salvas com sucesso.</>
+                : "As alterações são aplicadas em todo o sistema imediatamente."}
+            </span>
+            <PrimaryButton style={{ padding: "14px 26px", fontSize: 15 }} icon={Check} onClick={handleSave}>
+              Salvar alterações
+            </PrimaryButton>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -4073,13 +4992,15 @@ export default function App() {
     <DataProvider>
       <div style={{ fontFamily: "'Inter', sans-serif", background: T.bg, minHeight: "100vh", color: T.text }}>
         <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
           * { box-sizing: border-box; }
           html, body, #root { margin: 0; padding: 0; height: 100%; }
           table { font-family: 'Inter', sans-serif; }
           select { font-family: 'Inter', sans-serif; }
           input:focus, select:focus { border-color: ${T.primary} !important; }
           ::-webkit-scrollbar { width: 8px; height: 8px; }
+          .profile-tabs { scrollbar-width: none; }
+          .profile-tabs::-webkit-scrollbar { display: none; }
           ::-webkit-scrollbar-thumb { background: #D8DCE9; border-radius: 8px; }
           .spin { animation: spin 0.8s linear infinite; }
           @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
