@@ -39,6 +39,7 @@ export const actions = {
   updateProfilePhoto: (file) => router.post("/configuracoes/foto", { foto: file }, withFiles),
   testWhatsapp: (telefone, opts) => router.post("/configuracoes/whatsapp/teste", { telefone }, { ...keep, ...opts }),
   disconnectWhatsapp: () => router.post("/configuracoes/whatsapp/desconectar", {}, keep),
+  sendWhatsapp: (mensagem, opts) => router.post("/whatsapp/enviar", mensagem, { ...keep, ...opts }),
 
   logout: () => router.post("/logout"),
 };

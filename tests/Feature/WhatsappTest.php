@@ -256,6 +256,44 @@ class WhatsappTest extends ConsultorioTestCase
         Http::assertSent(fn (Request $r) => $r->method() === 'DELETE' && $r->url() === 'http://evolution.teste/instance/logout/psystem');
     }
 
+    public function test_mensagem_manual_do_atalho_em_modo_teste_fica_registrada(): void
+    {
+        $paciente = $this->paciente(['nome' => 'Maria Souza', 'telefone' => '(48) 99999-0000']);
+
+        $this->from('/pacientes')->post('/whatsapp/enviar', ['patientId' => $paciente->id, 'tipo' => 'livre', 'texto' => 'Oi, Maria!'])
+            ->assertRedirect('/pacientes')
+            ->assertSessionHas('aviso_whatsapp', 'Mensagem registrada (modo teste: nada foi enviado).');
+
+        $mensagem = MensagemWhatsapp::sole();
+        $this->assertSame(['livre', 'simulada', 'Oi, Maria!', $paciente->id], [$mensagem->tipo, $mensagem->situacao, $mensagem->texto, $mensagem->paciente_id]);
+    }
+
+    public function test_mensagem_manual_sai_pela_evolution_mesmo_com_envio_automatico_desligado(): void
+    {
+        $this->modoEvolution();
+        Configuracao::atual()->update(['whatsapp_ativo' => false]);
+        Http::fake([
+            'evolution.teste/instance/connectionState/psystem' => Http::response(['instance' => ['state' => 'open']]),
+            'evolution.teste/message/sendText/psystem' => Http::response(['key' => ['id' => 'ABC']], 201),
+        ]);
+        $paciente = $this->paciente(['telefone' => '(48) 98836-4746']);
+
+        $this->post('/whatsapp/enviar', ['patientId' => $paciente->id, 'tipo' => 'cobranca', 'texto' => 'Cobrança'])
+            ->assertSessionHas('aviso_whatsapp', 'Mensagem enviada pelo WhatsApp.');
+
+        Http::assertSent(fn (Request $r) => str_contains($r->url(), 'sendText') && $r['number'] === '5548988364746' && $r['text'] === 'Cobrança');
+        $this->assertSame('enviada', MensagemWhatsapp::sole()->situacao);
+    }
+
+    public function test_mensagem_manual_com_erro_volta_para_o_modal(): void
+    {
+        $this->modoEvolution();
+        Http::fake(['evolution.teste/instance/connectionState/psystem' => Http::response(['instance' => ['state' => 'close']])]);
+
+        $this->post('/whatsapp/enviar', ['patientId' => $this->paciente()->id, 'tipo' => 'livre', 'texto' => 'Oi'])
+            ->assertSessionHasErrors(['texto' => 'WhatsApp não conectado: escaneie o QR code em Configurações › WhatsApp.']);
+    }
+
     public function test_telefone_em_formato_internacional(): void
     {
         $this->assertSame('+5548999990000', AvisosWhatsapp::telefoneE164('(48) 99999-0000'));

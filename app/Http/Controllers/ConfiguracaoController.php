@@ -21,7 +21,6 @@ class ConfiguracaoController extends Controller
         return Inertia::render('Configuracoes/Configuracoes', [
             'goals' => $config->metas(),
             'horario' => $config->horario(),
-            'whatsappModo' => config('services.whatsapp.modo'),
             // Só no modo evolution: situação da conexão com o celular e o QR code para conectar.
             'whatsappConexao' => fn () => config('services.whatsapp.modo') === 'evolution' ? app(EvolutionApi::class)->conexao() : null,
             'mensagensWhatsapp' => MensagemWhatsapp::with('paciente')->latest('id')->limit(30)->get()->map->paraTela(),

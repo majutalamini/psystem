@@ -12,6 +12,7 @@ use App\Http\Controllers\PacienteController;
 use App\Http\Controllers\ProntuarioController;
 use App\Http\Controllers\RelatorioController;
 use App\Http\Controllers\SenhaController;
+use App\Http\Controllers\WhatsappController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -71,4 +72,5 @@ Route::middleware('auth')->group(function () {
     Route::post('/configuracoes/foto', [ConfiguracaoController::class, 'foto']);
     Route::post('/configuracoes/whatsapp/teste', [ConfiguracaoController::class, 'testarWhatsapp']);
     Route::post('/configuracoes/whatsapp/desconectar', [ConfiguracaoController::class, 'desconectarWhatsapp']);
+    Route::post('/whatsapp/enviar', [WhatsappController::class, 'enviar'])->middleware('throttle:20,1');
 });

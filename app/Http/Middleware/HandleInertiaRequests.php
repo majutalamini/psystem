@@ -26,6 +26,7 @@ class HandleInertiaRequests extends Middleware
                 ? Paciente::comResumo()->get()->map->paraTela()
                 : [],
             'whatsapp' => fn () => $logado ? Configuracao::atual()->whatsapp() : null,
+            'whatsappModo' => fn () => $logado ? config('services.whatsapp.modo') : null,
             'hours' => fn () => $logado ? Configuracao::atual()->horarios() : [],
             'flash' => fn () => [
                 'aviso' => $request->session()->get('aviso'),

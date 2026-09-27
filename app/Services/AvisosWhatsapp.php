@@ -84,6 +84,12 @@ class AvisosWhatsapp
         return $cobrancas->count();
     }
 
+    /** Mensagem escrita pela psicóloga no atalho do WhatsApp (não depende do "Envio automático"). */
+    public function manual(Paciente $paciente, string $tipo, string $texto): MensagemWhatsapp
+    {
+        return $this->enviar($paciente, $tipo, $texto, []);
+    }
+
     /**
      * Mensagem avulsa para conferir se o envio está funcionando (botão em Configurações).
      * Com modelo de lembrete configurado, o teste usa o modelo (a Twilio recusa texto livre iniciado pela empresa).

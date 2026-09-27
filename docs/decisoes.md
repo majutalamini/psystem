@@ -95,7 +95,8 @@ Base: `modelo_sistema_psicologia.sql`, ajustado conforme abaixo.
 
 ## WhatsApp automático
 
-- Continua existindo o atalho manual (link `wa.me`, a psicóloga envia). O envio automático é novo e só funciona com o "Envio automático" ligado em Configurações › WhatsApp.
+- **Mensagens escritas pela psicóloga** (botão do topo, perfil do paciente, "Cobrar no WhatsApp"): saem pelo número conectado ao sistema (`POST /whatsapp/enviar`, `WhatsappController`) e ficam registradas como as automáticas. Não dependem do "Envio automático" nem do consentimento (o modal avisa quando o paciente não aceitou). "Abrir a conversa no WhatsApp" (`wa.me`) continua como alternativa.
+- O envio automático só funciona com o "Envio automático" ligado em Configurações › WhatsApp.
 - Só recebe paciente **ativo** que marcou "Aceita receber mensagens pelo WhatsApp" no cadastro (`pacientes.aceita_whatsapp`), como exige a política do WhatsApp.
 - `whatsapp:lembretes` (09:00): lembrete das consultas agendadas ou confirmadas de amanhã, com o texto "lembrete" de Configurações.
 - `whatsapp:cobrancas` (09:00): cobranças em aberto que vencem daqui a "dias antes" (Configurações), com o valor que falta.
@@ -143,7 +144,7 @@ Se o container `app` não subir porque falta a pasta `vendor/`, instale as depen
   - `FinanceiroTest`: lançamento manual, baixa (total e parcial) e estorno de cobrança e de despesa.
   - `TelasTest`: login e todas as telas abrindo com os dois seeders; anamnese e configurações.
   - `RecuperarSenhaTest` e `AvisosEmailTest`: link de nova senha, aviso de consulta 1 hora antes e resumo de contas a vencer.
-  - `WhatsappTest`: lembrete e cobrança automáticos, consentimento, modo teste, envio pela Evolution e pela Twilio (com as APIs simuladas), QR code, erro e nova tentativa, intervalo entre mensagens.
+  - `WhatsappTest`: mensagens manuais do atalho, lembrete e cobrança automáticos, consentimento, modo teste, envio pela Evolution e pela Twilio (com as APIs simuladas), QR code, erro e nova tentativa, intervalo entre mensagens.
 
 ### Front: pronto
 

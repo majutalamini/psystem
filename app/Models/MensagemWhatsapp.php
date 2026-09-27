@@ -15,7 +15,13 @@ class MensagemWhatsapp extends Model
 
     const UPDATED_AT = null;
 
-    public const TIPOS = ['lembrete' => 'Lembrete de sessão', 'cobranca' => 'Cobrança', 'teste' => 'Teste'];
+    public const TIPOS = [
+        'lembrete' => 'Lembrete de sessão',
+        'retorno' => 'Lembrete de retorno',
+        'cobranca' => 'Cobrança',
+        'livre' => 'Mensagem livre',
+        'teste' => 'Teste',
+    ];
 
     public const SITUACOES = ['simulada' => 'Simulada', 'enviada' => 'Enviada', 'erro' => 'Erro'];
 
