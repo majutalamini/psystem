@@ -31,6 +31,7 @@ class HandleInertiaRequests extends Middleware
             'flash' => fn () => [
                 'aviso' => $request->session()->get('aviso'),
                 'whatsapp' => $request->session()->get('aviso_whatsapp'),
+                'envioAutomatico' => $request->session()->get('aviso_envio_automatico'),
             ],
         ];
     }

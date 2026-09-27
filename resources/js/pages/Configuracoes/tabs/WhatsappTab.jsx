@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { CalendarClock, CircleDollarSign, RefreshCw } from "lucide-react";
+import { CalendarClock, CircleDollarSign, Play, RefreshCw } from "lucide-react";
 import WhatsappIcon from "../../../components/icons/WhatsappIcon";
+import { useAppData } from "../../../hooks/useAppData";
 import { Switch } from "../../../components/ui";
 import WhatsappQuickModal from "../../../components/whatsapp/WhatsappQuickModal";
 import { WA_VARIABLES } from "../../../data/whatsapp";
@@ -12,10 +13,17 @@ import GoalField from "../components/GoalField";
 import MessageTemplateField from "../components/MessageTemplateField";
 import SettingsSection from "../components/SettingsSection";
 
-/* modo: "teste" (só registra) ou "twilio" (envia), definido no .env; mensagens: as últimas enviadas ou simuladas. */
+/* modo: "teste" (só registra), "evolution" ou "twilio" (enviam), definido no .env; mensagens: as últimas enviadas ou simuladas. */
 export default function WhatsappTab({ value: whatsapp, onChange: updateWhatsapp, errors, modo, conexao, mensagens = [] }) {
   const real = modo === "twilio" || modo === "evolution";
   const [testing, setTesting] = useState(null); // chave do modelo em teste
+  const { flash, runWhatsappNow } = useAppData();
+  const [rodando, setRodando] = useState(false);
+
+  function enviarAgora() {
+    setRodando(true);
+    runWhatsappNow({ onFinish: () => setRodando(false) });
+  }
 
   return (
     <>
@@ -60,7 +68,7 @@ export default function WhatsappTab({ value: whatsapp, onChange: updateWhatsapp,
             label="Número do WhatsApp comercial"
             value={whatsapp.numero}
             onChange={(v) => updateWhatsapp({ numero: v })}
-            hint="Número de contato do consultório. As mensagens automáticas saem pelo número configurado na Twilio."
+            hint={modo === "evolution" ? "Número de contato do consultório. As mensagens saem pelo celular conectado em “Conexão do WhatsApp”." : "Número de contato do consultório."}
             error={errors.numero}
           />
           <GoalField
@@ -71,6 +79,27 @@ export default function WhatsappTab({ value: whatsapp, onChange: updateWhatsapp,
             error={errors.diasAntes}
           />
         </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", borderTop: `1px solid ${T.border}`, paddingTop: 18, marginTop: 4 }}>
+          <button
+            onClick={enviarAgora}
+            disabled={rodando}
+            style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 10, border: `1px solid ${T.border}`,
+              background: "#fff", color: T.text, fontWeight: 700, fontSize: 14, cursor: rodando ? "default" : "pointer", opacity: rodando ? 0.6 : 1,
+            }}
+          >
+            <Play size={16} /> {rodando ? "Enviando..." : "Enviar agora"}
+          </button>
+          <span style={{ fontSize: 13, color: T.muted, flex: 1, minWidth: 220 }}>
+            Faz na hora o envio das 09:00: lembretes das consultas de amanhã e cobranças que vencem daqui a {whatsapp.diasAntes} dia(s). Usa as configurações já salvas.
+          </span>
+        </div>
+        {flash.envioAutomatico && (
+          <div style={{ fontSize: 13.5, fontWeight: 600, color: T.text, background: "#F7F8FC", borderRadius: 10, padding: "10px 14px", marginTop: 12 }}>
+            {flash.envioAutomatico}
+          </div>
+        )}
       </SettingsSection>
 
       <MessageTemplateField

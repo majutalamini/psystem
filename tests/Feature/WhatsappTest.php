@@ -294,6 +294,19 @@ class WhatsappTest extends ConsultorioTestCase
             ->assertSessionHasErrors(['texto' => 'WhatsApp não conectado: escaneie o QR code em Configurações › WhatsApp.']);
     }
 
+    public function test_botao_enviar_agora_roda_lembretes_e_cobrancas(): void
+    {
+        $this->consultaAmanha();
+
+        $this->post('/configuracoes/whatsapp/enviar-agora')
+            ->assertSessionHas('aviso_envio_automatico', '1 lembrete(s) e 0 cobrança(s) processados. Veja o resultado em Mensagens enviadas.');
+        $this->assertSame('lembrete', MensagemWhatsapp::sole()->tipo);
+
+        Configuracao::atual()->update(['whatsapp_ativo' => false]);
+        $this->post('/configuracoes/whatsapp/enviar-agora')->assertSessionHas('aviso_envio_automatico');
+        $this->assertSame(1, MensagemWhatsapp::count());
+    }
+
     public function test_telefone_em_formato_internacional(): void
     {
         $this->assertSame('+5548999990000', AvisosWhatsapp::telefoneE164('(48) 99999-0000'));

@@ -99,6 +99,21 @@ class ConfiguracaoController extends Controller
             : 'Mensagem de teste enviada pelo WhatsApp.');
     }
 
+    /** Botão "Enviar agora": roda na hora o que o agendador faz às 09:00 (lembretes de amanhã e cobranças). */
+    public function enviarAgora(AvisosWhatsapp $whatsapp)
+    {
+        if (! Configuracao::atual()->whatsapp_ativo) {
+            return back()->with('aviso_envio_automatico', 'O "Envio automático" está desligado. Ligue e clique em "Salvar alterações" antes.');
+        }
+
+        $lembretes = $whatsapp->lembretes();
+        $cobrancas = $whatsapp->cobrancas();
+
+        return back()->with('aviso_envio_automatico', $lembretes + $cobrancas === 0
+            ? 'Nada para enviar agora: nenhum paciente que aceita mensagens tem consulta amanhã ou cobrança vencendo no prazo configurado.'
+            : "{$lembretes} lembrete(s) e {$cobrancas} cobrança(s) processados. Veja o resultado em Mensagens enviadas.");
+    }
+
     public function desconectarWhatsapp(EvolutionApi $evolution)
     {
         $evolution->desconectar();

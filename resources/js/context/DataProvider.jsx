@@ -40,6 +40,7 @@ export const actions = {
   testWhatsapp: (telefone, opts) => router.post("/configuracoes/whatsapp/teste", { telefone }, { ...keep, ...opts }),
   disconnectWhatsapp: () => router.post("/configuracoes/whatsapp/desconectar", {}, keep),
   sendWhatsapp: (mensagem, opts) => router.post("/whatsapp/enviar", mensagem, { ...keep, ...opts }),
+  runWhatsappNow: (opts) => router.post("/configuracoes/whatsapp/enviar-agora", {}, { ...keep, ...opts }),
 
   logout: () => router.post("/logout"),
 };

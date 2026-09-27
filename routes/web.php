@@ -72,5 +72,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/configuracoes/foto', [ConfiguracaoController::class, 'foto']);
     Route::post('/configuracoes/whatsapp/teste', [ConfiguracaoController::class, 'testarWhatsapp']);
     Route::post('/configuracoes/whatsapp/desconectar', [ConfiguracaoController::class, 'desconectarWhatsapp']);
+    Route::post('/configuracoes/whatsapp/enviar-agora', [ConfiguracaoController::class, 'enviarAgora']);
     Route::post('/whatsapp/enviar', [WhatsappController::class, 'enviar'])->middleware('throttle:20,1');
 });
