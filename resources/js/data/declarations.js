@@ -1,7 +1,9 @@
 import { CalendarClock, Check, CircleDollarSign, Eye, FileCheck2, FileSignature, Image as ImageIcon, Receipt } from "lucide-react";
 import { EVENT_STYLES, T } from "../styles/theme";
+import { formatMoney } from "../utils/format";
 
-/* Modelos de declarações. build(paciente, valores, data, psicóloga logada); default pode ser função do paciente. */
+/* Modelos de declarações. build(paciente, valores, data, psicóloga logada); default pode ser função do paciente.
+   type "money": campo em reais; chega no build já como número. */
 export const DECLARATION_TEMPLATES = [
   {
     id: "atestado",
@@ -53,12 +55,12 @@ export const DECLARATION_TEMPLATES = [
     icon: Receipt, badgeIcon: CircleDollarSign,
     accent: "#8A6413", accentTint: T.warnTint,
     fields: [
-      { key: "valor", label: "Valor recebido (R$)", type: "number", default: (p) => (p.matricula ? p.matricula.valor : "") },
+      { key: "valor", label: "Valor recebido (R$)", type: "money", default: (p) => (p.matricula ? p.matricula.valor : "") },
       { key: "forma", label: "Forma de pagamento", type: "select", options: ["Pix", "Cartão", "Dinheiro"], default: "Pix" },
       { key: "referente", label: "Referente a", type: "text", default: "sessão de psicoterapia" },
     ],
     build: (p, v, date) => [
-      `Recebi de ${p.name} a quantia de R$ ${Number(v.valor).toLocaleString("pt-BR")}, via ${v.forma}, referente a ${v.referente}, em ${date}.`,
+      `Recebi de ${p.name} a quantia de R$ ${formatMoney(v.valor)}, via ${v.forma}, referente a ${v.referente}, em ${date}.`,
     ],
   },
 ];

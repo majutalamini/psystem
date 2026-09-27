@@ -27,6 +27,15 @@
         <env name="DB_DATABASE" value=":memory:"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
+        <!-- Os testes não dependem do .env de quem roda nem falam com a Twilio de verdade. -->
+        <env name="WHATSAPP_MODO" value="teste" force="true"/>
+        <env name="TWILIO_ACCOUNT_SID" value="" force="true"/>
+        <env name="TWILIO_AUTH_TOKEN" value="" force="true"/>
+        <env name="TWILIO_WHATSAPP_FROM" value="whatsapp:+14155238886" force="true"/>
+        <env name="TWILIO_CONTENT_SID_LEMBRETE" value="" force="true"/>
+        <env name="EVOLUTION_URL" value="http://evolution.teste" force="true"/>
+        <env name="EVOLUTION_API_KEY" value="chave-de-teste" force="true"/>
+        <env name="EVOLUTION_INSTANCIA" value="psystem" force="true"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

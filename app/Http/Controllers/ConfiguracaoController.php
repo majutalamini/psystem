@@ -3,9 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Configuracao;
+use App\Models\MensagemWhatsapp;
+use App\Services\AvisosWhatsapp;
+use App\Services\WhatsApp\EvolutionApi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class ConfiguracaoController extends Controller
@@ -17,6 +21,10 @@ class ConfiguracaoController extends Controller
         return Inertia::render('Configuracoes/Configuracoes', [
             'goals' => $config->metas(),
             'horario' => $config->horario(),
+            'whatsappModo' => config('services.whatsapp.modo'),
+            // Só no modo evolution: situação da conexão com o celular e o QR code para conectar.
+            'whatsappConexao' => fn () => config('services.whatsapp.modo') === 'evolution' ? app(EvolutionApi::class)->conexao() : null,
+            'mensagensWhatsapp' => MensagemWhatsapp::with('paciente')->latest('id')->limit(30)->get()->map->paraTela(),
         ]);
     }
 
@@ -75,6 +83,28 @@ class ConfiguracaoController extends Controller
         ]);
 
         return back()->with('aviso', 'Alterações salvas com sucesso.');
+    }
+
+    /** Botão "Enviar mensagem de teste": confere se o WhatsApp está configurado. */
+    public function testarWhatsapp(Request $request, AvisosWhatsapp $whatsapp)
+    {
+        $request->validate(['telefone' => 'required|string|max:20'], [], ['telefone' => 'telefone']);
+
+        $mensagem = $whatsapp->teste($request->input('telefone'));
+        if ($mensagem->situacao === 'erro') {
+            throw ValidationException::withMessages(['telefone' => $mensagem->erro]);
+        }
+
+        return back()->with('aviso_whatsapp', $mensagem->situacao === 'simulada'
+            ? 'Mensagem de teste registrada (modo teste: nada foi enviado).'
+            : 'Mensagem de teste enviada pelo WhatsApp.');
+    }
+
+    public function desconectarWhatsapp(EvolutionApi $evolution)
+    {
+        $evolution->desconectar();
+
+        return back()->with('aviso_whatsapp', 'WhatsApp desconectado do sistema.');
     }
 
     public function foto(Request $request)

@@ -69,4 +69,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/configuracoes', [ConfiguracaoController::class, 'edit'])->name('configuracoes');
     Route::put('/configuracoes', [ConfiguracaoController::class, 'update']);
     Route::post('/configuracoes/foto', [ConfiguracaoController::class, 'foto']);
+    Route::post('/configuracoes/whatsapp/teste', [ConfiguracaoController::class, 'testarWhatsapp']);
+    Route::post('/configuracoes/whatsapp/desconectar', [ConfiguracaoController::class, 'desconectarWhatsapp']);
 });

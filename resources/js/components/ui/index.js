@@ -13,3 +13,4 @@ export { default as FormField } from "./FormField";
 export { default as FormSectionTitle } from "./FormSectionTitle";
 export { default as CategoryIllustration } from "./CategoryIllustration";
 export { default as ErrorText } from "./ErrorText";
+export { default as MoneyInput } from "./MoneyInput";

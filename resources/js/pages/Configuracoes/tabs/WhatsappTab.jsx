@@ -4,17 +4,36 @@ import WhatsappIcon from "../../../components/icons/WhatsappIcon";
 import { Switch } from "../../../components/ui";
 import WhatsappQuickModal from "../../../components/whatsapp/WhatsappQuickModal";
 import { WA_VARIABLES } from "../../../data/whatsapp";
-import { T } from "../../../styles/theme";
+import { T, WA_GREEN_DARK } from "../../../styles/theme";
+import ConexaoWhatsapp from "../components/ConexaoWhatsapp";
+import MensagensWhatsapp from "../components/MensagensWhatsapp";
 import Field from "../components/Field";
 import GoalField from "../components/GoalField";
 import MessageTemplateField from "../components/MessageTemplateField";
 import SettingsSection from "../components/SettingsSection";
 
-export default function WhatsappTab({ value: whatsapp, onChange: updateWhatsapp, errors }) {
+/* modo: "teste" (só registra) ou "twilio" (envia), definido no .env; mensagens: as últimas enviadas ou simuladas. */
+export default function WhatsappTab({ value: whatsapp, onChange: updateWhatsapp, errors, modo, conexao, mensagens = [] }) {
+  const real = modo === "twilio" || modo === "evolution";
   const [testing, setTesting] = useState(null); // chave do modelo em teste
 
   return (
     <>
+      <div style={{
+        display: "flex", alignItems: "flex-start", gap: 10, borderRadius: 12, padding: "14px 16px", marginBottom: 20, fontSize: 13.5, lineHeight: 1.55,
+        background: real ? "#F1FCF5" : T.warnTint, color: real ? T.text : "#8A6413",
+      }}>
+        <WhatsappIcon size={18} color={real ? WA_GREEN_DARK : "#8A6413"} />
+        <div>
+          {modo === "evolution" && <><strong>Envio pela Evolution API.</strong> As mensagens saem de verdade pelo número conectado abaixo.</>}
+          {modo === "twilio" && <><strong>Envio pela Twilio.</strong> As mensagens automáticas saem de verdade pelo WhatsApp.</>}
+          {!real && <><strong>Modo teste.</strong> Nenhuma mensagem sai do sistema: elas só ficam registradas em "Mensagens enviadas", abaixo.</>}
+          {" "}Só recebem os pacientes ativos que aceitaram receber mensagens (marcado no cadastro).
+        </div>
+      </div>
+
+      {modo === "evolution" && <ConexaoWhatsapp conexao={conexao} />}
+
       <SettingsSection
         icon={WhatsappIcon}
         tone="whatsapp"
@@ -30,7 +49,7 @@ export default function WhatsappTab({ value: whatsapp, onChange: updateWhatsapp,
           <div>
             <div style={{ fontSize: 15.5, fontWeight: 700, color: T.text }}>Enviar cobranças e lembretes via WhatsApp</div>
             <div style={{ fontSize: 13.5, color: T.muted, marginTop: 3 }}>
-              {whatsapp.enabled ? "Envio automático ativo para todos os pacientes." : "Envio automático desligado."}
+              {whatsapp.enabled ? "Envio automático ativo para os pacientes que aceitaram receber mensagens." : "Envio automático desligado."}
             </div>
           </div>
           <Switch checked={whatsapp.enabled} onChange={(v) => updateWhatsapp({ enabled: v })} />
@@ -41,7 +60,7 @@ export default function WhatsappTab({ value: whatsapp, onChange: updateWhatsapp,
             label="Número do WhatsApp comercial"
             value={whatsapp.numero}
             onChange={(v) => updateWhatsapp({ numero: v })}
-            hint="É o número que aparece como remetente das mensagens."
+            hint="Número de contato do consultório. As mensagens automáticas saem pelo número configurado na Twilio."
             error={errors.numero}
           />
           <GoalField
@@ -58,7 +77,7 @@ export default function WhatsappTab({ value: whatsapp, onChange: updateWhatsapp,
         icon={CalendarClock}
         tone="primary"
         title="Mensagem de lembrete de sessão"
-        description="Enviada antes da consulta agendada, para confirmar a presença do paciente."
+        description="Enviada às 09:00 do dia anterior à consulta, para confirmar a presença do paciente."
         value={whatsapp.lembrete}
         onChange={(v) => updateWhatsapp({ lembrete: v })}
         variables={WA_VARIABLES.lembrete}
@@ -86,6 +105,8 @@ export default function WhatsappTab({ value: whatsapp, onChange: updateWhatsapp,
         variables={WA_VARIABLES.cobranca}
         onTest={() => setTesting("cobranca")}
       />
+
+      <MensagensWhatsapp mensagens={mensagens} />
 
       {testing && (
         <WhatsappQuickModal initialTemplate={testing} templates={whatsapp} onClose={() => setTesting(null)} />

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CalendarClock, CalendarX, Check, Edit3, Plus } from "lucide-react";
-import { Card, ErrorText, PrimaryButton } from "../../../components/ui";
+import { Card, ErrorText, MoneyInput, PrimaryButton } from "../../../components/ui";
 import { WEEKDAY_FULL } from "../../../data/agenda";
 import { useAppData } from "../../../hooks/useAppData";
 import { iconBtn, inputStyle } from "../../../styles/formStyles";
@@ -143,8 +143,8 @@ export default function MatriculaTab({ patient }) {
       </select>
 
       <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Valor da sessão (R$)</label>
-      <input
-        type="number" min="0" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Ex: 200"
+      <MoneyInput
+        value={valor} onChange={setValor} placeholder="Ex: 200,00"
         style={errors.valor ? { ...inputStyle, borderColor: T.danger, marginBottom: 4 } : inputStyle}
       />
       <ErrorText>{errors.valor}</ErrorText>

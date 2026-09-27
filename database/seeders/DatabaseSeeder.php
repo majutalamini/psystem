@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
         Psicologo::firstOrCreate(['email' => 'isadora.talamini@psystem.com'], [
             'nome' => 'Dra. Isadora Talamini',
             'crp' => '12/34567',
-            'telefone' => '(48) 99876-5432',
+            'telefone' => '(48) 98836-4746',
             'senha_hash' => 'psystem123',
         ]);
 
@@ -25,7 +25,7 @@ class DatabaseSeeder extends Seeder
             'meta_sessoes_semanais' => 35,
             'meta_novos_pacientes_mes' => 5,
             'whatsapp_ativo' => true,
-            'whatsapp_numero' => '(48) 99876-5432',
+            'whatsapp_numero' => '(48) 98836-4746',
             'whatsapp_dias_antes' => 2,
             'mensagem_lembrete' => 'Olá {paciente}! Passando para lembrar que sua sessão está confirmada para {data} às {hora}. Até lá!',
             'mensagem_retorno' => 'Olá {paciente}! Faz um tempo desde a nossa última sessão, em {ultimaSessao}. Se quiser retomar o acompanhamento, tenho horários disponíveis nesta semana. Um abraço!',

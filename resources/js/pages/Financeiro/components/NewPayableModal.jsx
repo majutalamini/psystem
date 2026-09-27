@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ErrorText, Modal, PrimaryButton } from "../../../components/ui";
+import { ErrorText, Modal, MoneyInput, PrimaryButton } from "../../../components/ui";
 import { PAYABLE_CATEGORIES } from "../../../data/finance";
 import { useAppData } from "../../../hooks/useAppData";
 import { inputStyle } from "../../../styles/formStyles";
@@ -24,7 +24,7 @@ export default function NewPayableModal({ onClose, onSave }) {
       </select>
 
       <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Valor (R$)</label>
-      <input type="number" value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} style={errorStyle("valor")} />
+      <MoneyInput value={form.valor} onChange={(v) => setForm({ ...form, valor: v })} style={errorStyle("valor")} />
       <ErrorText>{errors.valor}</ErrorText>
 
       <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Vencimento</label>

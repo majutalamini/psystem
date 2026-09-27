@@ -21,9 +21,9 @@ export default function ReportInativosRisco() {
 
   return (
     <div>
-      <FilterBar onApply={() => setApplied(threshold)}>
+      <FilterBar onApply={() => setApplied(Number(threshold) || 30)}>
         <FilterField label="Risco a partir de (dias sem sessão)">
-          <input type="number" min={1} value={threshold} onChange={(e) => setThreshold(Number(e.target.value))} style={{ ...filterInputStyle, minWidth: 100 }} />
+          <input type="text" inputMode="numeric" value={threshold} onChange={(e) => setThreshold(e.target.value.replace(/\D/g, ""))} style={{ ...filterInputStyle, minWidth: 100 }} />
         </FilterField>
       </FilterBar>
 

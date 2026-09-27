@@ -94,6 +94,7 @@ class PacienteController extends Controller
             'emergenciaTelefone' => 'nullable|string|max:20',
             'observacoes' => 'nullable|string',
             'status' => 'required|in:Ativo,Inativo',
+            'aceitaWhatsapp' => 'boolean',
         ], [], [
             'name' => 'nome', 'nascimento' => 'data de nascimento', 'phone' => 'telefone',
         ]);

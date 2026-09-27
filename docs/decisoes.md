@@ -93,6 +93,17 @@ Base: `modelo_sistema_psicologia.sql`, ajustado conforme abaixo.
 - Em desenvolvimento, os e-mails vão para o **Mailpit** (serviço `mailpit` no Docker Compose), que mostra tudo em http://localhost:8025 e não envia nada para fora. Para enviar de verdade, troque as variáveis `MAIL_*` do `.env` pelo SMTP do provedor.
 - Os avisos dependem do serviço `scheduler` estar rodando o tempo todo.
 
+## WhatsApp automático
+
+- Continua existindo o atalho manual (link `wa.me`, a psicóloga envia). O envio automático é novo e só funciona com o "Envio automático" ligado em Configurações › WhatsApp.
+- Só recebe paciente **ativo** que marcou "Aceita receber mensagens pelo WhatsApp" no cadastro (`pacientes.aceita_whatsapp`), como exige a política do WhatsApp.
+- `whatsapp:lembretes` (09:00): lembrete das consultas agendadas ou confirmadas de amanhã, com o texto "lembrete" de Configurações.
+- `whatsapp:cobrancas` (09:00): cobranças em aberto que vencem daqui a "dias antes" (Configurações), com o valor que falta.
+- Toda mensagem fica em `mensagens_whatsapp` (situação `simulada`, `enviada` ou `erro`) e aparece em Configurações › WhatsApp › Mensagens enviadas, junto com um botão de mensagem de teste. Cada consulta e cada cobrança recebe uma mensagem só; as que deram erro podem ser tentadas de novo.
+- `.env`: `WHATSAPP_MODO=teste` só registra (nada sai do sistema); `WHATSAPP_MODO=evolution` envia pela Evolution API; `WHATSAPP_MODO=twilio` envia pela API da Twilio (`app/Services/WhatsApp/CanalTwilio.php`) com `TWILIO_ACCOUNT_SID` e `TWILIO_AUTH_TOKEN`. Depois de mudar o `.env`, rode `docker compose restart app scheduler`.
+- **Evolution API** (modo em uso nos testes): serviço `evolution` (imagem `evoapicloud/evolution-api:v2.3.7`, gratuita, Apache 2.0; a 2.4 passa a exigir ativação) com `redis`, no Docker Compose. Usa o banco `evolution` no mesmo Postgres (criado por `docker/postgres/evolution.sql` em volume novo; num banco existente: `docker compose exec db psql -U psystem -c 'CREATE DATABASE evolution'`). A chave `EVOLUTION_API_KEY` do `.env` é lida pelo Compose e pelo Laravel. O celular conecta pelo QR code em Configurações › WhatsApp (instância `psystem`, criada sozinha); painel próprio em http://localhost:8080/manager. Não guarda conversas, contatos nem histórico do celular (`DATABASE_SAVE_DATA_*=false`). Aceita texto livre, sem modelo. Espera 5 segundos entre mensagens (`EVOLUTION_INTERVALO_SEGUNDOS`). Não é a API oficial (imita o WhatsApp Web): o número pode ser bloqueado; para os pacientes, o caminho seguro é a API oficial (a Evolution também tem esse modo).
+- Teste na Twilio ("Try out WhatsApp", conta de teste): o remetente é o número de teste da conta; só recebe o celular conectado com `join <código>`; mensagem iniciada pelo consultório precisa de **modelo** (erro 21654 sem ele). O lembrete e o botão "Enviar teste" usam o modelo `TWILIO_CONTENT_SID_LEMBRETE` (o de teste da Twilio é `HXb5b62575e6e4ff6129ad7c8efe1f983e`, "Your appointment is coming up on {{1}} at {{2}}", em inglês). A cobrança é texto livre e só chega nas 24 horas depois que o paciente mandou mensagem; em produção ela também vai precisar de modelo aprovado. O sistema espera 3 segundos entre envios (`TWILIO_INTERVALO_SEGUNDOS`).
+
 ## Estado da implementação (para continuar)
 
 ### Ambiente
@@ -113,6 +124,8 @@ docker compose exec app php artisan db:seed --class=ExemploSeeder   # opcional: 
 docker compose exec app php artisan test
 ```
 
+Serviços: sistema em http://localhost:8000, e-mails em http://localhost:8025 (Mailpit), WhatsApp em http://localhost:8080 (Evolution).
+
 Acesse http://localhost:8000 com o login `isadora.talamini@psystem.com` e a senha `psystem123`. Os e-mails enviados aparecem em http://localhost:8025 (Mailpit). O serviço `scheduler` roda `agenda:gerar` todo dia à 01:00 e os avisos por e-mail.
 
 Se o container `app` não subir porque falta a pasta `vendor/`, instale as dependências num container avulso: `docker compose run --rm --no-deps app composer install`.
@@ -130,6 +143,7 @@ Se o container `app` não subir porque falta a pasta `vendor/`, instale as depen
   - `FinanceiroTest`: lançamento manual, baixa (total e parcial) e estorno de cobrança e de despesa.
   - `TelasTest`: login e todas as telas abrindo com os dois seeders; anamnese e configurações.
   - `RecuperarSenhaTest` e `AvisosEmailTest`: link de nova senha, aviso de consulta 1 hora antes e resumo de contas a vencer.
+  - `WhatsappTest`: lembrete e cobrança automáticos, consentimento, modo teste, envio pela Evolution e pela Twilio (com as APIs simuladas), QR code, erro e nova tentativa, intervalo entre mensagens.
 
 ### Front: pronto
 
@@ -141,6 +155,7 @@ Se o container `app` não subir porque falta a pasta `vendor/`, instale as depen
 ### Falta
 
 1. Definir o provedor de e-mail de produção (SMTP) e onde o sistema vai rodar, já que os avisos precisam do `scheduler` sempre ligado.
-2. Backup do banco e da pasta `storage/app/private/documentos`.
-3. Testar no navegador os fluxos principais: cadastro de paciente, matrícula, agenda (confirmar, realizado, falta, cancelar), cobrança e estorno, documentos, anamnese, configurações e impressão de declaração.
-4. Commitar.
+2. WhatsApp: para produção, usar a API oficial (pela Evolution no modo Meta, ou pela Twilio) com número próprio e modelos aprovados de lembrete e cobrança em português.
+3. Backup do banco e da pasta `storage/app/private/documentos`.
+4. Testar no navegador os fluxos principais: cadastro de paciente, matrícula, agenda (confirmar, realizado, falta, cancelar), cobrança e estorno, documentos, anamnese, configurações e impressão de declaração.
+5. Commitar.

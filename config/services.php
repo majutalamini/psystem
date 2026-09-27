@@ -35,4 +35,28 @@ return [
         ],
     ],
 
+    // Envio automático pelo WhatsApp. modo: "teste" (só registra, não envia), "evolution" ou "twilio".
+    'whatsapp' => [
+        'modo' => env('WHATSAPP_MODO', 'teste'),
+    ],
+
+    // Evolution API rodando no Docker Compose (serviço "evolution"), conectada ao celular por QR code.
+    'evolution' => [
+        'url' => env('EVOLUTION_URL', 'http://evolution:8080'),
+        'api_key' => env('EVOLUTION_API_KEY'),
+        'instancia' => env('EVOLUTION_INSTANCIA', 'psystem'),
+        // Pausa entre mensagens: envio rápido demais aumenta o risco de bloqueio do número.
+        'intervalo_segundos' => (int) env('EVOLUTION_INTERVALO_SEGUNDOS', 5),
+    ],
+
+    'twilio' => [
+        'account_sid' => env('TWILIO_ACCOUNT_SID'),
+        'auth_token' => env('TWILIO_AUTH_TOKEN'),
+        // Remetente: no teste novo da Twilio ("Try out WhatsApp") é o número de teste da conta; no Sandbox antigo, +14155238886.
+        'whatsapp_from' => env('TWILIO_WHATSAPP_FROM', 'whatsapp:+14155238886'),
+        // Opcional: modelo aprovado para o lembrete (ContentSid "HX..."), usado fora da janela de 24 horas.
+        'content_sid_lembrete' => env('TWILIO_CONTENT_SID_LEMBRETE'),
+        // O Sandbox aceita uma mensagem a cada 3 segundos.
+        'intervalo_segundos' => (int) env('TWILIO_INTERVALO_SEGUNDOS', 3),
+    ],
 ];

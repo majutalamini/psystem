@@ -27,7 +27,10 @@ class HandleInertiaRequests extends Middleware
                 : [],
             'whatsapp' => fn () => $logado ? Configuracao::atual()->whatsapp() : null,
             'hours' => fn () => $logado ? Configuracao::atual()->horarios() : [],
-            'flash' => fn () => ['aviso' => $request->session()->get('aviso')],
+            'flash' => fn () => [
+                'aviso' => $request->session()->get('aviso'),
+                'whatsapp' => $request->session()->get('aviso_whatsapp'),
+            ],
         ];
     }
 }

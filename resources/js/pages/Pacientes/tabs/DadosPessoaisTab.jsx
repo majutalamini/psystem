@@ -1,4 +1,4 @@
-import { Cake, CreditCard, Home, Mail, Phone, User } from "lucide-react";
+import { Cake, CreditCard, Home, Mail, MessageCircle, Phone, User } from "lucide-react";
 import { Card } from "../../../components/ui";
 import { T } from "../../../styles/theme";
 import InfoRow from "../components/InfoRow";
@@ -10,6 +10,7 @@ export default function DadosPessoaisTab({ patient }) {
       <InfoRow icon={CreditCard} label="CPF" value={patient.cpf} />
       <InfoRow icon={Phone} label="Telefone" value={patient.phone} />
       <InfoRow icon={Mail} label="E-mail" value={patient.email} />
+      <InfoRow icon={MessageCircle} label="Mensagens automáticas no WhatsApp" value={patient.aceitaWhatsapp ? "Aceita receber" : "Não aceita"} />
       <InfoRow icon={Home} label="Endereço" value={patient.endereco} />
       <InfoRow icon={User} label="Contato de emergência" value={patient.emergenciaNome && patient.emergenciaTelefone ? `${patient.emergenciaNome} · ${patient.emergenciaTelefone}` : patient.emergenciaNome} />
       <div style={{ padding: "16px 0" }}>

@@ -3,7 +3,7 @@ import { useAppData } from "../../hooks/useAppData";
 import { inputStyle } from "../../styles/formStyles";
 import { T } from "../../styles/theme";
 import { todayLabel } from "../../utils/date";
-import { ErrorText, Modal, PrimaryButton } from "../ui";
+import { ErrorText, Modal, MoneyInput, PrimaryButton } from "../ui";
 
 /* Lançamento manual. Nasce em aberto; a baixa é feita pelo botão Receber. */
 export default function NewReceivableModal({ onClose, onSave, patientId }) {
@@ -32,7 +32,7 @@ export default function NewReceivableModal({ onClose, onSave, patientId }) {
       <ErrorText>{errors.referencia}</ErrorText>
 
       <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Valor (R$)</label>
-      <input type="number" value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} style={errorStyle("valor")} />
+      <MoneyInput value={form.valor} onChange={(v) => setForm({ ...form, valor: v })} style={errorStyle("valor")} />
       <ErrorText>{errors.valor}</ErrorText>
 
       <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Vencimento</label>

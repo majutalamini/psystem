@@ -7,7 +7,7 @@ import { T } from "../../../styles/theme";
 
 const BLANK = {
   name: "", nascimento: "", cpf: "", sexo: "", phone: "", email: "", endereco: "", cidade: "", uf: "",
-  emergenciaNome: "", emergenciaTelefone: "", observacoes: "", status: "Ativo",
+  emergenciaNome: "", emergenciaTelefone: "", observacoes: "", status: "Ativo", aceitaWhatsapp: false,
 };
 
 /* O Laravel valida e devolve os erros por campo; o modal fecha quando o salvamento dá certo. */
@@ -34,6 +34,13 @@ export default function NewPatientModal({ onClose, onSave, editingPatient }) {
         <FormField label="Telefone *" {...field("phone")} placeholder="(00) 00000-0000" />
         <FormField label="E-mail" {...field("email")} type="email" placeholder="paciente@email.com" />
       </div>
+      <label style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13.5, color: T.text, marginBottom: 16, cursor: "pointer" }}>
+        <input type="checkbox" checked={!!form.aceitaWhatsapp} onChange={(e) => set("aceitaWhatsapp")(e.target.checked)} style={{ marginTop: 2 }} />
+        <span>
+          Aceita receber mensagens pelo WhatsApp
+          <span style={{ display: "block", fontSize: 12.5, color: T.muted }}>Lembretes de sessão e avisos de cobrança enviados automaticamente.</span>
+        </span>
+      </label>
       <FormField label="Endereço" {...field("endereco")} placeholder="Rua, número — bairro" />
       <div style={{ display: "grid", gridTemplateColumns: "3fr 1fr", gap: "0 16px" }}>
         <FormField label="Cidade" {...field("cidade")} />

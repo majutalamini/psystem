@@ -20,7 +20,7 @@ const SETTINGS_TABS = [
 ];
 
 /* O botão "Salvar alterações" manda todas as abas juntas; as abas só editam este estado. */
-export default function Configuracoes({ goals, horario }) {
+export default function Configuracoes({ goals, horario, whatsappModo, whatsappConexao, mensagensWhatsapp }) {
   const { auth, whatsapp, flash, errors = {}, saveSettings } = useAppData();
   const [tab, setTab] = useState("pessoais");
   const [saving, setSaving] = useState(false);
@@ -52,7 +52,9 @@ export default function Configuracoes({ goals, horario }) {
   }
 
   const tabProps = (section) => ({ value: form[section], onChange: update(section), errors: sectionErrors(section) });
-  const saved = flash.aviso && !saving && Object.keys(errors).length === 0;
+  // O erro do botão "Enviar mensagem de teste" (campo telefone) aparece na aba do WhatsApp, não no rodapé.
+  const saveErrors = Object.keys(errors).filter((k) => k !== "telefone");
+  const saved = flash.aviso && !saving && saveErrors.length === 0;
 
   return (
     <div>
@@ -103,7 +105,7 @@ export default function Configuracoes({ goals, horario }) {
           {tab === "seguranca" && <SegurancaTab {...tabProps("senha")} />}
           {tab === "horario" && <HorarioTab {...tabProps("horario")} />}
           {tab === "metas" && <MetasTab {...tabProps("goals")} />}
-          {tab === "whatsapp" && <WhatsappTab {...tabProps("whatsapp")} />}
+          {tab === "whatsapp" && <WhatsappTab {...tabProps("whatsapp")} modo={whatsappModo} conexao={whatsappConexao} mensagens={mensagensWhatsapp} />}
 
           <div style={{
             position: "sticky", bottom: 0, display: "flex", alignItems: "center", justifyContent: "flex-end",
@@ -112,11 +114,11 @@ export default function Configuracoes({ goals, horario }) {
           }}>
             <span style={{
               display: "flex", alignItems: "center", gap: 7, fontSize: 13.5, fontWeight: 600,
-              color: saved ? T.success : Object.keys(errors).length ? T.danger : T.muted, marginRight: "auto",
+              color: saved ? T.success : saveErrors.length ? T.danger : T.muted, marginRight: "auto",
             }}>
               {saved
                 ? <><Check size={17} /> {flash.aviso}</>
-                : Object.keys(errors).length
+                : saveErrors.length
                   ? "Corrija os campos destacados antes de salvar."
                   : "As alterações são aplicadas em todo o sistema ao salvar."}
             </span>

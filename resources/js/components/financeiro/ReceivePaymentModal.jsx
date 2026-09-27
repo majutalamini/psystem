@@ -5,7 +5,7 @@ import { inputStyle } from "../../styles/formStyles";
 import { T } from "../../styles/theme";
 import { todayLabel } from "../../utils/date";
 import { useAppData } from "../../hooks/useAppData";
-import { ErrorText, Modal } from "../ui";
+import { ErrorText, Modal, MoneyInput } from "../ui";
 
 /* saldo: quanto falta receber (cobrança já recebida em parte). O valor sugerido é o saldo. */
 export default function ReceivePaymentModal({ title, subtitle, valor, saldo = valor, vencimento, kind = "receber", onClose, onConfirm }) {
@@ -38,7 +38,7 @@ export default function ReceivePaymentModal({ title, subtitle, valor, saldo = va
       <ErrorText>{errors.data}</ErrorText>
 
       <label style={{ fontSize: 13, fontWeight: 600, color: T.muted }}>Valor {isPay ? "pago" : "recebido"} (R$)</label>
-      <input type="number" value={valorRecebido} onChange={(e) => setValorRecebido(e.target.value)} style={inputStyle} />
+      <MoneyInput value={valorRecebido} onChange={setValorRecebido} style={errors.valor ? { ...inputStyle, borderColor: T.danger, marginBottom: 4 } : inputStyle} />
       <ErrorText>{errors.valor}</ErrorText>
       {!isPay && (
         <div style={{ fontSize: 12.5, color: T.muted, marginTop: -8, marginBottom: 16 }}>
@@ -54,7 +54,7 @@ export default function ReceivePaymentModal({ title, subtitle, valor, saldo = va
       <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
         <button onClick={onClose} style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, cursor: "pointer", fontSize: 14 }}>Cancelar</button>
         <button
-          onClick={() => onConfirm({ data, valor: Number(valorRecebido), forma })}
+          onClick={() => onConfirm({ data, valor: valorRecebido, forma })}
           style={{
             flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             padding: "11px 0", borderRadius: 10, border: "none", cursor: "pointer",

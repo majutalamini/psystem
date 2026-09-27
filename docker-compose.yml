@@ -35,6 +35,7 @@ services:
       POSTGRES_PASSWORD: psystem
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/evolution.sql:/docker-entrypoint-initdb.d/evolution.sql:ro
     ports:
       # 5433 no host para não brigar com um Postgres instalado na máquina; os containers usam db:5432.
       - "5433:5432"
@@ -46,5 +47,48 @@ services:
     ports:
       - "8025:8025"
 
+  # WhatsApp pela Evolution API (conexão por QR code). Só é usada com WHATSAPP_MODO=evolution.
+  # Painel: http://localhost:8080/manager (chave: EVOLUTION_API_KEY do .env).
+  evolution:
+    image: evoapicloud/evolution-api:v2.3.7
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SERVER_URL: http://localhost:8080
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-troque-esta-chave}
+      DEL_INSTANCE: "false"
+      LOG_LEVEL: ERROR,WARN,INFO,LOG,VERBOSE
+      # Detalhe da conexão com o WhatsApp (Baileys). Para investigar falhas de QR code: debug; no dia a dia: error.
+      LOG_BAILEYS: ${EVOLUTION_LOG_BAILEYS:-error}
+      CONFIG_SESSION_PHONE_CLIENT: Psystem
+      CONFIG_SESSION_PHONE_NAME: Chrome
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://psystem:psystem@db:5432/evolution?schema=public
+      DATABASE_CONNECTION_CLIENT_NAME: psystem
+      # Privacidade: não copia conversas, contatos nem histórico do celular conectado.
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "false"
+      DATABASE_SAVE_MESSAGE_UPDATE: "false"
+      DATABASE_SAVE_DATA_CONTACTS: "false"
+      DATABASE_SAVE_DATA_CHATS: "false"
+      DATABASE_SAVE_DATA_LABELS: "false"
+      DATABASE_SAVE_DATA_HISTORIC: "false"
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis:6379/6
+      CACHE_REDIS_PREFIX_KEY: evolution
+      CACHE_LOCAL_ENABLED: "false"
+    volumes:
+      - evolution_instances:/evolution/instances
+    depends_on:
+      - db
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
 volumes:
   pgdata:
+  evolution_instances:
