@@ -64,6 +64,7 @@ class DashboardController extends Controller
                 'month' => self::MESES[$mes->month - 1],
                 'sessoes' => $realizadas->filter(fn ($c) => $c->data_hora_consulta->isSameMonth($mes))->count(),
             ]),
+            'pendenciasTotal' => Cobranca::where('situacao', 'pendente')->count(),
             'pendencias' => Cobranca::where('situacao', 'pendente')
                 ->with(['pagamentos', 'paciente'])
                 ->orderBy('vencimento')

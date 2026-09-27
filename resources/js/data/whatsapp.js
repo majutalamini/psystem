@@ -2,7 +2,7 @@
 export const WA_TEMPLATES = [
   { key: "lembrete", label: "Lembrete de sessão", field: "lembrete" },
   { key: "retorno", label: "Lembrete de retorno", field: "retorno" },
-  { key: "cobranca", label: "Cobrança de mensalidade", field: "cobranca" },
+  { key: "cobranca", label: "Cobrança de sessão", field: "cobranca" },
   { key: "livre", label: "Mensagem livre", field: null },
 ];
 
@@ -18,7 +18,7 @@ export const WA_SAMPLE = {
   "{data}": "19/08/2026",
   "{hora}": "09:00",
   "{ultimaSessao}": "22/06/2026",
-  "{referencia}": "Agosto/2026",
-  "{valor}": "R$ 800",
-  "{vencimento}": "05/08/2026",
+  "{referencia}": "Sessão — 12/08/2026",
+  "{valor}": "R$ 200",
+  "{vencimento}": "12/08/2026",
 };

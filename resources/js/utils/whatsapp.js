@@ -23,7 +23,7 @@ export function fillWaVars(template, patient, receivable) {
     "{hora}": patient && patient.matricula ? patient.matricula.time : "09:00",
     "{ultimaSessao}": (patient && patient.lastSession) || "—",
     "{referencia}": receivable ? receivable.referencia : "das sessões",
-    "{valor}": receivable ? `R$ ${receivable.valor.toLocaleString("pt-BR")}` : "—",
+    "{valor}": receivable ? `R$ ${(receivable.saldo ?? receivable.valor).toLocaleString("pt-BR")}` : "—",
     "{vencimento}": receivable ? receivable.vencimento : "—",
   };
   return Object.keys(values).reduce((acc, k) => acc.split(k).join(values[k]), template);

@@ -1,14 +1,17 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { FileSignature } from "lucide-react";
+import PrintArea from "../../components/layout/PrintArea";
 import { Card, CategoryIllustration, PageHeader } from "../../components/ui";
 import { DECLARATION_TEMPLATES } from "../../data/declarations";
 import { T } from "../../styles/theme";
 import DeclarationDocumentModal from "./components/DeclarationDocumentModal";
 import GenerateDeclarationModal from "./components/GenerateDeclarationModal";
 
-export default function Declaracoes({ onPrint }) {
+export default function Declaracoes() {
   const [activeTemplate, setActiveTemplate] = useState(null);
   const [generated, setGenerated] = useState(null); // { template, patient, values }
+  const [printContent, setPrintContent] = useState(null); // { template, patient, paragraphs }
 
   return (
     <div>
@@ -58,11 +61,14 @@ export default function Declaracoes({ onPrint }) {
           values={generated.values}
           onClose={() => { setGenerated(null); setActiveTemplate(null); }}
           onPrint={(template, paragraphs) => {
-            onPrint({ template, patient: generated.patient, paragraphs });
+            setPrintContent({ template, patient: generated.patient, paragraphs });
             setTimeout(() => window.print(), 50);
           }}
         />
       )}
+
+      {/* Fica fora do .app-shell, que o CSS de impressão esconde. */}
+      {createPortal(<PrintArea content={printContent} />, document.body)}
     </div>
   );
 }

@@ -4,12 +4,15 @@ import { PAYMENT_METHODS } from "../../data/finance";
 import { inputStyle } from "../../styles/formStyles";
 import { T } from "../../styles/theme";
 import { todayLabel } from "../../utils/date";
-import { Modal } from "../ui";
+import { useAppData } from "../../hooks/useAppData";
+import { ErrorText, Modal } from "../ui";
 
-export default function ReceivePaymentModal({ title, subtitle, valor, vencimento, kind = "receber", onClose, onConfirm }) {
+/* saldo: quanto falta receber (cobrança já recebida em parte). O valor sugerido é o saldo. */
+export default function ReceivePaymentModal({ title, subtitle, valor, saldo = valor, vencimento, kind = "receber", onClose, onConfirm }) {
   const isPay = kind === "pagar";
+  const { errors = {} } = useAppData();
   const [data, setData] = useState(todayLabel());
-  const [valorRecebido, setValorRecebido] = useState(valor);
+  const [valorRecebido, setValorRecebido] = useState(saldo);
   const [forma, setForma] = useState("Pix");
 
   return (
@@ -23,13 +26,25 @@ export default function ReceivePaymentModal({ title, subtitle, valor, vencimento
           </span>
           <span style={{ fontSize: 12.5, color: T.muted }}>vence em {vencimento}</span>
         </div>
+        {saldo < valor && (
+          <div style={{ fontSize: 13, fontWeight: 600, color: T.text, marginTop: 6 }}>
+            Já recebido: R$ {(valor - saldo).toLocaleString("pt-BR")} · falta R$ {Number(saldo).toLocaleString("pt-BR")}
+          </div>
+        )}
       </div>
 
       <label style={{ fontSize: 13, fontWeight: 600, color: T.muted }}>Data do {isPay ? "pagamento" : "recebimento"}</label>
       <input value={data} onChange={(e) => setData(e.target.value)} placeholder="dd/mm/aaaa" style={inputStyle} />
+      <ErrorText>{errors.data}</ErrorText>
 
       <label style={{ fontSize: 13, fontWeight: 600, color: T.muted }}>Valor {isPay ? "pago" : "recebido"} (R$)</label>
       <input type="number" value={valorRecebido} onChange={(e) => setValorRecebido(e.target.value)} style={inputStyle} />
+      <ErrorText>{errors.valor}</ErrorText>
+      {!isPay && (
+        <div style={{ fontSize: 12.5, color: T.muted, marginTop: -8, marginBottom: 16 }}>
+          Se receber menos que o total, a cobrança continua em aberto com o restante.
+        </div>
+      )}
 
       <label style={{ fontSize: 13, fontWeight: 600, color: T.muted }}>Forma de {isPay ? "pagamento" : "recebimento"}</label>
       <select value={forma} onChange={(e) => setForma(e.target.value)} style={inputStyle}>

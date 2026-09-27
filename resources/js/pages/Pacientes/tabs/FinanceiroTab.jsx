@@ -11,14 +11,14 @@ import { filterInputStyle, iconBtn } from "../../../styles/formStyles";
 import { T, WA_GREEN } from "../../../styles/theme";
 import { parseBrDate } from "../../../utils/date";
 
-export default function FinanceiroTab({ patient }) {
-  const { receivables, addReceivable, receiveReceivable, reopenReceivable } = useAppData();
+export default function FinanceiroTab({ patient, receivables }) {
+  const { addReceivable, receiveReceivable, reopenReceivable } = useAppData();
   const [showModal, setShowModal] = useState(false);
   const [receiving, setReceiving] = useState(null);   // lançamento em baixa
   const [cobrando, setCobrando] = useState(false);    // cobrança via WhatsApp
-  const mine = receivables.filter((r) => r.paciente === patient.name);
-  const totalPago = mine.filter((r) => r.status === "Pago").reduce((s, r) => s + r.valor, 0);
-  const totalAberto = mine.filter((r) => r.status !== "Pago").reduce((s, r) => s + r.valor, 0);
+  const mine = receivables;
+  const totalPago = mine.reduce((s, r) => s + (r.recebido || 0), 0);
+  const totalAberto = mine.reduce((s, r) => s + r.saldo, 0);
 
   const [dateStart, setDateStart] = useState("");
   const [dateEnd, setDateEnd] = useState("");
@@ -147,7 +147,7 @@ export default function FinanceiroTab({ patient }) {
                         Recebido
                       </div>
                     ) : (
-                      <Pill tone={situ.tone}>{situ.label}</Pill>
+                      <Pill tone={situ.tone}>{situ.label}{r.recebido != null ? " · em parte" : ""}</Pill>
                     )}
                   </td>
                   <td style={{ padding: "14px 20px", textAlign: "right" }}>
@@ -166,12 +166,15 @@ export default function FinanceiroTab({ patient }) {
                         RECEBER
                       </button>
                       <RowMenu
-                        items={r.status === "Pago"
-                          ? [{ label: "Estornar recebimento", icon: Undo2, tone: "danger", onClick: () => reopenReceivable(r.id) }]
-                          : [
-                              { label: "Registrar recebimento", icon: Banknote, onClick: () => setReceiving(r) },
-                              { label: "Cobrar no WhatsApp", icon: MessageSquare, onClick: () => setCobrando(true) },
-                            ]}
+                        items={[
+                          ...(r.status !== "Pago" ? [
+                            { label: "Registrar recebimento", icon: Banknote, onClick: () => setReceiving(r) },
+                            { label: "Cobrar no WhatsApp", icon: MessageSquare, onClick: () => setCobrando(true) },
+                          ] : []),
+                          ...(r.recebido != null ? [
+                            { label: "Estornar último recebimento", icon: Undo2, tone: "danger", onClick: () => reopenReceivable(r.id) },
+                          ] : []),
+                        ]}
                       />
                     </div>
                   </td>
@@ -184,9 +187,9 @@ export default function FinanceiroTab({ patient }) {
 
       {showModal && (
         <NewReceivableModal
-          defaultPatientName={patient.name}
+          patientId={patient.id}
           onClose={() => setShowModal(false)}
-          onSave={(entry) => { addReceivable(entry); setShowModal(false); }}
+          onSave={(entry) => addReceivable(entry, { onSuccess: () => setShowModal(false) })}
         />
       )}
 
@@ -195,9 +198,10 @@ export default function FinanceiroTab({ patient }) {
           title={receiving.referencia}
           subtitle={receiving.paciente}
           valor={receiving.valor}
+          saldo={receiving.saldo}
           vencimento={receiving.vencimento}
           onClose={() => setReceiving(null)}
-          onConfirm={(payment) => { receiveReceivable(receiving.id, payment); setReceiving(null); }}
+          onConfirm={(payment) => receiveReceivable(receiving.id, payment, { onSuccess: () => setReceiving(null) })}
         />
       )}
 

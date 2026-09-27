@@ -6,14 +6,33 @@ import { T } from "../../../styles/theme";
 
 export default function GenerateDeclarationModal({ template, onClose, onGenerate }) {
   const { patients } = useAppData();
-  const [patientId, setPatientId] = useState(patients[0].id);
-  const [values, setValues] = useState(() => Object.fromEntries(template.fields.map((f) => [f.key, f.default])));
+  const [patientId, setPatientId] = useState(patients[0] ? patients[0].id : null);
   const patient = patients.find((p) => p.id === patientId);
+  const defaultsFor = (p) => Object.fromEntries(template.fields.map((f) => [f.key, typeof f.default === "function" ? (p ? f.default(p) : "") : f.default]));
+  const [values, setValues] = useState(() => defaultsFor(patient));
+
+  function selectPatient(id) {
+    const next = patients.find((p) => p.id === id);
+    setPatientId(id);
+    // Refaz só os campos que dependem do paciente (ex.: data de início, valor da sessão).
+    setValues((prev) => ({
+      ...prev,
+      ...Object.fromEntries(template.fields.filter((f) => typeof f.default === "function").map((f) => [f.key, f.default(next)])),
+    }));
+  }
+
+  if (!patient) {
+    return (
+      <Modal title={template.title} onClose={onClose} width={420}>
+        <div style={{ fontSize: 13.5, color: T.muted }}>Cadastre um paciente para gerar declarações.</div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal title={template.title} onClose={onClose} width={420}>
       <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Paciente</label>
-      <select value={patientId} onChange={(e) => setPatientId(Number(e.target.value))} style={inputStyle}>
+      <select value={patientId} onChange={(e) => selectPatient(Number(e.target.value))} style={inputStyle}>
         {patients.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
       </select>
 

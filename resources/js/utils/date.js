@@ -34,6 +34,33 @@ export function mostRecentBrDate(dates) {
   return new Date(Math.max(...parsed.map((d) => d.getTime())));
 }
 
-export function weekdayIndex(offset) {
-  return ((offset % 7) + 7) % 7; // 0 = Monday, since offset 0 (baseDate) is a Monday
+
+/* Datas "AAAA-MM-DD" vindas do servidor, lidas no fuso local (new Date("AAAA-MM-DD") seria UTC). */
+export function parseIsoDate(str) {
+  if (!str) return null;
+  const [y, m, d] = str.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+export function toIsoDate(date) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+export function addDaysIso(str, days) {
+  const d = parseIsoDate(str);
+  d.setDate(d.getDate() + days);
+  return toIsoDate(d);
+}
+
+/* Período padrão dos relatórios: do 1º dia de `monthsBack` meses atrás até o fim do mês atual. */
+export function monthRangeBr(monthsBack) {
+  const from = new Date(TODAY.getFullYear(), TODAY.getMonth() - monthsBack, 1);
+  const to = new Date(TODAY.getFullYear(), TODAY.getMonth() + 1, 0);
+  return { from: from.toLocaleDateString("pt-BR"), to: to.toLocaleDateString("pt-BR") };
+}
+
+/* O horário "HH:MM" do dia "AAAA-MM-DD" já passou? (Sem fuso no texto, o Date lê no horário local.) */
+export function isPastSlot(isoDate, hora) {
+  return new Date(`${isoDate}T${hora}`) <= new Date();
 }

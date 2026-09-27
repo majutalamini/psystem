@@ -7,16 +7,16 @@ import { T, WA_GREEN } from "../../styles/theme";
 import { fillWaVars, openWhatsapp } from "../../utils/whatsapp";
 import { Avatar, Modal } from "../ui";
 
-export default function WhatsappQuickModal({ onClose, initialPatientId = null, initialTemplate = "lembrete" }) {
-  const { patients, receivables, whatsapp } = useAppData();
+/* templates: textos ainda não salvos (teste em Configurações); sem ele, usa os textos salvos. */
+export default function WhatsappQuickModal({ onClose, initialPatientId = null, initialTemplate = "lembrete", templates }) {
+  const { patients, whatsapp: saved } = useAppData();
+  const whatsapp = templates || saved;
   const [patientId, setPatientId] = useState(initialPatientId ?? (patients[0] ? patients[0].id : null));
   const [templateKey, setTemplateKey] = useState(initialTemplate);
   const [text, setText] = useState("");
 
   const patient = patients.find((p) => p.id === patientId) || null;
-  const pendente = patient
-    ? receivables.find((r) => r.paciente === patient.name && r.status !== "Pago")
-    : null;
+  const pendente = patient ? patient.cobrancaPendente : null;
 
   useEffect(() => {
     const tpl = WA_TEMPLATES.find((t) => t.key === templateKey);

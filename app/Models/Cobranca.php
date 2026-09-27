@@ -32,7 +32,21 @@ class Cobranca extends Model
         return $this->hasMany(Pagamento::class);
     }
 
-    /** "Atrasado" não é gravado: é pendente com vencimento no passado. */
+    /** Soma dos pagamentos: uma cobrança pode ser recebida em partes. */
+    public function recebido(): float
+    {
+        $pagamentos = $this->relationLoaded('pagamentos') ? $this->pagamentos : $this->pagamentos()->get();
+
+        return round((float) $pagamentos->sum('valor_pago'), 2);
+    }
+
+    /** Quanto ainda falta receber. */
+    public function saldo(): float
+    {
+        return max(round((float) $this->valor - $this->recebido(), 2), 0);
+    }
+
+    /** "Atrasado" não é gravado: é pendente com vencimento no passado. Recebida em parte continua pendente. */
     public function status(): string
     {
         return match (true) {
@@ -55,8 +69,9 @@ class Cobranca extends Model
             'vencimento' => Tela::data($this->vencimento),
             'status' => $this->status(),
             'recebimento' => Tela::data($pagamento?->data_pagamento),
-            'recebido' => $pagamento ? (float) $this->pagamentos->sum('valor_pago') : null,
-            'forma' => $pagamento ? Tela::METODOS[$pagamento->metodo_pagamento] : null,
+            'recebido' => $pagamento ? $this->recebido() : null,
+            'saldo' => $this->situacao === 'pago' ? 0.0 : $this->saldo(),
+            'forma' => Tela::rotuloMetodo($pagamento?->metodo_pagamento),
         ];
     }
 }

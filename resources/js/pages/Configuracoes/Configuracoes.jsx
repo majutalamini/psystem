@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAppData } from "../../hooks/useAppData";
 import { Check, ChevronRight, Clock, ShieldCheck, Star, User } from "lucide-react";
 import WhatsappIcon from "../../components/icons/WhatsappIcon";
 import { Card, PageHeader, PrimaryButton } from "../../components/ui";
@@ -9,22 +10,49 @@ import PerfilTab from "./tabs/PerfilTab";
 import SegurancaTab from "./tabs/SegurancaTab";
 import WhatsappTab from "./tabs/WhatsappTab";
 
+/* section: a parte do formulário (e dos erros do Laravel, ex. "perfil.nome") que cada aba edita. */
 const SETTINGS_TABS = [
-  { key: "pessoais", label: "Dados pessoais", desc: "Perfil e contato", icon: User },
-  { key: "seguranca", label: "Segurança", desc: "Senha e acesso", icon: ShieldCheck },
-  { key: "horario", label: "Horário de atendimento", desc: "Dias e expediente", icon: Clock },
-  { key: "metas", label: "Metas", desc: "Objetivos do consultório", icon: Star },
-  { key: "whatsapp", label: "WhatsApp", desc: "Mensagens automáticas", icon: WhatsappIcon },
+  { key: "pessoais", section: "perfil", label: "Dados pessoais", desc: "Perfil e contato", icon: User },
+  { key: "seguranca", section: "senha", label: "Segurança", desc: "Senha e acesso", icon: ShieldCheck },
+  { key: "horario", section: "horario", label: "Horário de atendimento", desc: "Dias e expediente", icon: Clock },
+  { key: "metas", section: "goals", label: "Metas", desc: "Objetivos do consultório", icon: Star },
+  { key: "whatsapp", section: "whatsapp", label: "WhatsApp", desc: "Mensagens automáticas", icon: WhatsappIcon },
 ];
 
-export default function Configuracoes() {
+/* O botão "Salvar alterações" manda todas as abas juntas; as abas só editam este estado. */
+export default function Configuracoes({ goals, horario }) {
+  const { auth, whatsapp, flash, errors = {}, saveSettings } = useAppData();
   const [tab, setTab] = useState("pessoais");
-  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState(() => ({
+    perfil: { nome: auth.user.nome, crp: auth.user.crp, email: auth.user.email, telefone: auth.user.telefone || "" },
+    senha: { atual: "", nova: "" },
+    horario,
+    goals,
+    whatsapp: { ...whatsapp, numero: whatsapp.numero || "", lembrete: whatsapp.lembrete || "", retorno: whatsapp.retorno || "", cobranca: whatsapp.cobranca || "" },
+  }));
+
+  const update = (section) => (patch) => setForm((f) => ({ ...f, [section]: { ...f[section], ...patch } }));
+  // Erros da seção sem o prefixo: errors["perfil.nome"] → sectionErrors("perfil").nome
+  const sectionErrors = (section) => Object.fromEntries(
+    Object.entries(errors).filter(([k]) => k.startsWith(`${section}.`)).map(([k, v]) => [k.slice(section.length + 1), v]),
+  );
+  const hasErrors = (section) => Object.keys(errors).some((k) => k.startsWith(`${section}.`));
 
   function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2600);
+    setSaving(true);
+    saveSettings(form, {
+      onSuccess: () => setForm((f) => ({ ...f, senha: { atual: "", nova: "" } })),
+      onError: (errs) => {
+        const withError = SETTINGS_TABS.find((t) => Object.keys(errs).some((k) => k.startsWith(`${t.section}.`)));
+        if (withError) setTab(withError.key);
+      },
+      onFinish: () => setSaving(false),
+    });
   }
+
+  const tabProps = (section) => ({ value: form[section], onChange: update(section), errors: sectionErrors(section) });
+  const saved = flash.aviso && !saving && Object.keys(errors).length === 0;
 
   return (
     <div>
@@ -62,6 +90,7 @@ export default function Configuracoes() {
                   </div>
                   <div style={{ fontSize: 12.5, color: T.muted, marginTop: 1 }}>{t.desc}</div>
                 </div>
+                {hasErrors(t.section) && <span title="Há campos com erro" style={{ width: 8, height: 8, borderRadius: "50%", background: T.danger, flexShrink: 0 }} />}
                 {active && <ChevronRight size={18} color={T.primary} />}
               </button>
             );
@@ -70,11 +99,11 @@ export default function Configuracoes() {
 
         {/* Conteúdo */}
         <div>
-          {tab === "pessoais" && <PerfilTab />}
-          {tab === "seguranca" && <SegurancaTab />}
-          {tab === "horario" && <HorarioTab />}
-          {tab === "metas" && <MetasTab />}
-          {tab === "whatsapp" && <WhatsappTab />}
+          {tab === "pessoais" && <PerfilTab {...tabProps("perfil")} />}
+          {tab === "seguranca" && <SegurancaTab {...tabProps("senha")} />}
+          {tab === "horario" && <HorarioTab {...tabProps("horario")} />}
+          {tab === "metas" && <MetasTab {...tabProps("goals")} />}
+          {tab === "whatsapp" && <WhatsappTab {...tabProps("whatsapp")} />}
 
           <div style={{
             position: "sticky", bottom: 0, display: "flex", alignItems: "center", justifyContent: "flex-end",
@@ -83,13 +112,15 @@ export default function Configuracoes() {
           }}>
             <span style={{
               display: "flex", alignItems: "center", gap: 7, fontSize: 13.5, fontWeight: 600,
-              color: saved ? T.success : T.muted, marginRight: "auto",
+              color: saved ? T.success : Object.keys(errors).length ? T.danger : T.muted, marginRight: "auto",
             }}>
               {saved
-                ? <><Check size={17} /> Alterações salvas com sucesso.</>
-                : "As alterações são aplicadas em todo o sistema imediatamente."}
+                ? <><Check size={17} /> {flash.aviso}</>
+                : Object.keys(errors).length
+                  ? "Corrija os campos destacados antes de salvar."
+                  : "As alterações são aplicadas em todo o sistema ao salvar."}
             </span>
-            <PrimaryButton style={{ padding: "14px 26px", fontSize: 15 }} icon={Check} onClick={handleSave}>
+            <PrimaryButton style={{ padding: "14px 26px", fontSize: 15 }} icon={Check} onClick={handleSave} disabled={saving}>
               Salvar alterações
             </PrimaryButton>
           </div>

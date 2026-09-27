@@ -7,6 +7,7 @@ import WhatsappQuickModal from "../../components/whatsapp/WhatsappQuickModal";
 import { useAppData } from "../../hooks/useAppData";
 import { T } from "../../styles/theme";
 import { ageFromBrDate } from "../../utils/date";
+import { navigate } from "../../utils/nav";
 import NewPatientModal from "./components/NewPatientModal";
 import ProfileActionButton from "./components/ProfileActionButton";
 import AnamneseTab from "./tabs/AnamneseTab";
@@ -30,8 +31,8 @@ const profileTabArrow = {
   color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
 };
 
-export default function PatientProfile({ patientId, onBack }) {
-  const { patients, updatePatient, addReceivable } = useAppData();
+export default function PatientProfile({ patientId, records, anamnese, documents, receivables }) {
+  const { patients, updatePatient, updatePatientPhoto, addReceivable } = useAppData();
   const [tab, setTab] = useState("dados");
   const [showEdit, setShowEdit] = useState(false);
   const [showWhats, setShowWhats] = useState(false);
@@ -49,9 +50,7 @@ export default function PatientProfile({ patientId, onBack }) {
   function handlePhoto(e) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => updatePatient(patient.id, { photo: reader.result });
-    reader.readAsDataURL(file);
+    updatePatientPhoto(patient.id, file);
     e.target.value = "";
   }
 
@@ -61,7 +60,7 @@ export default function PatientProfile({ patientId, onBack }) {
 
   return (
     <div>
-      <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: T.primary, fontWeight: 700, fontSize: 14, cursor: "pointer", padding: 0, marginBottom: 16 }}>
+      <button onClick={() => navigate("pacientes")} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: T.primary, fontWeight: 700, fontSize: 14, cursor: "pointer", padding: 0, marginBottom: 16 }}>
         <ArrowLeft size={19} /> Voltar para pacientes
       </button>
 
@@ -107,7 +106,7 @@ export default function PatientProfile({ patientId, onBack }) {
 
             <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 16, color: T.muted, marginTop: 8, flexWrap: "wrap" }}>
               <span>
-                {idade != null ? `${idade} anos, ` : ""}{patient.genero || "Não informado"} | Convênio: {patient.convenio || "—"}
+                {idade != null ? `${idade} anos, ` : ""}{patient.genero || "Não informado"}
               </span>
               <button
                 onClick={() => setTab("dados")}
@@ -141,7 +140,7 @@ export default function PatientProfile({ patientId, onBack }) {
                           label: ativo ? "Marcar como inativo" : "Marcar como ativo",
                           icon: RefreshCw,
                           tone: ativo ? "danger" : undefined,
-                          onClick: () => updatePatient(patient.id, { status: ativo ? "Inativo" : "Ativo" }),
+                          onClick: () => updatePatient(patient.id, { ...patient, status: ativo ? "Inativo" : "Ativo" }),
                         },
                       ].map((it) => (
                         <button
@@ -194,17 +193,17 @@ export default function PatientProfile({ patientId, onBack }) {
       </div>
 
       {tab === "dados" && <DadosPessoaisTab patient={patient} />}
-      {tab === "anamnese" && <AnamneseTab patient={patient} />}
-      {tab === "prontuario" && <ProntuarioTab patient={patient} />}
-      {tab === "financeiro" && <FinanceiroTab patient={patient} />}
-      {tab === "documentos" && <DocumentosTab patient={patient} />}
+      {tab === "anamnese" && <AnamneseTab patient={patient} anamnese={anamnese} />}
+      {tab === "prontuario" && <ProntuarioTab patient={patient} records={records} />}
+      {tab === "financeiro" && <FinanceiroTab patient={patient} receivables={receivables} />}
+      {tab === "documentos" && <DocumentosTab patient={patient} documents={documents} />}
       {tab === "matricula" && <MatriculaTab patient={patient} />}
 
       {showEdit && (
         <NewPatientModal
           editingPatient={patient}
           onClose={() => setShowEdit(false)}
-          onSave={(updated) => { updatePatient(patient.id, updated); setShowEdit(false); }}
+          onSave={(updated) => updatePatient(patient.id, updated, { onSuccess: () => setShowEdit(false) })}
         />
       )}
 
@@ -214,9 +213,9 @@ export default function PatientProfile({ patientId, onBack }) {
 
       {showReceivable && (
         <NewReceivableModal
-          defaultPatientName={patient.name}
+          patientId={patient.id}
           onClose={() => setShowReceivable(false)}
-          onSave={(entry) => { addReceivable(entry); setShowReceivable(false); setTab("financeiro"); }}
+          onSave={(entry) => addReceivable(entry, { onSuccess: () => { setShowReceivable(false); setTab("financeiro"); } })}
         />
       )}
     </div>

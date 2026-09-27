@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { router } from "@inertiajs/react";
 import { ClipboardList, Plus } from "lucide-react";
 import { blankRecordForm } from "../../components/prontuario/blankRecordForm";
 import RecordCard from "../../components/prontuario/RecordCard";
@@ -7,20 +8,37 @@ import { Avatar, Card, PageHeader, Pill, PrimaryButton, SearchInput } from "../.
 import { useAppData } from "../../hooks/useAppData";
 import { T } from "../../styles/theme";
 
-export default function Prontuarios() {
-  const { patients, records, saveRecord } = useAppData();
-  const [selected, setSelected] = useState(patients[0].id);
+/* O servidor manda os registros só do paciente selecionado (?paciente=id) e a contagem de todos. */
+export default function Prontuarios({ selectedId, records, recordCounts }) {
+  const { patients, saveRecord } = useAppData();
   const [query, setQuery] = useState("");
   const [editingId, setEditingId] = useState(null); // null | "new" | entry id
 
+  const selected = selectedId;
   const active = patients.find((p) => p.id === selected);
   const filtered = patients.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()));
-  const history = records[selected] || [];
+  const history = records;
+
+  function selectPatient(id) {
+    setEditingId(null);
+    router.get("/prontuarios", { paciente: id }, { preserveState: true, preserveScroll: true });
+  }
 
   function handleSave(form) {
-    const id = editingId === "new" ? Date.now() : editingId;
-    saveRecord(selected, { ...form, id });
-    setEditingId(null);
+    const entry = editingId === "new" ? form : { ...form, id: editingId };
+    saveRecord(selected, entry, { onSuccess: () => setEditingId(null) });
+  }
+
+  if (!active) {
+    return (
+      <div>
+        <PageHeader title="Prontuários" subtitle="Histórico clínico e evolução dos pacientes" />
+        <Card style={{ padding: 40, textAlign: "center" }}>
+          <ClipboardList size={38} color={T.muted} style={{ opacity: 0.5 }} />
+          <div style={{ fontSize: 16, color: T.muted, marginTop: 12 }}>Cadastre um paciente para começar a registrar prontuários.</div>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -40,7 +58,7 @@ export default function Prontuarios() {
             {filtered.map((p) => (
               <button
                 key={p.id}
-                onClick={() => { setSelected(p.id); setEditingId(null); }}
+                onClick={() => selectPatient(p.id)}
                 style={{
                   display: "flex", alignItems: "center", gap: 13, padding: "13px 12px", borderRadius: 12, border: "none",
                   background: selected === p.id ? T.primaryTint : "transparent", cursor: "pointer", textAlign: "left",
@@ -51,7 +69,7 @@ export default function Prontuarios() {
                 <Avatar initials={p.initials} color={p.color} src={p.photo} size={44} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 15.5, fontWeight: selected === p.id ? 700 : 600, color: selected === p.id ? T.primaryDark : T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
-                  <div style={{ fontSize: 13, color: T.muted, marginTop: 2 }}>{(records[p.id] || []).length} registros</div>
+                  <div style={{ fontSize: 13, color: T.muted, marginTop: 2 }}>{recordCounts[p.id] || 0} registros</div>
                 </div>
               </button>
             ))}

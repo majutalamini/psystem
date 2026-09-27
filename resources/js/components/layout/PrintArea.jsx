@@ -1,6 +1,8 @@
+import { useAppData } from "../../hooks/useAppData";
 import { todayLabel } from "../../utils/date";
 
 export default function PrintArea({ content }) {
+  const { auth } = useAppData();
   if (!content) return <div className="print-area" />;
   const { template, paragraphs } = content;
   return (
@@ -13,8 +15,8 @@ export default function PrintArea({ content }) {
       <p style={{ fontSize: 14, marginTop: 32 }}>Criciúma, {todayLabel()}.</p>
       <div style={{ marginTop: 60, textAlign: "center" }}>
         <div style={{ borderTop: "1px solid #1C2233", width: 260, margin: "0 auto 6px" }} />
-        <div style={{ fontSize: 13.5, fontWeight: 700 }}>Dra. Isadora Talamini</div>
-        <div style={{ fontSize: 12.5 }}>Psicóloga · CRP 12/34567</div>
+        <div style={{ fontSize: 13.5, fontWeight: 700 }}>{auth.user.nome}</div>
+        <div style={{ fontSize: 12.5 }}>Psicóloga · CRP {auth.user.crp}</div>
       </div>
     </div>
   );

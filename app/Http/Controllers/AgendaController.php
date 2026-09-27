@@ -46,6 +46,9 @@ class AgendaController extends Controller
         ]);
 
         $dataHora = Carbon::parse("{$dados['date']} {$dados['hora']}");
+        if ($dataHora->lte(now())) {
+            throw ValidationException::withMessages(['hora' => 'Esse horário já passou.']);
+        }
         if (Consulta::horarioOcupado($dataHora)) {
             throw ValidationException::withMessages(['hora' => 'Já existe uma consulta nesse horário.']);
         }

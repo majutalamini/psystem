@@ -29,13 +29,12 @@ export default function ReportSemProntuario() {
 
       <ReportTableCard
         countLabel={<>Pacientes sem prontuários: <strong>{rows.length}</strong></>}
-        columns={["Paciente", "Convênio", "Última sessão", "Situação"]}
+        columns={["Paciente", "Última sessão", "Situação"]}
         rows={rows}
         emptyText="Todos os pacientes já têm registros no prontuário."
         renderRow={(p, i) => (
           <tr key={p.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
             <td style={{ ...reportCellStyle, fontWeight: 600 }}>{p.name}</td>
-            <td style={reportCellStyle}>{p.convenio || "—"}</td>
             <td style={reportCellStyle}>{p.lastSession}</td>
             <td style={{ padding: "14px 20px" }}><Pill tone={p.status === "Ativo" ? "success" : "muted"}>{p.status}</Pill></td>
           </tr>

@@ -1,5 +1,3 @@
-export const CONVENIO_OPTIONS = ["Particular", "Unimed", "Bradesco Saúde", "Amil", "SulAmérica", "Outro"];
-
 export const SEXO_OPTIONS = [
   { value: "", label: "Não informado" },
   { value: "feminino", label: "Feminino" },

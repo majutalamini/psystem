@@ -45,7 +45,7 @@ class Despesa extends Model
             'status' => $this->status(),
             'pagamento' => Tela::data($this->pago_em),
             'pago' => $this->valor_pago !== null ? (float) $this->valor_pago : null,
-            'forma' => $this->metodo_pagamento ? Tela::METODOS[$this->metodo_pagamento] : null,
+            'forma' => Tela::rotuloMetodo($this->metodo_pagamento),
         ];
     }
 }

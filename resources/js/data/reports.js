@@ -18,7 +18,7 @@ export const REPORT_CATEGORIES = [
     accent: T.primary, accentTint: T.primaryTint,
     subtitle: "Relatórios completos sobre seus pacientes e atendimentos.",
     reports: [
-      { key: "lista", label: "Lista de pacientes", desc: "Todos os pacientes, com convênio, sessões e situação." },
+      { key: "lista", label: "Lista de pacientes", desc: "Todos os pacientes, com sessões e situação." },
       { key: "aniversariantes", label: "Aniversariantes do mês", desc: "Pacientes que fazem aniversário no mês selecionado." },
       { key: "inativos", label: "Inativos / risco de abandono", desc: "Pacientes inativos ou sem sessão recente." },
       { key: "novos", label: "Novos cadastros no período", desc: "Pacientes cadastrados dentro do intervalo escolhido." },
@@ -42,7 +42,7 @@ export const REPORT_CATEGORIES = [
     accent: T.success, accentTint: T.successTint,
     subtitle: "Relatórios financeiros, recebimentos, inadimplências e faturamento.",
     reports: [
-      { key: "receber", label: "Contas a receber", desc: "Mensalidades e cobranças pagas ou em aberto." },
+      { key: "receber", label: "Contas a receber", desc: "Sessões e cobranças pagas ou em aberto." },
       { key: "pagar", label: "Contas a pagar", desc: "Despesas do consultório." },
       { key: "inadimplencia", label: "Inadimplência", desc: "Cobranças vencidas e ainda não pagas." },
       { key: "recebimento-paciente", label: "Recebimento por paciente", desc: "Total recebido por paciente, pesquisável por nome." },

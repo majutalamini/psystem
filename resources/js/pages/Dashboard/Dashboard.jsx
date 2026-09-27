@@ -2,9 +2,10 @@ import { useMemo } from "react";
 import { BarChart3, CalendarClock, ChevronRight, CircleDollarSign, Clock, FileSignature, Plus, Star, TrendingDown, TrendingUp, Users, Users2 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card, MiniStat, PageHeader, StatCard } from "../../components/ui";
-import { revenueData, sessionsPerMonth, todayAppointments } from "../../data/dashboard";
 import { useAppData } from "../../hooks/useAppData";
 import { T } from "../../styles/theme";
+import { TODAY } from "../../utils/date";
+import { navigate } from "../../utils/nav";
 import AtencaoPacientesCard from "./components/AtencaoPacientesCard";
 import PendenciasFinanceirasCard from "./components/PendenciasFinanceirasCard";
 import QuickActionButton from "./components/QuickActionButton";
@@ -12,16 +13,27 @@ import WeekOverviewCard from "./components/WeekOverviewCard";
 
 const STATUS_COLORS = [T.primary, "#DFE3EE"];
 
-export default function Dashboard({ onNavigate }) {
-  const { patients, goals } = useAppData();
+const brl = (v) => v.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+
+/* "Dra. Isadora Talamini" → "Dra. Isadora"; "Isadora Talamini" → "Isadora". */
+function saudacao(nome) {
+  const partes = String(nome || "").trim().split(/\s+/);
+  return /^dra?\.?$/i.test(partes[0]) ? partes.slice(0, 2).join(" ") : partes[0];
+}
+
+export default function Dashboard({ stats, goals, todayAppointments, weekOverview, weekLabel, revenueData, sessionsPerMonth, pendencias, pendenciasTotal }) {
+  const { patients, auth } = useAppData();
+  // revenueData vem em milhares de reais (value: 8.2 = R$ 8.200), um item por mês dos últimos seis.
   const financeStats = useMemo(() => {
-    const avg = revenueData.reduce((s, d) => s + d.value, 0) / revenueData.length;
+    const total = revenueData.reduce((s, d) => s + d.value, 0);
+    const avg = total / revenueData.length;
     const best = revenueData.reduce((a, b) => (b.value > a.value ? b : a));
     const last = revenueData[revenueData.length - 1];
     const prev = revenueData[revenueData.length - 2];
-    const growth = ((last.value - prev.value) / prev.value) * 100;
-    return { avg, best, growth };
-  }, []);
+    const growth = prev.value > 0 ? ((last.value - prev.value) / prev.value) * 100 : null;
+    return { total, avg, best, growth };
+  }, [revenueData]);
+  const hoje = TODAY.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
 
   const statusData = [
     { name: "Ativos", value: patients.filter((p) => p.status === "Ativo").length },
@@ -31,46 +43,56 @@ export default function Dashboard({ onNavigate }) {
   return (
     <div>
       <PageHeader
-        title="Olá, Dra. Isadora!"
-        subtitle="Aqui está o resumo do seu consultório de hoje, segunda-feira, 17 de agosto."
+        title={`Olá, ${saudacao(auth.user.nome)}!`}
+        subtitle={`Aqui está o resumo do seu consultório de hoje, ${hoje}.`}
         action={
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <QuickActionButton icon={Plus} label="Novo agendamento" onClick={() => onNavigate("agenda")} />
-            <QuickActionButton icon={Users} label="Novo paciente" onClick={() => onNavigate("pacientes")} />
-            <QuickActionButton icon={FileSignature} label="Gerar declaração" onClick={() => onNavigate("declaracoes")} />
+            <QuickActionButton icon={Plus} label="Novo agendamento" onClick={() => navigate("agenda")} />
+            <QuickActionButton icon={Users} label="Novo paciente" onClick={() => navigate("pacientes")} />
+            <QuickActionButton icon={FileSignature} label="Gerar declaração" onClick={() => navigate("declaracoes")} />
           </div>
         }
       />
 
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
-        <StatCard label="Total de pacientes" value="50" delta="+3 esse mês" icon={Users2} tone="primary" />
-        <StatCard label="Sessões hoje" value="10" delta="1 cancelamento" deltaTone="danger" icon={CalendarClock} tone="primary" />
+        <StatCard label="Total de pacientes" value={stats.totalPacientes} delta={`+${stats.novosNoMes} esse mês`} icon={Users2} tone="primary" />
+        <StatCard
+          label="Sessões hoje"
+          value={stats.sessoesHoje}
+          delta={stats.cancelamentosHoje === 1 ? "1 cancelamento" : `${stats.cancelamentosHoje} cancelamentos`}
+          deltaTone={stats.cancelamentosHoje > 0 ? "danger" : "success"}
+          icon={CalendarClock}
+          tone="primary"
+        />
         <StatCard
           label="Faturamento no mês"
-          value="R$ 8.200"
-          delta={`Meta: R$ ${goals.faturamentoMensal.toLocaleString("pt-BR")}`}
-          deltaTone={8200 >= goals.faturamentoMensal ? "success" : "danger"}
+          value={`R$ ${brl(stats.faturamentoMes)}`}
+          delta={`Meta: R$ ${brl(goals.faturamentoMensal)}`}
+          deltaTone={stats.faturamentoMes >= goals.faturamentoMensal ? "success" : "danger"}
           icon={CircleDollarSign}
           tone="success"
         />
         <StatCard
           label="Horas na semana"
-          value="18h"
+          value={`${brl(stats.horasSemana)}h`}
           delta={`Meta: ${goals.horasSemanais}h`}
-          deltaTone={18 >= goals.horasSemanais ? "success" : "danger"}
+          deltaTone={stats.horasSemana >= goals.horasSemanais ? "success" : "danger"}
           icon={Clock}
           tone="warn"
         />
       </div>
 
-      <WeekOverviewCard onNavigate={onNavigate} />
+      <WeekOverviewCard days={weekOverview} weekLabel={weekLabel} />
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
         <Card style={{ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <div style={{ padding: "16px 20px", borderBottom: `1px solid ${T.border}`, fontWeight: 700, fontSize: 15, color: T.text }}>
-            Próximos agendamentos
+            Agendamentos de hoje
           </div>
           <div style={{ flex: 1 }}>
+            {todayAppointments.length === 0 && (
+              <div style={{ padding: 24, textAlign: "center", fontSize: 13, color: T.muted }}>Nenhuma sessão agendada para hoje.</div>
+            )}
             {todayAppointments.map((a, i) => (
               <div
                 key={i}
@@ -89,7 +111,7 @@ export default function Dashboard({ onNavigate }) {
           </div>
           <div style={{ padding: "12px 20px", borderTop: `1px solid ${T.border}`, textAlign: "right" }}>
             <button
-              onClick={() => onNavigate("agenda")}
+              onClick={() => navigate("agenda")}
               style={{ background: "none", border: "none", color: T.primary, fontWeight: 700, fontSize: 13, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, padding: 0 }}
             >
               Ver agenda completa <ChevronRight size={16} />
@@ -123,7 +145,7 @@ export default function Dashboard({ onNavigate }) {
 
           <div style={{ padding: "4px 20px 20px" }}>
             <div style={{ fontSize: 13.5, fontWeight: 700, color: T.text, marginBottom: 14 }}>
-              Total no semestre: <span style={{ color: T.primary }}>R$ 47,7k</span>
+              Total no semestre: <span style={{ color: T.primary }}>R$ {financeStats.total.toFixed(1)}k</span>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 16 }}>
@@ -131,15 +153,15 @@ export default function Dashboard({ onNavigate }) {
               <MiniStat label="Melhor mês" value={financeStats.best.month} icon={Star} />
               <MiniStat
                 label="Vs. mês anterior"
-                value={`${financeStats.growth >= 0 ? "+" : ""}${financeStats.growth.toFixed(1)}%`}
-                icon={financeStats.growth >= 0 ? TrendingUp : TrendingDown}
-                tone={financeStats.growth >= 0 ? "success" : "danger"}
+                value={financeStats.growth === null ? "—" : `${financeStats.growth >= 0 ? "+" : ""}${financeStats.growth.toFixed(1)}%`}
+                icon={financeStats.growth === null || financeStats.growth >= 0 ? TrendingUp : TrendingDown}
+                tone={financeStats.growth === null || financeStats.growth >= 0 ? "success" : "danger"}
               />
             </div>
 
             <div style={{ textAlign: "right" }}>
               <button
-                onClick={() => onNavigate("financeiro")}
+                onClick={() => navigate("financeiro")}
                 style={{ background: "none", border: "none", color: T.primary, fontWeight: 700, fontSize: 13, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, padding: 0 }}
               >
                 Ver financeiro completo <ChevronRight size={16} />
@@ -184,8 +206,8 @@ export default function Dashboard({ onNavigate }) {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        <PendenciasFinanceirasCard onNavigate={onNavigate} />
-        <AtencaoPacientesCard onNavigate={onNavigate} />
+        <PendenciasFinanceirasCard pendencias={pendencias} total={pendenciasTotal} />
+        <AtencaoPacientesCard />
       </div>
     </div>
   );

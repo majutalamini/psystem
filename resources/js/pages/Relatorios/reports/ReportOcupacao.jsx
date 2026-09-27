@@ -1,29 +1,27 @@
-import { HOURS, WEEKDAY_FULL, weekSchedules } from "../../../data/agenda";
+import { useAppData } from "../../../hooks/useAppData";
 import { T } from "../../../styles/theme";
-import { weekdayIndex } from "../../../utils/date";
 import { reportCellStyle } from "../components/reportStyles";
 import ReportTableCard from "../components/ReportTableCard";
 
+/* ocupacao: uma linha por dia da semana atual, com as consultas marcadas e os horários do expediente. */
 export default function ReportOcupacao() {
-  const offsets = Object.keys(weekSchedules).map(Number).sort((a, b) => a - b);
-  const rows = offsets.map((offset) => {
-    const events = weekSchedules[offset];
-    const preenchidos = events.length;
-    const livres = Math.max(HOURS.length - preenchidos, 0);
-    const pct = Math.round((preenchidos / HOURS.length) * 100);
-    return { offset, label: WEEKDAY_FULL[weekdayIndex(offset)], preenchidos, livres, pct };
-  });
+  const { ocupacao } = useAppData();
+  const rows = ocupacao.map((d) => ({
+    ...d,
+    livres: Math.max(d.total - d.preenchidos, 0),
+    pct: d.total ? Math.min(Math.round((d.preenchidos / d.total) * 100), 100) : 0,
+  }));
 
   return (
     <ReportTableCard
-      countLabel={<>Dias analisados: <strong>{rows.length}</strong></>}
+      countLabel={<>Semana atual · dias analisados: <strong>{rows.length}</strong></>}
       columns={["Dia", "Horários preenchidos", "Horários livres", "Ocupação"]}
       rows={rows}
       emptyText="Nenhum dado de agenda disponível."
       renderRow={(r, i) => (
-        <tr key={r.offset} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
+        <tr key={r.label} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
           <td style={{ ...reportCellStyle, fontWeight: 600 }}>{r.label}</td>
-          <td style={reportCellStyle}>{r.preenchidos} / {HOURS.length}</td>
+          <td style={reportCellStyle}>{r.preenchidos} / {r.total}</td>
           <td style={reportCellStyle}>{r.livres}</td>
           <td style={{ padding: "14px 20px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

@@ -33,14 +33,12 @@ export default function ReportComAnamnese() {
 
       <ReportTableCard
         countLabel={<>Pacientes com anamnese: <strong>{rows.length}</strong></>}
-        columns={["Paciente", "Convênio", "Nº de anamneses", "Última anamnese", "Situação"]}
+        columns={["Paciente", "Preenchida em", "Situação"]}
         rows={rows}
         emptyText="Nenhum paciente com anamnese preenchida."
         renderRow={(p, i) => (
           <tr key={p.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
             <td style={{ ...reportCellStyle, fontWeight: 600 }}>{p.name}</td>
-            <td style={reportCellStyle}>{p.convenio || "—"}</td>
-            <td style={reportCellStyle}>{p.anamneseList.length}</td>
             <td style={reportCellStyle}>{p.ultimaAnamnese ? p.ultimaAnamnese.toLocaleDateString("pt-BR") : "—"}</td>
             <td style={{ padding: "14px 20px" }}><Pill tone={p.status === "Ativo" ? "success" : "muted"}>{p.status}</Pill></td>
           </tr>

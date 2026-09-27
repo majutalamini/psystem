@@ -1,32 +1,26 @@
 import { useRef, useState } from "react";
 import { Eye, FileText, Paperclip, Trash2 } from "lucide-react";
-import { Card, FormField, PrimaryButton } from "../../../components/ui";
+import { Card, ErrorText, FormField, PrimaryButton } from "../../../components/ui";
 import { useAppData } from "../../../hooks/useAppData";
 import { iconBtn, inputStyle } from "../../../styles/formStyles";
 import { T } from "../../../styles/theme";
-import { todayLabel } from "../../../utils/date";
 import { formatFileSize } from "../../../utils/format";
 
-export default function DocumentosTab({ patient }) {
-  const { documents, addDocument, removeDocument } = useAppData();
-  const list = documents[patient.id] || [];
+export default function DocumentosTab({ patient, documents }) {
+  const { addDocument, removeDocument, errors = {} } = useAppData();
+  const list = documents;
   const [title, setTitle] = useState("");
   const [pendingFile, setPendingFile] = useState(null);
   const fileRef = useRef(null);
 
   function handleAdd() {
-    if (!pendingFile || !title.trim()) return;
-    addDocument(patient.id, {
-      id: Date.now(),
-      title: title.trim(),
-      fileName: pendingFile.name,
-      size: pendingFile.size,
-      url: URL.createObjectURL(pendingFile),
-      date: todayLabel(),
+    addDocument(patient.id, { title: title.trim(), file: pendingFile }, {
+      onSuccess: () => {
+        setTitle("");
+        setPendingFile(null);
+        if (fileRef.current) fileRef.current.value = "";
+      },
     });
-    setTitle("");
-    setPendingFile(null);
-    if (fileRef.current) fileRef.current.value = "";
   }
 
   return (
@@ -36,15 +30,16 @@ export default function DocumentosTab({ patient }) {
           Adicionar documento
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
-          <FormField label="Título do documento" value={title} onChange={setTitle} placeholder="Ex: Laudo médico" />
+          <FormField label="Título do documento" value={title} onChange={setTitle} placeholder="Ex: Laudo médico" error={errors.title} />
           <div>
             <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Arquivo</label>
             <input
               ref={fileRef}
               type="file"
               onChange={(e) => setPendingFile(e.target.files[0] || null)}
-              style={{ ...inputStyle, padding: "7px 12px" }}
+              style={{ ...inputStyle, padding: "7px 12px", ...(errors.file ? { borderColor: T.danger, marginBottom: 4 } : {}) }}
             />
+            <ErrorText>{errors.file}</ErrorText>
           </div>
         </div>
         <PrimaryButton icon={Paperclip} onClick={handleAdd} style={{ marginTop: 4 }}>
@@ -71,7 +66,7 @@ export default function DocumentosTab({ patient }) {
                 </div>
               </div>
               <a href={d.url} target="_blank" rel="noopener noreferrer" style={{ ...iconBtn, textDecoration: "none" }} title="Abrir documento"><Eye size={20} /></a>
-              <button onClick={() => removeDocument(patient.id, d.id)} style={{ ...iconBtn, background: "#fff" }} title="Remover documento"><Trash2 size={20} /></button>
+              <button onClick={() => removeDocument(d.id)} style={{ ...iconBtn, background: "#fff" }} title="Remover documento"><Trash2 size={20} /></button>
             </div>
           ))
         )}

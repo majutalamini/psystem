@@ -4,42 +4,25 @@ import NewReceivableModal from "../../components/financeiro/NewReceivableModal";
 import ReceivePaymentModal from "../../components/financeiro/ReceivePaymentModal";
 import { Card, PageHeader, Pill, PrimaryButton, RowMenu, StatCard } from "../../components/ui";
 import WhatsappQuickModal from "../../components/whatsapp/WhatsappQuickModal";
-import { initialPayables } from "../../data/finance";
 import { useAppData } from "../../hooks/useAppData";
 import { T } from "../../styles/theme";
-import { TODAY, parseBrDate } from "../../utils/date";
 import { statusTone } from "../../utils/format";
 import NewPayableModal from "./components/NewPayableModal";
 
-export default function Financeiro() {
-  const { patients, receivables, addReceivable, receiveReceivable, reopenReceivable } = useAppData();
+export default function Financeiro({ receivables, payables }) {
+  const { addReceivable, receiveReceivable, reopenReceivable, addPayable, payPayable, reopenPayable } = useAppData();
   const [tab, setTab] = useState("receber"); // 'receber' | 'pagar'
-  const [payables, setPayables] = useState(initialPayables);
   const [showReceivableModal, setShowReceivableModal] = useState(false);
   const [showPayableModal, setShowPayableModal] = useState(false);
   const [receiving, setReceiving] = useState(null);   // conta a receber em baixa
   const [paying, setPaying] = useState(null);         // conta a pagar em baixa
   const [cobrandoId, setCobrandoId] = useState(null); // cobrança via WhatsApp
 
-  /* Baixa de uma despesa: marca como paga e guarda data/valor/forma. */
-  function payPayable(id, payment) {
-    setPayables((prev) => prev.map((x) => (
-      x.id === id ? { ...x, status: "Pago", pagamento: payment.data, pago: Number(payment.valor), forma: payment.forma } : x
-    )));
-  }
-
-  function reopenPayable(id) {
-    setPayables((prev) => prev.map((x) => {
-      if (x.id !== id) return x;
-      const venc = parseBrDate(x.vencimento);
-      return { ...x, status: venc && venc < TODAY ? "Atrasado" : "Pendente", pagamento: null, pago: null, forma: null };
-    }));
-  }
-
   const totalReceber = receivables.reduce((s, r) => s + r.valor, 0);
-  const recebido = receivables.filter((r) => r.status === "Pago").reduce((s, r) => s + r.valor, 0);
-  const pendenteReceber = receivables.filter((r) => r.status === "Pendente").reduce((s, r) => s + r.valor, 0);
-  const atrasadoReceber = receivables.filter((r) => r.status === "Atrasado").reduce((s, r) => s + r.valor, 0);
+  // Cobranças podem ser recebidas em partes: somam o que entrou (recebido) e o que falta (saldo).
+  const recebido = receivables.reduce((s, r) => s + (r.recebido || 0), 0);
+  const pendenteReceber = receivables.filter((r) => r.status === "Pendente").reduce((s, r) => s + r.saldo, 0);
+  const atrasadoReceber = receivables.filter((r) => r.status === "Atrasado").reduce((s, r) => s + r.saldo, 0);
 
   const totalPagar = payables.reduce((s, p) => s + p.valor, 0);
   const pago = payables.filter((p) => p.status === "Pago").reduce((s, p) => s + p.valor, 0);
@@ -92,7 +75,7 @@ export default function Financeiro() {
 
           <Card style={{ overflow: "hidden" }}>
             <div style={{ padding: "16px 20px", fontWeight: 700, fontSize: 15, color: T.text, borderBottom: `1px solid ${T.border}` }}>
-              Mensalidades dos pacientes
+              Sessões dos pacientes
             </div>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
@@ -111,8 +94,15 @@ export default function Financeiro() {
                     <td style={{ padding: "13px 20px", fontSize: 13, color: T.text }}>{r.vencimento}</td>
                     <td style={{ padding: "13px 20px", fontSize: 13, color: r.recebimento ? T.text : T.muted }}>
                       {r.recebimento ? `${r.recebimento}${r.forma ? ` · ${r.forma}` : ""}` : "—"}
+                      {r.status !== "Pago" && r.recebido != null && (
+                        <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
+                          R$ {r.recebido.toLocaleString("pt-BR")} recebido · falta R$ {r.saldo.toLocaleString("pt-BR")}
+                        </div>
+                      )}
                     </td>
-                    <td style={{ padding: "13px 20px" }}><Pill tone={statusTone(r.status)}>{r.status}</Pill></td>
+                    <td style={{ padding: "13px 20px" }}>
+                      <Pill tone={statusTone(r.status)}>{r.status}{r.status !== "Pago" && r.recebido != null ? " · em parte" : ""}</Pill>
+                    </td>
                     <td style={{ padding: "13px 20px", textAlign: "right" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 }}>
                         {r.status !== "Pago" ? (
@@ -128,15 +118,15 @@ export default function Financeiro() {
                           </span>
                         )}
                         <RowMenu
-                          items={r.status === "Pago"
-                            ? [{ label: "Estornar recebimento", icon: Undo2, tone: "danger", onClick: () => reopenReceivable(r.id) }]
-                            : [
-                                { label: "Registrar recebimento", icon: Banknote, onClick: () => setReceiving(r) },
-                                { label: "Cobrar no WhatsApp", icon: MessageSquare, onClick: () => {
-                                    const alvo = patients.find((p) => p.name === r.paciente);
-                                    setCobrandoId(alvo ? alvo.id : null);
-                                  } },
-                              ]}
+                          items={[
+                            ...(r.status !== "Pago" ? [
+                              { label: "Registrar recebimento", icon: Banknote, onClick: () => setReceiving(r) },
+                              { label: "Cobrar no WhatsApp", icon: MessageSquare, onClick: () => setCobrandoId(r.patientId) },
+                            ] : []),
+                            ...(r.recebido != null ? [
+                              { label: "Estornar último recebimento", icon: Undo2, tone: "danger", onClick: () => reopenReceivable(r.id) },
+                            ] : []),
+                          ]}
                         />
                       </div>
                     </td>
@@ -210,19 +200,13 @@ export default function Financeiro() {
       {showReceivableModal && (
         <NewReceivableModal
           onClose={() => setShowReceivableModal(false)}
-          onSave={(entry) => {
-            addReceivable(entry);
-            setShowReceivableModal(false);
-          }}
+          onSave={(entry) => addReceivable(entry, { onSuccess: () => setShowReceivableModal(false) })}
         />
       )}
       {showPayableModal && (
         <NewPayableModal
           onClose={() => setShowPayableModal(false)}
-          onSave={(entry) => {
-            setPayables((prev) => [{ id: Date.now(), ...entry }, ...prev]);
-            setShowPayableModal(false);
-          }}
+          onSave={(entry) => addPayable(entry, { onSuccess: () => setShowPayableModal(false) })}
         />
       )}
 
@@ -231,9 +215,10 @@ export default function Financeiro() {
           title={receiving.referencia}
           subtitle={receiving.paciente}
           valor={receiving.valor}
+          saldo={receiving.saldo}
           vencimento={receiving.vencimento}
           onClose={() => setReceiving(null)}
-          onConfirm={(payment) => { receiveReceivable(receiving.id, payment); setReceiving(null); }}
+          onConfirm={(payment) => receiveReceivable(receiving.id, payment, { onSuccess: () => setReceiving(null) })}
         />
       )}
 
@@ -245,7 +230,7 @@ export default function Financeiro() {
           valor={paying.valor}
           vencimento={paying.vencimento}
           onClose={() => setPaying(null)}
-          onConfirm={(payment) => { payPayable(paying.id, payment); setPaying(null); }}
+          onConfirm={(payment) => payPayable(paying.id, payment, { onSuccess: () => setPaying(null) })}
         />
       )}
 

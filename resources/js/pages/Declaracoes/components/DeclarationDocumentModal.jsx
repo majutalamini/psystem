@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Copy, Printer } from "lucide-react";
 import { Modal, PrimaryButton } from "../../../components/ui";
+import { useAppData } from "../../../hooks/useAppData";
 import { T } from "../../../styles/theme";
 import { todayLabel } from "../../../utils/date";
 
 export default function DeclarationDocumentModal({ template, patient, values, onClose, onPrint }) {
-  const paragraphs = template.build(patient, values, todayLabel());
+  const { auth } = useAppData();
+  const paragraphs = template.build(patient, values, todayLabel(), auth.user);
   const [copied, setCopied] = useState(false);
 
   function copyText() {
@@ -28,8 +30,8 @@ export default function DeclarationDocumentModal({ template, patient, values, on
         <p style={{ fontSize: 13.5, color: T.text, marginTop: 26 }}>Criciúma, {todayLabel()}.</p>
         <div style={{ marginTop: 34, textAlign: "center" }}>
           <div style={{ borderTop: `1px solid ${T.text}`, width: 240, margin: "0 auto 6px" }} />
-          <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Dra. Isadora Talamini</div>
-          <div style={{ fontSize: 12, color: T.muted }}>Psicóloga · CRP 12/34567</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{auth.user.nome}</div>
+          <div style={{ fontSize: 12, color: T.muted }}>Psicóloga · CRP {auth.user.crp}</div>
         </div>
       </div>
 

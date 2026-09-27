@@ -1,27 +1,33 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { Card, FormField, PrimaryButton } from "../../../components/ui";
-import { ANAMNESE_SECTIONS } from "../../../data/anamnese";
+import { ANAMNESE_FIELDS } from "../../../data/anamnese";
 import { T } from "../../../styles/theme";
 
-export default function AnamneseForm({ initial, onCancel, onSave }) {
-  const [form, setForm] = useState(initial);
+/* As perguntas vêm do banco; o rótulo diz se a resposta pede uma caixa de texto grande. */
+const TEXTAREA_LABELS = new Set(ANAMNESE_FIELDS.filter((f) => f.textarea).map((f) => f.label));
+
+export default function AnamneseForm({ secoes, initial, onCancel, onSave }) {
+  const [form, setForm] = useState(() => ({ ...initial }));
   return (
     <Card style={{ padding: 24, marginBottom: 16 }}>
       <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 18 }}>
-        Preencha a anamnese do paciente. Você pode registrar quantas anamneses forem necessárias e editar qualquer uma delas depois.
+        Preencha a anamnese do paciente. Ela pode ser editada depois; as respostas salvas substituem as anteriores.
       </div>
-      {ANAMNESE_SECTIONS.map((section) => (
+      {secoes.map((section) => (
         <div key={section.title} style={{ marginBottom: 22 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: T.primary, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 10 }}>
             {section.title}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
-            {section.fields.map((f) => (
-              <div key={f.key} style={{ gridColumn: f.textarea ? "1 / -1" : undefined }}>
-                <FormField label={f.label} value={form[f.key]} onChange={(v) => setForm({ ...form, [f.key]: v })} textarea={f.textarea} />
-              </div>
-            ))}
+            {section.fields.map((f) => {
+              const textarea = TEXTAREA_LABELS.has(f.label);
+              return (
+                <div key={f.key} style={{ gridColumn: textarea ? "1 / -1" : undefined }}>
+                  <FormField label={f.label} value={form[f.key]} onChange={(v) => setForm({ ...form, [f.key]: v })} textarea={textarea} />
+                </div>
+              );
+            })}
           </div>
         </div>
       ))}

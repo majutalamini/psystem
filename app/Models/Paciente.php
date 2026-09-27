@@ -20,7 +20,7 @@ class Paciente extends Model
 
     protected $fillable = [
         'nome', 'cpf', 'telefone', 'email', 'data_nascimento', 'sexo', 'endereco',
-        'endereco_cidade', 'endereco_uf', 'convenio', 'contato_emergencia_nome',
+        'endereco_cidade', 'endereco_uf', 'contato_emergencia_nome',
         'contato_emergencia_telefone', 'observacoes', 'status_paciente', 'foto',
     ];
 
@@ -73,7 +73,7 @@ class Paciente extends Model
             ->withMin(['consultas as proxima_sessao' => fn ($q) => $q
                 ->whereIn('status', ['agendado', 'confirmado'])
                 ->where('data_hora_consulta', '>=', now()->startOfDay())], 'data_hora_consulta')
-            ->with(['matricula', 'cobrancas' => fn ($q) => $q->where('situacao', 'pendente')->orderBy('vencimento')])
+            ->with(['matricula', 'cobrancas' => fn ($q) => $q->where('situacao', 'pendente')->orderBy('vencimento')->with('pagamentos')])
             ->orderBy('nome');
     }
 
@@ -90,7 +90,6 @@ class Paciente extends Model
             'endereco' => $f['endereco'] ?? null,
             'endereco_cidade' => $f['cidade'] ?? null,
             'endereco_uf' => isset($f['uf']) ? mb_strtoupper($f['uf']) : null,
-            'convenio' => $f['convenio'] ?? null,
             'contato_emergencia_nome' => $f['emergenciaNome'] ?? null,
             'contato_emergencia_telefone' => $f['emergenciaTelefone'] ?? null,
             'observacoes' => $f['observacoes'] ?? null,
@@ -125,7 +124,6 @@ class Paciente extends Model
             'endereco' => $this->endereco,
             'cidade' => $this->endereco_cidade,
             'uf' => $this->endereco_uf,
-            'convenio' => $this->convenio,
             'emergenciaNome' => $this->contato_emergencia_nome,
             'emergenciaTelefone' => $this->contato_emergencia_telefone,
             'observacoes' => $this->observacoes,

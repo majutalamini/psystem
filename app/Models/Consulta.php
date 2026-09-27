@@ -56,7 +56,7 @@ class Consulta extends Model
     /**
      * Muda o status e mantém a cobrança da sessão em dia:
      * virou "realizado" → cobrança pendente com o valor da matrícula, vencendo no dia da sessão;
-     * saiu de "realizado" → a cobrança pendente é cancelada (uma já paga não é mexida).
+     * saiu de "realizado" → a cobrança pendente é cancelada (uma paga, mesmo que em parte, não é mexida).
      */
     public function alterarStatus(string $status): void
     {
@@ -88,7 +88,8 @@ class Consulta extends Model
                 ]);
             }
 
-            if ($anterior === 'realizado' && $status !== 'realizado' && $cobranca?->situacao === 'pendente') {
+            if ($anterior === 'realizado' && $status !== 'realizado'
+                && $cobranca?->situacao === 'pendente' && ! $cobranca->pagamentos()->exists()) {
                 $cobranca->update(['situacao' => 'cancelado']);
             }
         });

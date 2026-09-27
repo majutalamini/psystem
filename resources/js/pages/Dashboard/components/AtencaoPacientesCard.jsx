@@ -2,8 +2,9 @@ import { ChevronRight } from "lucide-react";
 import { Avatar, Card, Pill } from "../../../components/ui";
 import { useAppData } from "../../../hooks/useAppData";
 import { T } from "../../../styles/theme";
+import { navigate } from "../../../utils/nav";
 
-export default function AtencaoPacientesCard({ onNavigate }) {
+export default function AtencaoPacientesCard() {
   const { patients } = useAppData();
   const attention = patients
     .filter((p) => p.status === "Inativo")
@@ -21,13 +22,13 @@ export default function AtencaoPacientesCard({ onNavigate }) {
         <div>
           {attention.map((p, i) => (
             <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 20px", borderBottom: i < attention.length - 1 ? `1px solid ${T.border}` : "none" }}>
-              <Avatar initials={p.initials} color={p.color} size={34} />
+              <Avatar initials={p.initials} color={p.color} src={p.photo} size={34} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 600, color: T.text }}>{p.name}</div>
                 <div style={{ fontSize: 12, color: T.muted }}>{p.reason} · última sessão {p.lastSession}</div>
               </div>
               <button
-                onClick={() => onNavigate("prontuarios")}
+                onClick={() => navigate("prontuarios", { paciente: p.id })}
                 style={{ fontSize: 12.5, fontWeight: 700, color: T.primaryDark, background: T.primaryTint, border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer" }}
               >
                 Ver prontuário
@@ -37,7 +38,7 @@ export default function AtencaoPacientesCard({ onNavigate }) {
         </div>
       )}
       <div style={{ padding: "12px 20px" }}>
-        <button onClick={() => onNavigate("pacientes")} style={{ background: "none", border: "none", color: T.primary, fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, padding: 0 }}>
+        <button onClick={() => navigate("pacientes")} style={{ background: "none", border: "none", color: T.primary, fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, padding: 0 }}>
           Ver todos os pacientes <ChevronRight size={16} />
         </button>
       </div>

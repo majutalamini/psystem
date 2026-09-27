@@ -8,6 +8,7 @@ use App\Support\Tela;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class FinanceiroController extends Controller
@@ -50,9 +51,22 @@ class FinanceiroController extends Controller
         return back();
     }
 
+    /**
+     * Recebimento total ou parcial. Parcial: a cobrança continua em aberto com o restante,
+     * que pode ser recebido depois em outro pagamento. Só vira "pago" quando o saldo zera.
+     */
     public function receber(Request $request, Cobranca $cobranca)
     {
         $dados = $this->validarBaixa($request);
+
+        $saldo = $cobranca->saldo();
+        if ($dados['valor'] <= 0 || $dados['valor'] > $saldo) {
+            throw ValidationException::withMessages([
+                'valor' => $saldo > 0
+                    ? 'Informe um valor maior que zero e de no máximo R$ '.number_format($saldo, 2, ',', '.').' (o que falta receber).'
+                    : 'Esta cobrança já foi recebida por completo.',
+            ]);
+        }
 
         DB::transaction(function () use ($cobranca, $dados) {
             $cobranca->pagamentos()->create([
@@ -60,17 +74,17 @@ class FinanceiroController extends Controller
                 'metodo_pagamento' => Tela::metodo($dados['forma']),
                 'data_pagamento' => Tela::lerData($dados['data']),
             ]);
-            $cobranca->update(['situacao' => 'pago']);
+            $cobranca->update(['situacao' => $cobranca->saldo() <= 0 ? 'pago' : 'pendente']);
         });
 
         return back();
     }
 
-    /** Estorno: apaga o pagamento e a cobrança volta a ficar em aberto. */
+    /** Estorno: apaga o último pagamento e a cobrança volta a ficar em aberto. */
     public function estornar(Cobranca $cobranca)
     {
         DB::transaction(function () use ($cobranca) {
-            $cobranca->pagamentos()->delete();
+            $cobranca->pagamentos()->orderByDesc('id')->first()?->delete();
             $cobranca->update(['situacao' => 'pendente']);
         });
 

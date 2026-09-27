@@ -90,7 +90,6 @@ class PacienteController extends Controller
             'endereco' => 'nullable|string|max:255',
             'cidade' => 'nullable|string|max:80',
             'uf' => 'nullable|string|size:2',
-            'convenio' => 'nullable|string|max:60',
             'emergenciaNome' => 'nullable|string|max:150',
             'emergenciaTelefone' => 'nullable|string|max:20',
             'observacoes' => 'nullable|string',

@@ -15,8 +15,9 @@ export default function ReportRecebimentoPaciente() {
   const names = Array.from(new Set(receivables.map((r) => r.paciente)));
   const rows = names
     .map((name) => {
-      const paid = receivables.filter((r) => r.paciente === name && r.status === "Pago");
-      const total = paid.reduce((s, r) => s + r.valor, 0);
+      // Conta também o que foi recebido em parte.
+      const paid = receivables.filter((r) => r.paciente === name && r.recebido != null);
+      const total = paid.reduce((s, r) => s + r.recebido, 0);
       return { name, total, count: paid.length };
     })
     .filter((r) => r.count > 0)
@@ -35,7 +36,7 @@ export default function ReportRecebimentoPaciente() {
 
       <ReportTableCard
         countLabel={<>Total recebido: <strong>R$ {total.toLocaleString("pt-BR")}</strong></>}
-        columns={["Paciente", "Cobranças pagas", "Total recebido"]}
+        columns={["Paciente", "Cobranças com recebimento", "Total recebido"]}
         rows={rows}
         emptyText="Nenhum recebimento encontrado para o paciente pesquisado."
         renderRow={(r, i) => (

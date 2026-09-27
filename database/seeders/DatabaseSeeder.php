@@ -29,7 +29,7 @@ class DatabaseSeeder extends Seeder
             'whatsapp_dias_antes' => 2,
             'mensagem_lembrete' => 'Olá {paciente}! Passando para lembrar que sua sessão está confirmada para {data} às {hora}. Até lá!',
             'mensagem_retorno' => 'Olá {paciente}! Faz um tempo desde a nossa última sessão, em {ultimaSessao}. Se quiser retomar o acompanhamento, tenho horários disponíveis nesta semana. Um abraço!',
-            'mensagem_cobranca' => 'Olá {paciente}, tudo bem? Sua sessão de {referencia} no valor de {valor} vence em {vencimento}. Qualquer dúvida, estou à disposição!',
+            'mensagem_cobranca' => 'Olá {paciente}, tudo bem? A cobrança referente a {referencia}, no valor de {valor}, vence em {vencimento}. Qualquer dúvida, estou à disposição!',
             'dias_atendimento' => ['Seg', 'Ter', 'Qua', 'Qui', 'Sex'],
             'expediente_inicio' => '08:00',
             'expediente_fim' => '18:00',

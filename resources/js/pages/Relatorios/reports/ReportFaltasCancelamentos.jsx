@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Pill } from "../../../components/ui";
-import { initialSessions } from "../../../data/sessions";
 import { useAppData } from "../../../hooks/useAppData";
 import { filterInputStyle } from "../../../styles/formStyles";
 import { T } from "../../../styles/theme";
-import { parseBrDate } from "../../../utils/date";
+import { monthRangeBr, parseBrDate } from "../../../utils/date";
 import { sessionStatusTone } from "../../../utils/format";
 import FilterBar from "../components/FilterBar";
 import FilterField from "../components/FilterField";
@@ -12,9 +11,8 @@ import { reportCellStyle } from "../components/reportStyles";
 import ReportTableCard from "../components/ReportTableCard";
 
 export default function ReportFaltasCancelamentos() {
-  const { patients } = useAppData();
-  const defaultFrom = "01/06/2026";
-  const defaultTo = "31/08/2026";
+  const { patients, sessions } = useAppData();
+  const { from: defaultFrom, to: defaultTo } = monthRangeBr(2);
   const [patientFilter, setPatientFilter] = useState("Todos");
   const [dateFrom, setDateFrom] = useState(defaultFrom);
   const [dateTo, setDateTo] = useState(defaultTo);
@@ -23,7 +21,7 @@ export default function ReportFaltasCancelamentos() {
   const from = parseBrDate(applied.from);
   const to = parseBrDate(applied.to);
 
-  const rows = initialSessions
+  const rows = sessions
     .filter((s) => s.status === "Falta" || s.status === "Cancelada")
     .filter((s) => applied.patient === "Todos" || s.paciente === applied.patient)
     .filter((s) => { const d = parseBrDate(s.data); return d && (!from || d >= from) && (!to || d <= to); })

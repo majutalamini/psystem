@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { CalendarClock, Check, RefreshCw, X } from "lucide-react";
 import { MiniStat, Pill } from "../../../components/ui";
-import { initialSessions } from "../../../data/sessions";
+import { useAppData } from "../../../hooks/useAppData";
 import { filterInputStyle } from "../../../styles/formStyles";
 import { T } from "../../../styles/theme";
-import { parseBrDate } from "../../../utils/date";
+import { monthRangeBr, parseBrDate } from "../../../utils/date";
 import { sessionStatusTone } from "../../../utils/format";
 import FilterBar from "../components/FilterBar";
 import FilterField from "../components/FilterField";
@@ -12,8 +12,8 @@ import { reportCellStyle } from "../components/reportStyles";
 import ReportTableCard from "../components/ReportTableCard";
 
 export default function ReportSessoesRealizadasAgendadas() {
-  const defaultFrom = "01/07/2026";
-  const defaultTo = "31/08/2026";
+  const { sessions } = useAppData();
+  const { from: defaultFrom, to: defaultTo } = monthRangeBr(1);
   const [dateFrom, setDateFrom] = useState(defaultFrom);
   const [dateTo, setDateTo] = useState(defaultTo);
   const [applied, setApplied] = useState({ from: defaultFrom, to: defaultTo });
@@ -21,7 +21,7 @@ export default function ReportSessoesRealizadasAgendadas() {
   const from = parseBrDate(applied.from);
   const to = parseBrDate(applied.to);
 
-  const rows = initialSessions
+  const rows = sessions
     .filter((s) => { const d = parseBrDate(s.data); return d && (!from || d >= from) && (!to || d <= to); })
     .sort((a, b) => parseBrDate(b.data) - parseBrDate(a.data));
 

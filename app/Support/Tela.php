@@ -20,7 +20,6 @@ class Tela
         'dinheiro' => 'Dinheiro',
         'transferencia' => 'Transferência',
         'boleto' => 'Boleto',
-        'convenio' => 'Convênio',
     ];
 
     public const MODALIDADES = [
@@ -61,6 +60,12 @@ class Tela
     public static function cpf(string $cpf): string
     {
         return preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $cpf);
+    }
+
+    /** Rótulo da forma de pagamento; formas que saíram da lista (ex.: convênio) aparecem pelo nome gravado. */
+    public static function rotuloMetodo(?string $metodo): ?string
+    {
+        return $metodo === null ? null : (self::METODOS[$metodo] ?? ucfirst($metodo));
     }
 
     public static function metodo(string $rotulo): string

@@ -7,15 +7,14 @@ import { Card, PrimaryButton } from "../../../components/ui";
 import { useAppData } from "../../../hooks/useAppData";
 import { T } from "../../../styles/theme";
 
-export default function ProntuarioTab({ patient }) {
-  const { records, saveRecord } = useAppData();
-  const list = records[patient.id] || [];
+export default function ProntuarioTab({ patient, records }) {
+  const { saveRecord } = useAppData();
+  const list = records;
   const [editingId, setEditingId] = useState(null); // null | "new" | entry id
 
   function handleSave(form) {
-    const id = editingId === "new" ? Date.now() : editingId;
-    saveRecord(patient.id, { ...form, id });
-    setEditingId(null);
+    const entry = editingId === "new" ? form : { ...form, id: editingId };
+    saveRecord(patient.id, entry, { onSuccess: () => setEditingId(null) });
   }
 
   if (editingId !== null) {

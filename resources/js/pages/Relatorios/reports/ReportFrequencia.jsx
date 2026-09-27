@@ -1,14 +1,15 @@
-import { initialSessions } from "../../../data/sessions";
+import { useAppData } from "../../../hooks/useAppData";
 import { T } from "../../../styles/theme";
 import { parseBrDate } from "../../../utils/date";
 import { reportCellStyle } from "../components/reportStyles";
 import ReportTableCard from "../components/ReportTableCard";
 
 export default function ReportFrequencia() {
-  const patientNames = Array.from(new Set(initialSessions.map((s) => s.paciente)));
+  const { sessions } = useAppData();
+  const patientNames = Array.from(new Set(sessions.filter((s) => s.status === "Realizada").map((s) => s.paciente)));
 
   const rows = patientNames.map((name) => {
-    const realized = initialSessions
+    const realized = sessions
       .filter((s) => s.paciente === name && s.status === "Realizada")
       .map((s) => parseBrDate(s.data))
       .sort((a, b) => a - b);

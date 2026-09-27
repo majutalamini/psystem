@@ -1,6 +1,6 @@
 export const PAYABLE_CATEGORIES = ["Estrutura", "Software", "Suprimentos", "Serviços", "Outros"];
 
-export const PAYMENT_METHODS = ["Pix", "Cartão de crédito", "Cartão de débito", "Dinheiro", "Transferência", "Boleto", "Convênio"];
+export const PAYMENT_METHODS = ["Pix", "Cartão de crédito", "Cartão de débito", "Dinheiro", "Transferência", "Boleto"];
 
 export const SITUACOES = [
   { key: "Pendente", label: "Aberto", tone: "warn" },

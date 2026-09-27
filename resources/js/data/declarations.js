@@ -1,7 +1,7 @@
 import { CalendarClock, Check, CircleDollarSign, Eye, FileCheck2, FileSignature, Image as ImageIcon, Receipt } from "lucide-react";
 import { EVENT_STYLES, T } from "../styles/theme";
 
-/* Modelos de declarações */
+/* Modelos de declarações. build(paciente, valores, data, psicóloga logada); default pode ser função do paciente. */
 export const DECLARATION_TEMPLATES = [
   {
     id: "atestado",
@@ -24,7 +24,7 @@ export const DECLARATION_TEMPLATES = [
     icon: FileSignature, badgeIcon: CalendarClock,
     accent: EVENT_STYLES.purple.text, accentTint: EVENT_STYLES.purple.bg,
     fields: [
-      { key: "desde", label: "Em acompanhamento desde", type: "text", default: "10/01/2026" },
+      { key: "desde", label: "Em acompanhamento desde", type: "text", default: (p) => (p.matricula && p.matricula.inicio) || p.cadastro || "" },
       { key: "frequencia", label: "Frequência", type: "select", options: ["Semanal", "Quinzenal", "Mensal"], default: "Semanal" },
     ],
     build: (p, v, date) => [
@@ -41,8 +41,8 @@ export const DECLARATION_TEMPLATES = [
     fields: [
       { key: "finalidade", label: "Finalidade do uso", type: "text", default: "divulgação em redes sociais e site do consultório" },
     ],
-    build: (p, v, date) => [
-      `Eu, ${p.name}, autorizo o uso da minha imagem e/ou depoimento pela Dra. Isadora Talamini, para fins de ${v.finalidade}, sem qualquer ônus, a partir de ${date}.`,
+    build: (p, v, date, psi) => [
+      `Eu, ${p.name}, autorizo o uso da minha imagem e/ou depoimento por ${psi.nome}, para fins de ${v.finalidade}, sem qualquer ônus, a partir de ${date}.`,
       `Esta autorização pode ser revogada a qualquer momento mediante solicitação por escrito.`,
     ],
   },
@@ -53,7 +53,7 @@ export const DECLARATION_TEMPLATES = [
     icon: Receipt, badgeIcon: CircleDollarSign,
     accent: "#8A6413", accentTint: T.warnTint,
     fields: [
-      { key: "valor", label: "Valor recebido (R$)", type: "number", default: 200 },
+      { key: "valor", label: "Valor recebido (R$)", type: "number", default: (p) => (p.matricula ? p.matricula.valor : "") },
       { key: "forma", label: "Forma de pagamento", type: "select", options: ["Pix", "Cartão", "Dinheiro"], default: "Pix" },
       { key: "referente", label: "Referente a", type: "text", default: "sessão de psicoterapia" },
     ],

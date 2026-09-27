@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Pill } from "../../../components/ui";
-import { initialPayables } from "../../../data/finance";
+import { useAppData } from "../../../hooks/useAppData";
 import { filterInputStyle } from "../../../styles/formStyles";
 import { T } from "../../../styles/theme";
 import { statusTone } from "../../../utils/format";
@@ -10,10 +10,11 @@ import { reportCellStyle } from "../components/reportStyles";
 import ReportTableCard from "../components/ReportTableCard";
 
 export default function ReportContasPagar() {
+  const { payables } = useAppData();
   const [statusFilter, setStatusFilter] = useState("Todos");
   const [applied, setApplied] = useState("Todos");
 
-  const rows = initialPayables.filter((p) => applied === "Todos" || p.status === applied);
+  const rows = payables.filter((p) => applied === "Todos" || p.status === applied);
   const total = rows.reduce((s, p) => s + p.valor, 0);
 
   return (

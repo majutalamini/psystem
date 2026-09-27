@@ -7,6 +7,7 @@ use App\Models\Paciente;
 use App\Services\AgendaMatricula;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class MatriculaController extends Controller
 {
@@ -19,6 +20,18 @@ class MatriculaController extends Controller
             'tipo' => 'required|in:Consulta presencial,Consulta online',
             'valor' => 'required|numeric|min:0',
         ]);
+
+        $ocupado = Matricula::where('dia_da_matricula', Matricula::DIAS[$dados['weekday']])
+            ->where('horario_da_matricula', $dados['time'])
+            ->where('paciente_id', '!=', $paciente->id)
+            ->whereHas('paciente', fn ($q) => $q->where('status_paciente', 'ativo'))
+            ->with('paciente')
+            ->first();
+        if ($ocupado) {
+            throw ValidationException::withMessages([
+                'time' => "Esse horário já é da matrícula de {$ocupado->paciente->nome}.",
+            ]);
+        }
 
         DB::transaction(function () use ($paciente, $dados, $agenda) {
             $matricula = $paciente->matricula ?? new Matricula([

@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { FormField, FormSectionTitle, Modal, PrimaryButton } from "../../../components/ui";
-import { CONVENIO_OPTIONS, SEXO_OPTIONS } from "../../../data/patients";
+import { SEXO_OPTIONS } from "../../../data/patients";
 import { useAppData } from "../../../hooks/useAppData";
 import { T } from "../../../styles/theme";
 
 const BLANK = {
   name: "", nascimento: "", cpf: "", sexo: "", phone: "", email: "", endereco: "", cidade: "", uf: "",
-  convenio: "Particular", emergenciaNome: "", emergenciaTelefone: "", observacoes: "", status: "Ativo",
+  emergenciaNome: "", emergenciaTelefone: "", observacoes: "", status: "Ativo",
 };
 
 /* O Laravel valida e devolve os erros por campo; o modal fecha quando o salvamento dá certo. */
@@ -26,7 +26,6 @@ export default function NewPatientModal({ onClose, onSave, editingPatient }) {
         <FormField label="Data de nascimento *" {...field("nascimento")} placeholder="dd/mm/aaaa" />
         <FormField label="CPF *" {...field("cpf")} placeholder="000.000.000-00" />
         <FormField label="Sexo" {...field("sexo")} options={SEXO_OPTIONS} />
-        <FormField label="Convênio" {...field("convenio")} options={CONVENIO_OPTIONS} />
         <FormField label="Status" {...field("status")} options={["Ativo", "Inativo"]} />
       </div>
 

@@ -4,15 +4,13 @@ import WhatsappIcon from "../../../components/icons/WhatsappIcon";
 import { Switch } from "../../../components/ui";
 import WhatsappQuickModal from "../../../components/whatsapp/WhatsappQuickModal";
 import { WA_VARIABLES } from "../../../data/whatsapp";
-import { useAppData } from "../../../hooks/useAppData";
 import { T } from "../../../styles/theme";
 import Field from "../components/Field";
 import GoalField from "../components/GoalField";
 import MessageTemplateField from "../components/MessageTemplateField";
 import SettingsSection from "../components/SettingsSection";
 
-export default function WhatsappTab() {
-  const { whatsapp, updateWhatsapp } = useAppData();
+export default function WhatsappTab({ value: whatsapp, onChange: updateWhatsapp, errors }) {
   const [testing, setTesting] = useState(null); // chave do modelo em teste
 
   return (
@@ -44,12 +42,14 @@ export default function WhatsappTab() {
             value={whatsapp.numero}
             onChange={(v) => updateWhatsapp({ numero: v })}
             hint="É o número que aparece como remetente das mensagens."
+            error={errors.numero}
           />
           <GoalField
             label="Enviar cobrança antes do vencimento"
             value={whatsapp.diasAntes}
             onChange={(v) => updateWhatsapp({ diasAntes: v })}
             suffix="dias antes"
+            error={errors.diasAntes}
           />
         </div>
       </SettingsSection>
@@ -80,7 +80,7 @@ export default function WhatsappTab() {
         icon={CircleDollarSign}
         tone="warn"
         title="Mensagem de cobrança"
-        description="Enviada quando a mensalidade está próxima do vencimento ou em atraso."
+        description="Enviada quando a cobrança da sessão está próxima do vencimento ou em atraso."
         value={whatsapp.cobranca}
         onChange={(v) => updateWhatsapp({ cobranca: v })}
         variables={WA_VARIABLES.cobranca}
@@ -88,7 +88,7 @@ export default function WhatsappTab() {
       />
 
       {testing && (
-        <WhatsappQuickModal initialTemplate={testing} onClose={() => setTesting(null)} />
+        <WhatsappQuickModal initialTemplate={testing} templates={whatsapp} onClose={() => setTesting(null)} />
       )}
     </>
   );

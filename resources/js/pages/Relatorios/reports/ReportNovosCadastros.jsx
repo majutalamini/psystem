@@ -3,7 +3,7 @@ import { Pill } from "../../../components/ui";
 import { useAppData } from "../../../hooks/useAppData";
 import { filterInputStyle } from "../../../styles/formStyles";
 import { T } from "../../../styles/theme";
-import { parseBrDate } from "../../../utils/date";
+import { TODAY, parseBrDate, todayLabel } from "../../../utils/date";
 import FilterBar from "../components/FilterBar";
 import FilterField from "../components/FilterField";
 import { reportCellStyle } from "../components/reportStyles";
@@ -11,8 +11,9 @@ import ReportTableCard from "../components/ReportTableCard";
 
 export default function ReportNovosCadastros() {
   const { patients } = useAppData();
-  const defaultFrom = "17/08/2025";
-  const defaultTo = "17/08/2026";
+  const umAnoAtras = new Date(TODAY.getFullYear() - 1, TODAY.getMonth(), TODAY.getDate());
+  const defaultFrom = umAnoAtras.toLocaleDateString("pt-BR");
+  const defaultTo = todayLabel();
   const [dateFrom, setDateFrom] = useState(defaultFrom);
   const [dateTo, setDateTo] = useState(defaultTo);
   const [applied, setApplied] = useState({ from: defaultFrom, to: defaultTo });
@@ -43,14 +44,13 @@ export default function ReportNovosCadastros() {
 
       <ReportTableCard
         countLabel={<>Novos cadastros no período: <strong>{rows.length}</strong></>}
-        columns={["Paciente", "Data de cadastro", "Convênio", "Situação"]}
+        columns={["Paciente", "Data de cadastro", "Situação"]}
         rows={rows}
         emptyText="Nenhum cadastro novo no período selecionado."
         renderRow={(p, i) => (
           <tr key={p.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
             <td style={{ ...reportCellStyle, fontWeight: 600 }}>{p.name}</td>
             <td style={reportCellStyle}>{p.cadastro}</td>
-            <td style={reportCellStyle}>{p.convenio || "—"}</td>
             <td style={{ padding: "14px 20px" }}><Pill tone={p.status === "Ativo" ? "success" : "muted"}>{p.status}</Pill></td>
           </tr>
         )}
