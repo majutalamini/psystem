@@ -1,8 +1,7 @@
-import { useForm } from "@inertiajs/react";
-import { Brain } from "lucide-react";
-import GlobalStyles from "../../components/layout/GlobalStyles";
-import { Card, FormField, PrimaryButton } from "../../components/ui";
-import { FONT_DISPLAY, T } from "../../styles/theme";
+import { Link, useForm } from "@inertiajs/react";
+import AuthCard from "../../components/layout/AuthCard";
+import { FormField, PrimaryButton } from "../../components/ui";
+import { T } from "../../styles/theme";
 
 export default function Login() {
   const form = useForm({ email: "", password: "", remember: false });
@@ -13,25 +12,19 @@ export default function Login() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, fontFamily: "'Inter', sans-serif" }}>
-      <GlobalStyles />
-      <Card style={{ width: 380, maxWidth: "100%", padding: 32 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-          <div style={{ width: 46, height: 46, borderRadius: 12, background: T.primary, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Brain size={27} color="#fff" />
-          </div>
-          <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 28, color: T.text }}>Psystem</span>
-        </div>
-        <form onSubmit={submit}>
-          <FormField label="E-mail" type="email" value={form.data.email} onChange={(v) => form.setData("email", v)} error={form.errors.email} />
-          <FormField label="Senha" type="password" value={form.data.password} onChange={(v) => form.setData("password", v)} error={form.errors.password} />
-          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, color: T.muted, marginBottom: 18 }}>
+    <AuthCard>
+      <form onSubmit={submit}>
+        <FormField label="E-mail" type="email" value={form.data.email} onChange={(v) => form.setData("email", v)} error={form.errors.email} />
+        <FormField label="Senha" type="password" value={form.data.password} onChange={(v) => form.setData("password", v)} error={form.errors.password} />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 18 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, color: T.muted }}>
             <input type="checkbox" checked={form.data.remember} onChange={(e) => form.setData("remember", e.target.checked)} />
             Manter conectado
           </label>
-          <PrimaryButton type="submit" style={{ width: "100%", justifyContent: "center" }} disabled={form.processing}>Entrar</PrimaryButton>
-        </form>
-      </Card>
-    </div>
+          <Link href="/esqueci-senha" style={{ fontSize: 13.5, fontWeight: 600, color: T.primary, textDecoration: "none" }}>Esqueci minha senha</Link>
+        </div>
+        <PrimaryButton type="submit" style={{ width: "100%", justifyContent: "center" }} disabled={form.processing}>Entrar</PrimaryButton>
+      </form>
+    </AuthCard>
   );
 }

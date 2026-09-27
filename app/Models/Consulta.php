@@ -26,12 +26,12 @@ class Consulta extends Model
     ];
 
     protected $fillable = [
-        'paciente_id', 'matricula_id', 'data_hora_consulta', 'duracao_minutos', 'modalidade', 'status',
+        'paciente_id', 'matricula_id', 'data_hora_consulta', 'duracao_minutos', 'modalidade', 'status', 'aviso_enviado_em',
     ];
 
     protected function casts(): array
     {
-        return ['data_hora_consulta' => 'datetime'];
+        return ['data_hora_consulta' => 'datetime', 'aviso_enviado_em' => 'datetime'];
     }
 
     public function paciente(): BelongsTo

@@ -11,12 +11,18 @@ use App\Http\Controllers\MatriculaController;
 use App\Http\Controllers\PacienteController;
 use App\Http\Controllers\ProntuarioController;
 use App\Http\Controllers\RelatorioController;
+use App\Http\Controllers\SenhaController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'create'])->name('login');
     Route::post('/login', [AuthController::class, 'store']);
+
+    Route::get('/esqueci-senha', [SenhaController::class, 'pedir'])->name('password.request');
+    Route::post('/esqueci-senha', [SenhaController::class, 'enviarLink'])->middleware('throttle:5,1');
+    Route::get('/redefinir-senha/{token}', [SenhaController::class, 'formulario'])->name('password.reset');
+    Route::post('/redefinir-senha', [SenhaController::class, 'redefinir']);
 });
 
 Route::middleware('auth')->group(function () {

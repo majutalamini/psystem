@@ -82,11 +82,22 @@ Base: `modelo_sistema_psicologia.sql`, ajustado conforme abaixo.
 - Sem convênio: a psicóloga não atende por convênio. A coluna `pacientes.convenio` sai (migration `2026_09_27_000000_remove_convenio_from_pacientes`) e "Convênio" deixa de ser forma de pagamento. O valor `convenio` continua aceito na coluna `metodo_pagamento` do banco só para não quebrar registros antigos.
 - Despesas continuam com baixa única (`pago_em`, `valor_pago`): pagar uma despesa, mesmo com valor menor, a marca como paga.
 
+## E-mail
+
+- **Recuperação de senha:** "Esqueci minha senha" no login envia um link (válido por 60 minutos) para o e-mail da psicóloga. A resposta é a mesma exista ou não a conta, para não revelar quais e-mails estão cadastrados. Rotas `/esqueci-senha` e `/redefinir-senha/{token}` (`SenhaController`); tokens na tabela `password_reset_tokens`.
+- **Avisos só para a psicóloga** (`app/Services/Avisos.php`, e-mails em `app/Notifications`):
+  - `avisos:consultas` roda a cada minuto e avisa cada consulta agendada ou confirmada que começa na próxima hora.
+  - `avisos:vencimentos` roda às 07:00 e manda um e-mail só com as contas a pagar e as cobranças em aberto que vencem de hoje até daqui a 3 dias.
+  - Cada consulta e cada conta é avisada uma vez (colunas `agenda.aviso_enviado_em`, `cobrancas.aviso_vencimento_em`, `despesas.aviso_vencimento_em`). Cobrança de sessão nasce vencendo no dia da sessão; ela entra no aviso só se o comando rodar nesse dia.
+- Os e-mails usam o modelo padrão do Laravel; os textos fixos dele estão traduzidos em `lang/pt_BR.json`.
+- Em desenvolvimento, os e-mails vão para o **Mailpit** (serviço `mailpit` no Docker Compose), que mostra tudo em http://localhost:8025 e não envia nada para fora. Para enviar de verdade, troque as variáveis `MAIL_*` do `.env` pelo SMTP do provedor.
+- Os avisos dependem do serviço `scheduler` estar rodando o tempo todo.
+
 ## Estado da implementação (para continuar)
 
 ### Ambiente
 
-- Máquina atual (Linux): há Node 24, npm, git e python3. **Não há PHP, Composer nem Docker**, então o backend e os testes ainda não foram executados.
+- Máquina atual (Linux): Docker instalado; o sistema roda pelo Docker Compose. O banco do Docker fica na porta 5433 do host (a 5432 é de um Postgres local).
 - A pasta `psystem` é um repositório git (origin `majutalamini/psystem`). O front original está no commit `a5f07b6`.
 
 ### Como subir (em uma máquina com Docker)
@@ -102,9 +113,11 @@ docker compose exec app php artisan db:seed --class=ExemploSeeder   # opcional: 
 docker compose exec app php artisan test
 ```
 
-Acesse http://localhost:8000 com o login `isadora.talamini@psystem.com` e a senha `psystem123`. O serviço `scheduler` roda `agenda:gerar` todo dia à 01:00.
+Acesse http://localhost:8000 com o login `isadora.talamini@psystem.com` e a senha `psystem123`. Os e-mails enviados aparecem em http://localhost:8025 (Mailpit). O serviço `scheduler` roda `agenda:gerar` todo dia à 01:00 e os avisos por e-mail.
 
-### Backend: pronto, nunca executado
+Se o container `app` não subir porque falta a pasta `vendor/`, instale as dependências num container avulso: `docker compose run --rm --no-deps app composer install`.
+
+### Backend: pronto e testado
 
 - `database/migrations/0001_01_01_000000_create_psystem_tables.php`: todas as tabelas numa migration só, espelhando o SQL.
 - Models em `app/Models`. A tabela `agenda` é o model `Consulta`. Cada model tem um `paraTela()` que devolve o formato que o front usa (datas `dd/mm/aaaa`, `name`, `phone`, `status` "Ativo" etc.). As conversões ficam em `app/Support/Tela.php`.
@@ -116,6 +129,7 @@ Acesse http://localhost:8000 com o login `isadora.talamini@psystem.com` e a senh
   - `CobrancaSessaoTest`: cobrança ao marcar "realizado", cancelada ao desmarcar, reativada ao remarcar, paga que não é mexida, paciente sem matrícula, "Atrasado".
   - `FinanceiroTest`: lançamento manual, baixa (total e parcial) e estorno de cobrança e de despesa.
   - `TelasTest`: login e todas as telas abrindo com os dois seeders; anamnese e configurações.
+  - `RecuperarSenhaTest` e `AvisosEmailTest`: link de nova senha, aviso de consulta 1 hora antes e resumo de contas a vencer.
 
 ### Front: pronto
 
@@ -126,6 +140,7 @@ Acesse http://localhost:8000 com o login `isadora.talamini@psystem.com` e a senh
 
 ### Falta
 
-1. Rodar `php artisan test` numa máquina com PHP ou Docker e corrigir o que falhar (inclui conferir a sintaxe do PHP, que nunca rodou).
-2. Testar no navegador os fluxos principais: cadastro de paciente, matrícula, agenda (confirmar, realizado, falta, cancelar), cobrança e estorno, documentos, anamnese, configurações e impressão de declaração.
-3. Commitar.
+1. Definir o provedor de e-mail de produção (SMTP) e onde o sistema vai rodar, já que os avisos precisam do `scheduler` sempre ligado.
+2. Backup do banco e da pasta `storage/app/private/documentos`.
+3. Testar no navegador os fluxos principais: cadastro de paciente, matrícula, agenda (confirmar, realizado, falta, cancelar), cobrança e estorno, documentos, anamnese, configurações e impressão de declaração.
+4. Commitar.

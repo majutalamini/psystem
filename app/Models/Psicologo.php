@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Notifications\RedefinirSenha;
 use App\Support\Tela;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 
 class Psicologo extends Authenticatable
 {
+    use Notifiable;
+
     protected $table = 'psicologos';
 
     const CREATED_AT = 'criado_em';
@@ -23,6 +27,11 @@ class Psicologo extends Authenticatable
     protected function casts(): array
     {
         return ['senha_hash' => 'hashed'];
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new RedefinirSenha($token));
     }
 
     public function paraTela(): array

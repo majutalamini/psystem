@@ -39,5 +39,12 @@ services:
       # 5433 no host para não brigar com um Postgres instalado na máquina; os containers usam db:5432.
       - "5433:5432"
 
+  # Caixa de entrada de teste: pega todos os e-mails do sistema sem enviar para fora.
+  # Veja os e-mails em http://localhost:8025
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "8025:8025"
+
 volumes:
   pgdata:
