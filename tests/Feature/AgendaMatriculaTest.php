@@ -91,15 +91,19 @@ class AgendaMatriculaTest extends ConsultorioTestCase
         $this->matricular($this->paciente(), weekday: 1, time: '15:00')->assertSessionHasNoErrors();
     }
 
-    public function test_remover_matricula_apaga_as_consultas_futuras_agendadas(): void
+    public function test_excluir_matricula_apaga_as_consultas_futuras_e_inativa_o_paciente(): void
     {
         $paciente = $this->paciente();
         $this->matricular($paciente, weekday: 2);
+        $confirmada = Consulta::where('paciente_id', $paciente->id)->orderBy('data_hora_consulta')->first();
+        $confirmada->update(['status' => 'confirmado']);
 
         $this->delete("/pacientes/{$paciente->id}/matricula")->assertRedirect();
 
-        $this->assertSame([], $this->horarios($paciente));
+        // Só a consulta já confirmada continua na agenda.
+        $this->assertSame(['2026-09-30 09:00'], $this->horarios($paciente));
         $this->assertNull($paciente->matricula()->first());
+        $this->assertSame('inativo', $paciente->fresh()->status_paciente);
     }
 
     public function test_inativar_paciente_apaga_as_futuras_e_reativar_gera_de_novo(): void

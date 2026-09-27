@@ -15,6 +15,7 @@ Base: `modelo_sistema_psicologia.sql`, ajustado conforme abaixo.
 - Cada paciente tem uma matrícula: dia da semana, horário, modalidade e `valor_sessao`.
 - Ao salvar a matrícula, o sistema cria as consultas das próximas **4 semanas** na tabela `agenda`. Um comando diário completa a janela.
 - Ao mudar a matrícula, as consultas futuras com status `agendado` são apagadas e geradas de novo. Ao inativar o paciente, as futuras `agendado` são apagadas.
+- Excluir a matrícula (com confirmação na tela) apaga as futuras `agendado` e deixa o paciente inativo. As consultas já confirmadas, o histórico e as cobranças continuam.
 - Não pode haver duas consultas no mesmo horário.
 - Status do front → banco: "Pendente" = `agendado`, "Confirmado" = `confirmado`.
 - `agenda.modalidade` (presencial/online) é copiada da matrícula. `tipos_consulta` e `agenda.tipo_consulta_id` saem, porque nada no front usa.

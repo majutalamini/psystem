@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarClock, Check, Edit3 } from "lucide-react";
+import { CalendarClock, CalendarX, Check, Edit3, Plus } from "lucide-react";
 import { Card, ErrorText, PrimaryButton } from "../../../components/ui";
 import { WEEKDAY_FULL } from "../../../data/agenda";
 import { useAppData } from "../../../hooks/useAppData";
@@ -19,6 +19,8 @@ export default function MatriculaTab({ patient }) {
   };
 
   const [editing, setEditing] = useState(!m);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [removed, setRemoved] = useState(false);
   const [weekday, setWeekday] = useState(m ? m.weekday : 0);
   const [time, setTime] = useState(m ? m.time : livresNo(0)[0]);
   const [tipo, setTipo] = useState(m ? m.tipo : "Consulta presencial");
@@ -37,9 +39,28 @@ export default function MatriculaTab({ patient }) {
     saveMatricula(patient.id, { weekday, time, tipo, valor }, { onSuccess: () => setEditing(false) });
   }
 
+  /* Excluir apaga as consultas futuras da matrícula e deixa o paciente inativo (no servidor). */
   function handleRemove() {
-    removeMatricula(patient.id);
-    setEditing(true);
+    removeMatricula(patient.id, {
+      onSuccess: () => { setConfirmRemove(false); setEditing(false); setRemoved(true); },
+    });
+  }
+
+  if (!editing && !patient.matricula) {
+    return (
+      <Card style={{ padding: 28, textAlign: "center" }}>
+        <CalendarX size={34} color={T.muted} style={{ opacity: 0.5 }} />
+        <div style={{ fontSize: 15.5, fontWeight: 700, color: T.text, marginTop: 10 }}>
+          {removed ? "Matrícula excluída" : "Sem matrícula"}
+        </div>
+        <div style={{ fontSize: 13.5, color: T.muted, marginTop: 4, marginBottom: 16 }}>
+          {removed
+            ? "As próximas consultas da matrícula foram retiradas da agenda e o paciente ficou inativo."
+            : "Este paciente não tem dia e horário fixos na agenda."}
+        </div>
+        <PrimaryButton icon={Plus} style={{ margin: "0 auto" }} onClick={() => setEditing(true)}>Criar matrícula</PrimaryButton>
+      </Card>
+    );
   }
 
   if (!editing && patient.matricula) {
@@ -67,15 +88,37 @@ export default function MatriculaTab({ patient }) {
             </div>
           </div>
         </div>
-        <button onClick={handleRemove} style={{ marginTop: 16, background: "none", border: "none", color: T.danger, fontWeight: 700, fontSize: 13, cursor: "pointer", padding: 0 }}>
-          Remover matrícula
-        </button>
+        {confirmRemove ? (
+          <div style={{ marginTop: 16, background: T.dangerTint, borderRadius: 12, padding: "14px 16px" }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: T.text }}>Excluir a matrícula?</div>
+            <div style={{ fontSize: 13, color: T.muted, marginTop: 3 }}>
+              As próximas consultas ainda não confirmadas saem da agenda e o paciente fica inativo. O histórico de sessões e cobranças continua.
+            </div>
+            <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+              <button onClick={() => setConfirmRemove(false)} style={{ padding: "9px 16px", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, cursor: "pointer", fontSize: 13.5 }}>
+                Cancelar
+              </button>
+              <button onClick={handleRemove} style={{ padding: "9px 16px", borderRadius: 10, border: "none", background: T.danger, color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13.5 }}>
+                Excluir matrícula
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setConfirmRemove(true)} style={{ marginTop: 16, background: "none", border: "none", color: T.danger, fontWeight: 700, fontSize: 13, cursor: "pointer", padding: 0 }}>
+            Excluir matrícula
+          </button>
+        )}
       </Card>
     );
   }
 
   return (
     <Card style={{ padding: 24 }}>
+      {patient.status !== "Ativo" && (
+        <div style={{ fontSize: 13, color: "#8A6413", background: T.warnTint, borderRadius: 10, padding: "10px 14px", marginBottom: 14 }}>
+          Paciente inativo: as consultas da matrícula só entram na agenda quando ele for marcado como ativo (Mais ações › Marcar como ativo).
+        </div>
+      )}
       <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 14 }}>
         Defina um dia da semana e horário fixos para este paciente. Ele será incluído automaticamente na agenda das próximas semanas, sem precisar agendar manualmente. Cada sessão realizada gera uma cobrança com o valor abaixo.
       </div>
@@ -107,7 +150,7 @@ export default function MatriculaTab({ patient }) {
       <ErrorText>{errors.valor}</ErrorText>
 
       <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-        {patient.matricula && (
+        {(patient.matricula || removed) && (
           <button onClick={() => setEditing(false)} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
         )}
         <PrimaryButton style={{ flex: 1, justifyContent: "center" }} icon={Check} onClick={handleSave} disabled={!time}>Salvar matrícula</PrimaryButton>

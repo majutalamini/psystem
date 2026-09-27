@@ -13,7 +13,7 @@ export const actions = {
   updatePatientPhoto: (id, file) => router.post(`/pacientes/${id}/foto`, { foto: file }, withFiles),
 
   saveMatricula: (patientId, form, opts) => router.put(`/pacientes/${patientId}/matricula`, form, { ...keep, ...opts }),
-  removeMatricula: (patientId) => router.delete(`/pacientes/${patientId}/matricula`, keep),
+  removeMatricula: (patientId, opts) => router.delete(`/pacientes/${patientId}/matricula`, { ...keep, ...opts }),
 
   saveRecord: (patientId, entry, opts) => (entry.id
     ? router.put(`/prontuarios/${entry.id}`, entry, { ...keep, ...opts })

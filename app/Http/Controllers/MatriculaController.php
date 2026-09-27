@@ -56,12 +56,14 @@ class MatriculaController extends Controller
         return back();
     }
 
+    /** Excluir a matrícula tira as consultas futuras da agenda e inativa o paciente. */
     public function destroy(Paciente $paciente, AgendaMatricula $agenda)
     {
         if ($paciente->matricula) {
             DB::transaction(function () use ($paciente, $agenda) {
                 $agenda->limparFuturas($paciente->matricula);
                 $paciente->matricula->delete();
+                $paciente->update(['status_paciente' => 'inativo']);
             });
         }
 
