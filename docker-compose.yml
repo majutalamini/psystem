@@ -2,8 +2,13 @@ services:
   app:
     build: docker/php
     command: php artisan serve --host=0.0.0.0 --port=8000
+    environment:
+      # O servidor embutido atende uma requisição por vez; com workers a tela não trava esperando a outra.
+      PHP_CLI_SERVER_WORKERS: 4
     volumes:
       - .:/var/www
+      # vendor/ num volume do Docker: pelo bind mount do Windows/OneDrive cada requisição levava dezenas de segundos.
+      - vendor:/var/www/vendor
     ports:
       - "8000:8000"
     depends_on:
@@ -15,6 +20,7 @@ services:
     command: php artisan schedule:work
     volumes:
       - .:/var/www
+      - vendor:/var/www/vendor
     depends_on:
       - db
 
@@ -92,3 +98,4 @@ services:
 volumes:
   pgdata:
   evolution_instances:
+  vendor:
