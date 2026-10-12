@@ -5,8 +5,8 @@ export default function SettingsSection({ title, description, icon: Icon, action
   const tones = {
     primary: { bg: T.primaryTint, fg: T.primary },
     success: { bg: T.successTint, fg: T.success },
-    warn: { bg: T.warnTint, fg: "#9C7A16" },
-    whatsapp: { bg: "#E7F9EE", fg: WA_GREEN_DARK },
+    warn: { bg: T.warnTint, fg: T.warnText },
+    whatsapp: { bg: T.successTint, fg: WA_GREEN_DARK },
   };
   const c = tones[tone] || tones.primary;
   return (

@@ -3,6 +3,7 @@ import { useAppData } from "../../hooks/useAppData";
 import { inputStyle } from "../../styles/formStyles";
 import { T } from "../../styles/theme";
 import { todayLabel } from "../../utils/date";
+import { matriculasAtivas } from "../../utils/matricula";
 import { ErrorText, Modal, MoneyInput, PrimaryButton } from "../ui";
 
 /* Lançamento manual. Nasce em aberto; a baixa é feita pelo botão Receber. */
@@ -13,7 +14,7 @@ export default function NewReceivableModal({ onClose, onSave, patientId }) {
     return {
       patientId: patientId ?? (patients[0] ? patients[0].id : ""),
       referencia: "Sessão avulsa",
-      valor: patient && patient.matricula ? patient.matricula.valor : "",
+      valor: patient && matriculasAtivas(patient)[0] ? matriculasAtivas(patient)[0].valor : "",
       vencimento: todayLabel(),
     };
   });
@@ -40,7 +41,7 @@ export default function NewReceivableModal({ onClose, onSave, patientId }) {
       <ErrorText>{errors.vencimento}</ErrorText>
 
       <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-        <button onClick={onClose} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
+        <button onClick={onClose} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
         <PrimaryButton style={{ flex: 1, justifyContent: "center" }} onClick={() => onSave(form)}>Adicionar</PrimaryButton>
       </div>
     </Modal>

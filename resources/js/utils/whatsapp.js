@@ -1,4 +1,5 @@
 import { WA_SAMPLE } from "../data/whatsapp";
+import { matriculasAtivas } from "./matricula";
 import { firstName, onlyDigits } from "./format";
 
 /* Normaliza para o formato aceito pelo wa.me (DDI + DDD + número). */
@@ -20,7 +21,7 @@ export function fillWaVars(template, patient, receivable) {
   const values = {
     "{paciente}": firstName(patient && patient.name),
     "{data}": patient && patient.nextSession && patient.nextSession !== "—" ? patient.nextSession : "a definir",
-    "{hora}": patient && patient.matricula ? patient.matricula.time : "09:00",
+    "{hora}": patient && matriculasAtivas(patient)[0] ? matriculasAtivas(patient)[0].time : "09:00",
     "{ultimaSessao}": (patient && patient.lastSession) || "—",
     "{referencia}": receivable ? receivable.referencia : "das sessões",
     "{valor}": receivable ? `R$ ${(receivable.saldo ?? receivable.valor).toLocaleString("pt-BR")}` : "—",

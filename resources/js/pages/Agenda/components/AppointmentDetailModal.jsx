@@ -10,7 +10,7 @@ const STATUS_TONE = { agendado: "warn", confirmado: "success", realizado: "prima
 const ACTIONS = [
   { key: "confirmado", label: "Confirmar", color: T.success, tint: T.successTint },
   { key: "realizado", label: "Realizado", color: T.primary, tint: T.primaryTint },
-  { key: "falta", label: "Falta", color: "#8A6413", tint: T.warnTint },
+  { key: "falta", label: "Falta", color: T.warnText, tint: T.warnTint },
   { key: "cancelado", label: "Cancelar", color: T.danger, tint: T.dangerTint },
 ];
 

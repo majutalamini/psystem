@@ -22,7 +22,7 @@ export default function AgendaWeekStrip({ weekStart, selectedDate, today, events
                 flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "8px 4px",
                 borderRadius: 10, cursor: "pointer",
                 border: isSelected ? `1.5px solid ${T.primary}` : `1px solid ${T.border}`,
-                background: isSelected ? T.primaryTint : "#fff",
+                background: isSelected ? T.primaryTint : T.surface,
               }}
             >
               <span style={{ fontSize: 11, fontWeight: 700, color: isSelected ? T.primaryDark : T.muted, textTransform: "uppercase" }}>{label}</span>

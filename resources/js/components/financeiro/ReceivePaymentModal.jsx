@@ -52,7 +52,7 @@ export default function ReceivePaymentModal({ title, subtitle, valor, saldo = va
       </select>
 
       <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-        <button onClick={onClose} style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, cursor: "pointer", fontSize: 14 }}>Cancelar</button>
+        <button onClick={onClose} style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, fontWeight: 600, cursor: "pointer", fontSize: 14 }}>Cancelar</button>
         <button
           onClick={() => onConfirm({ data, valor: valorRecebido, forma })}
           style={{

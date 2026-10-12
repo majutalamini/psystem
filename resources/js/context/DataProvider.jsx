@@ -10,16 +10,28 @@ const withFiles = { ...keep, forceFormData: true };
 export const actions = {
   addPatient: (form, opts) => router.post("/pacientes", form, opts),
   updatePatient: (id, form, opts) => router.put(`/pacientes/${id}`, form, { ...keep, ...opts }),
+  deletePatient: (id, opts) => router.delete(`/pacientes/${id}`, { ...keep, ...opts }),
   updatePatientPhoto: (id, file) => router.post(`/pacientes/${id}/foto`, { foto: file }, withFiles),
 
   saveMatricula: (patientId, form, opts) => router.put(`/pacientes/${patientId}/matricula`, form, { ...keep, ...opts }),
   removeMatricula: (patientId, opts) => router.delete(`/pacientes/${patientId}/matricula`, { ...keep, ...opts }),
+  // Várias matrículas por paciente (rotas novas do backend: P13).
+  addMatricula: (patientId, form, opts) => router.post(`/pacientes/${patientId}/matriculas`, form, { ...keep, ...opts }),
+  updateMatricula: (id, form, opts) => router.put(`/matriculas/${id}`, form, { ...keep, ...opts }),
+  deleteMatricula: (id, opts) => router.delete(`/matriculas/${id}`, { ...keep, ...opts }),
 
   saveRecord: (patientId, entry, opts) => (entry.id
     ? router.put(`/prontuarios/${entry.id}`, entry, { ...keep, ...opts })
     : router.post(`/pacientes/${patientId}/prontuarios`, entry, { ...keep, ...opts })),
 
-  saveAnamnese: (patientId, respostas, opts) => router.put(`/pacientes/${patientId}/anamnese`, { respostas }, { ...keep, ...opts }),
+  // form = { id?, titulo, respostas }: com id edita aquela anamnese; sem id cria uma nova (as outras não mudam).
+  saveAnamnese: (patientId, form, opts) => {
+    const { id, ...dados } = form;
+    return id
+      ? router.put(`/anamneses/${id}`, dados, { ...keep, ...opts })
+      : router.post(`/pacientes/${patientId}/anamneses`, dados, { ...keep, ...opts });
+  },
+  deleteAnamnese: (id, opts) => router.delete(`/anamneses/${id}`, { ...keep, ...opts }),
 
   addDocument: (patientId, doc, opts) => router.post(`/pacientes/${patientId}/documentos`, doc, { ...withFiles, ...opts }),
   removeDocument: (id) => router.delete(`/documentos/${id}`, keep),

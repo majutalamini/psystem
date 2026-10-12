@@ -76,12 +76,12 @@ export default function Configuracoes({ goals, horario, whatsappModo, whatsappCo
                   background: active ? T.primaryTint : "transparent", marginBottom: 2,
                   transition: "background .12s",
                 }}
-                onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "#F5F6FA"; }}
+                onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = T.hover; }}
                 onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
               >
                 <div style={{
                   width: 40, height: 40, borderRadius: 11, flexShrink: 0,
-                  background: active ? "#fff" : "#F3F5FB",
+                  background: active ? T.surface : T.surfaceAlt,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   <Icon size={20} color={active ? T.primary : T.muted} />

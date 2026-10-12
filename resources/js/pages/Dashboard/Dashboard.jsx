@@ -11,7 +11,7 @@ import PendenciasFinanceirasCard from "./components/PendenciasFinanceirasCard";
 import QuickActionButton from "./components/QuickActionButton";
 import WeekOverviewCard from "./components/WeekOverviewCard";
 
-const STATUS_COLORS = [T.primary, "#DFE3EE"];
+const STATUS_COLORS = [T.primary, T.track];
 
 const brl = (v) => v.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
 
@@ -126,7 +126,7 @@ export default function Dashboard({ stats, goals, todayAppointments, weekOvervie
           <div style={{ padding: "20px 20px 6px" }}>
             <ResponsiveContainer width="100%" height={210}>
               <BarChart data={revenueData} margin={{ top: 10, right: 4, left: -18, bottom: 0 }}>
-                <CartesianGrid vertical={false} stroke="#EEF1F8" />
+                <CartesianGrid vertical={false} stroke={T.border} />
                 <XAxis dataKey="month" tick={{ fontSize: 12, fill: T.muted }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 12, fill: T.muted }} axisLine={false} tickLine={false} />
                 <Tooltip
@@ -176,7 +176,7 @@ export default function Dashboard({ stats, goals, todayAppointments, weekOvervie
           <div style={{ fontWeight: 700, fontSize: 15, color: T.text, marginBottom: 6 }}>Sessões por mês</div>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={sessionsPerMonth} margin={{ top: 10, right: 10, left: -18, bottom: 0 }}>
-              <CartesianGrid vertical={false} stroke="#EEF1F8" />
+              <CartesianGrid vertical={false} stroke={T.border} />
               <XAxis dataKey="month" tick={{ fontSize: 12, fill: T.muted }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 12, fill: T.muted }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={{ borderRadius: 10, border: `1px solid ${T.border}`, fontSize: 13 }} />

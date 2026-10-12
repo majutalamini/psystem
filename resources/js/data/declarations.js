@@ -1,6 +1,7 @@
 import { CalendarClock, Check, CircleDollarSign, Eye, FileCheck2, FileSignature, Image as ImageIcon, Receipt } from "lucide-react";
 import { EVENT_STYLES, T } from "../styles/theme";
 import { formatMoney } from "../utils/format";
+import { matriculasAtivas } from "../utils/matricula";
 
 /* Modelos de declarações. build(paciente, valores, data, psicóloga logada); default pode ser função do paciente.
    type "money": campo em reais; chega no build já como número. */
@@ -26,7 +27,7 @@ export const DECLARATION_TEMPLATES = [
     icon: FileSignature, badgeIcon: CalendarClock,
     accent: EVENT_STYLES.purple.text, accentTint: EVENT_STYLES.purple.bg,
     fields: [
-      { key: "desde", label: "Em acompanhamento desde", type: "text", default: (p) => (p.matricula && p.matricula.inicio) || p.cadastro || "" },
+      { key: "desde", label: "Em acompanhamento desde", type: "text", default: (p) => (matriculasAtivas(p)[0] && matriculasAtivas(p)[0].inicio) || p.cadastro || "" },
       { key: "frequencia", label: "Frequência", type: "select", options: ["Semanal", "Quinzenal", "Mensal"], default: "Semanal" },
     ],
     build: (p, v, date) => [
@@ -53,9 +54,9 @@ export const DECLARATION_TEMPLATES = [
     title: "Recibo de pagamento",
     desc: "Recibo referente a sessões de psicoterapia realizadas.",
     icon: Receipt, badgeIcon: CircleDollarSign,
-    accent: "#8A6413", accentTint: T.warnTint,
+    accent: T.warnText, accentTint: T.warnTint,
     fields: [
-      { key: "valor", label: "Valor recebido (R$)", type: "money", default: (p) => (p.matricula ? p.matricula.valor : "") },
+      { key: "valor", label: "Valor recebido (R$)", type: "money", default: (p) => (matriculasAtivas(p)[0] ? matriculasAtivas(p)[0].valor : "") },
       { key: "forma", label: "Forma de pagamento", type: "select", options: ["Pix", "Cartão", "Dinheiro"], default: "Pix" },
       { key: "referente", label: "Referente a", type: "text", default: "sessão de psicoterapia" },
     ],

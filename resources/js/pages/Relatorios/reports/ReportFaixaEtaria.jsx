@@ -37,7 +37,7 @@ export default function ReportFaixaEtaria() {
         <div style={{ fontWeight: 700, fontSize: 15, color: T.text, marginBottom: 14 }}>Distribuição por faixa etária</div>
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={chartData} margin={{ top: 10, right: 4, left: -18, bottom: 0 }}>
-            <CartesianGrid vertical={false} stroke="#EEF1F8" />
+            <CartesianGrid vertical={false} stroke={T.border} />
             <XAxis dataKey="label" tick={{ fontSize: 12, fill: T.muted }} axisLine={false} tickLine={false} />
             <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: T.muted }} axisLine={false} tickLine={false} />
             <Tooltip cursor={{ fill: "rgba(76,111,255,0.06)" }} contentStyle={{ borderRadius: 10, border: `1px solid ${T.border}`, fontSize: 13 }} />

@@ -16,6 +16,9 @@ export default defineConfig({
         port: 5173,
         hmr: { host: 'localhost' },
         watch: {
+            // No Docker para Windows os eventos de arquivo não chegam ao container; sem polling o Vite não vê as alterações.
+            usePolling: true,
+            interval: 300,
             ignored: ['**/storage/framework/views/**'],
         },
     },

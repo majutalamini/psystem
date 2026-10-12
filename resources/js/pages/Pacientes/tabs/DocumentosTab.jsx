@@ -1,8 +1,8 @@
 import { useRef, useState } from "react";
-import { Eye, FileText, Paperclip, Trash2 } from "lucide-react";
+import { Eye, FileText, Paperclip, Trash2, Upload } from "lucide-react";
 import { Card, ErrorText, FormField, PrimaryButton } from "../../../components/ui";
 import { useAppData } from "../../../hooks/useAppData";
-import { iconBtn, inputStyle } from "../../../styles/formStyles";
+import { iconBtn } from "../../../styles/formStyles";
 import { T } from "../../../styles/theme";
 import { formatFileSize } from "../../../utils/format";
 
@@ -29,16 +29,23 @@ export default function DocumentosTab({ patient, documents }) {
         <div style={{ fontSize: 13, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 14 }}>
           Adicionar documento
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "0 16px" }}>
           <FormField label="Título do documento" value={title} onChange={setTitle} placeholder="Ex: Laudo médico" error={errors.title} />
           <div>
-            <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Arquivo</label>
-            <input
-              ref={fileRef}
-              type="file"
-              onChange={(e) => setPendingFile(e.target.files[0] || null)}
-              style={{ ...inputStyle, padding: "7px 12px", ...(errors.file ? { borderColor: T.danger, marginBottom: 4 } : {}) }}
-            />
+            <label style={{ fontSize: 13.5, fontWeight: 600, color: T.muted }}>Arquivo</label>
+            <input ref={fileRef} type="file" onChange={(e) => setPendingFile(e.target.files[0] || null)} style={{ display: "none" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "7px 0 16px", ...(errors.file ? { marginBottom: 4 } : {}) }}>
+              <button
+                type="button"
+                onClick={() => fileRef.current && fileRef.current.click()}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 14px", borderRadius: 10, border: `1px dashed ${errors.file ? T.danger : T.primary}`, background: T.primaryTint, color: T.primaryDark, fontWeight: 700, fontSize: 14, cursor: "pointer", flexShrink: 0 }}
+              >
+                <Upload size={17} /> Escolher arquivo
+              </button>
+              <span style={{ fontSize: 13.5, color: pendingFile ? T.text : T.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
+                {pendingFile ? pendingFile.name : "Nenhum arquivo escolhido"}
+              </span>
+            </div>
             <ErrorText>{errors.file}</ErrorText>
           </div>
         </div>
@@ -66,7 +73,7 @@ export default function DocumentosTab({ patient, documents }) {
                 </div>
               </div>
               <a href={d.url} target="_blank" rel="noopener noreferrer" style={{ ...iconBtn, textDecoration: "none" }} title="Abrir documento"><Eye size={20} /></a>
-              <button onClick={() => removeDocument(d.id)} style={{ ...iconBtn, background: "#fff" }} title="Remover documento"><Trash2 size={20} /></button>
+              <button onClick={() => removeDocument(d.id)} style={{ ...iconBtn, background: T.surface }} title="Remover documento"><Trash2 size={20} /></button>
             </div>
           ))
         )}

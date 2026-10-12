@@ -63,7 +63,7 @@ export default function Prontuarios({ selectedId, records, recordCounts }) {
                   display: "flex", alignItems: "center", gap: 13, padding: "13px 12px", borderRadius: 12, border: "none",
                   background: selected === p.id ? T.primaryTint : "transparent", cursor: "pointer", textAlign: "left",
                 }}
-                onMouseEnter={(e) => { if (selected !== p.id) e.currentTarget.style.background = "#F5F6FA"; }}
+                onMouseEnter={(e) => { if (selected !== p.id) e.currentTarget.style.background = T.hover; }}
                 onMouseLeave={(e) => { if (selected !== p.id) e.currentTarget.style.background = "transparent"; }}
               >
                 <Avatar initials={p.initials} color={p.color} src={p.photo} size={44} />

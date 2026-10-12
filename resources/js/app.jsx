@@ -1,6 +1,7 @@
 import { createInertiaApp } from "@inertiajs/react";
 import { createRoot } from "react-dom/client";
 import AppLayout from "./components/layout/AppLayout";
+import "../css/theme.css";
 import { T } from "./styles/theme";
 
 const pages = import.meta.glob("./pages/**/*.jsx", { eager: true });

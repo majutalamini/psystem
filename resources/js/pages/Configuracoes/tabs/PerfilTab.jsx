@@ -41,7 +41,7 @@ export default function PerfilTab({ value, onChange, errors }) {
           <div style={{ fontSize: 14, color: T.muted, marginTop: 3 }}>Psicóloga · CRP {auth.user.crp}</div>
           <button
             onClick={() => fileRef.current && fileRef.current.click()}
-            style={{ marginTop: 10, padding: "9px 15px", borderRadius: 9, border: `1px solid ${T.border}`, background: "#fff", fontSize: 13.5, fontWeight: 700, cursor: "pointer", color: T.text }}
+            style={{ marginTop: 10, padding: "9px 15px", borderRadius: 9, border: `1px solid ${T.border}`, background: T.surface, fontSize: 13.5, fontWeight: 700, cursor: "pointer", color: T.text }}
           >
             Alterar foto
           </button>

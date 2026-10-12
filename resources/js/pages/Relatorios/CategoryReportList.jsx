@@ -1,16 +1,10 @@
-import { ArrowLeft } from "lucide-react";
-import { Card, PageHeader } from "../../components/ui";
+import { BackButton, Card, PageHeader } from "../../components/ui";
 import { T } from "../../styles/theme";
 
 export default function CategoryReportList({ category, onBack, onSelectReport }) {
   return (
     <div>
-      <button
-        onClick={onBack}
-        style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: T.muted, fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 14, padding: 0 }}
-      >
-        <ArrowLeft size={16} /> Voltar para Relatórios
-      </button>
+      <BackButton onClick={onBack}>Voltar para Relatórios</BackButton>
       <PageHeader title={`Relatórios de ${category.label.toLowerCase()}`} subtitle={category.subtitle} />
       <Card style={{ padding: "4px 24px" }}>
         {category.reports.map((r, i) => (

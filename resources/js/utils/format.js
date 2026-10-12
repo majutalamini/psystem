@@ -46,3 +46,40 @@ export function parseMoney(texto) {
 export function formatMoney(valor) {
   return Number(valor).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
+/* Máscara 000.000.000-00 enquanto digita. */
+export function maskCpf(v) {
+  const d = onlyDigits(v).slice(0, 11);
+  return d
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1-$2");
+}
+
+/* Confere os dígitos verificadores. */
+export function isValidCpf(v) {
+  const d = onlyDigits(v);
+  if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+  for (const t of [9, 10]) {
+    let soma = 0;
+    for (let i = 0; i < t; i++) soma += Number(d[i]) * (t + 1 - i);
+    const dv = ((soma * 10) % 11) % 10;
+    if (dv !== Number(d[t])) return false;
+  }
+  return true;
+}
+
+/* Máscara dd/mm/aaaa enquanto digita. */
+export function maskDate(v) {
+  const d = onlyDigits(v).slice(0, 8);
+  return d.replace(/^(\d{2})(\d)/, "$1/$2").replace(/^(\d{2})\/(\d{2})(\d)/, "$1/$2/$3");
+}
+
+/* "dd/mm/aaaa" → true se for uma data real e não futura. */
+export function isValidBrDate(v) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v || "");
+  if (!m) return false;
+  const [, dd, mm, yyyy] = m.map(Number);
+  const d = new Date(yyyy, mm - 1, dd);
+  return d.getFullYear() === yyyy && d.getMonth() === mm - 1 && d.getDate() === dd && d <= new Date() && yyyy >= 1900;
+}

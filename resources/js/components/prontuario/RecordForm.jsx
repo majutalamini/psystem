@@ -22,7 +22,7 @@ export default function RecordForm({ initial, onCancel, onSave }) {
       <FormField label="Objetivo da sessão" value={form.objetivo} onChange={(v) => setForm({ ...form, objetivo: v })} placeholder="Ex: reduzir sintomas de ansiedade" />
       <FormField label="Descrição / relato de atendimento" value={form.descricao} onChange={(v) => setForm({ ...form, descricao: v })} textarea placeholder="Descreva o que foi trabalhado na sessão..." error={errors.descricao} />
       <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
-        <button onClick={onCancel} style={{ flex: 1, padding: "13px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, fontSize: 14.5, cursor: "pointer" }}>Cancelar</button>
+        <button onClick={onCancel} style={{ flex: 1, padding: "13px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, fontWeight: 600, fontSize: 14.5, cursor: "pointer" }}>Cancelar</button>
         <PrimaryButton style={{ flex: 1, justifyContent: "center", padding: "13px 16px", fontSize: 15 }} icon={Check} onClick={() => onSave(form)}>Salvar prontuário</PrimaryButton>
       </div>
     </Card>

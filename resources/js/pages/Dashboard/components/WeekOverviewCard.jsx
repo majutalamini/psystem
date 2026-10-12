@@ -20,7 +20,7 @@ export default function WeekOverviewCard({ days, weekLabel }) {
       <div style={{ display: "flex", gap: 10 }}>
         {days.map((d) => (
           <div key={d.day} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-            <div style={{ width: "100%", height: 70, background: "#F1F3F9", borderRadius: 8, display: "flex", alignItems: "flex-end", overflow: "hidden" }}>
+            <div style={{ width: "100%", height: 70, background: T.mutedBg, borderRadius: 8, display: "flex", alignItems: "flex-end", overflow: "hidden" }}>
               <div
                 style={{
                   width: "100%", height: `${Math.max((d.count / max) * 100, d.count > 0 ? 10 : 0)}%`,

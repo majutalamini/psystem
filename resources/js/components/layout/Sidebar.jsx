@@ -29,7 +29,7 @@ export default function Sidebar() {
                 background: active ? T.primaryTint : "transparent", color: active ? T.primaryDark : T.text,
                 textAlign: "left", width: "100%", transition: "background .12s, color .12s",
               }}
-              onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "#F5F6FA"; }}
+              onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = T.hover; }}
               onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
             >
               <Icon size={26} strokeWidth={active ? 2.4 : 1.9} />

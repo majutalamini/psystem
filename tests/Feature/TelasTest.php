@@ -53,17 +53,52 @@ class TelasTest extends ConsultorioTestCase
         }
     }
 
-    public function test_salvar_anamnese_substitui_as_respostas(): void
+    public function test_paciente_pode_ter_varias_anamneses(): void
     {
         $this->seed(DatabaseSeeder::class);
         $paciente = $this->paciente();
         [$p1, $p2] = AnamnesePergunta::orderBy('id')->limit(2)->pluck('id')->all();
 
-        $this->put("/pacientes/{$paciente->id}/anamnese", ['respostas' => [$p1 => 'Primeira', $p2 => 'Segunda']])
+        $this->post("/pacientes/{$paciente->id}/anamneses", ['titulo' => 'Acolhimento', 'respostas' => [$p1 => 'Primeira', $p2 => 'Segunda']])
             ->assertSessionHasNoErrors();
-        $this->put("/pacientes/{$paciente->id}/anamnese", ['respostas' => [$p1 => 'Nova', $p2 => '  ']]);
+        $this->post("/pacientes/{$paciente->id}/anamneses", ['respostas' => [$p1 => 'Outra']])
+            ->assertSessionHasNoErrors();
 
-        $this->assertSame([$p1 => 'Nova'], $paciente->respostasAnamnese()->pluck('valor_resposta', 'pergunta_id')->all());
+        $this->assertSame(2, $paciente->anamneses()->count());
+        $primeira = $paciente->anamneses()->where('titulo', 'Acolhimento')->first();
+        $this->assertSame([$p1 => 'Primeira', $p2 => 'Segunda'], $primeira->respostas()->pluck('valor_resposta', 'pergunta_id')->all());
+    }
+
+    public function test_editar_anamnese_so_muda_ela_mesma(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $paciente = $this->paciente();
+        [$p1, $p2] = AnamnesePergunta::orderBy('id')->limit(2)->pluck('id')->all();
+        $this->post("/pacientes/{$paciente->id}/anamneses", ['respostas' => [$p1 => 'A', $p2 => 'B']]);
+        $this->post("/pacientes/{$paciente->id}/anamneses", ['respostas' => [$p1 => 'C']]);
+        [$primeira, $segunda] = $paciente->anamneses()->orderBy('id')->get()->all();
+
+        $this->put("/anamneses/{$primeira->id}", ['respostas' => [$p1 => 'Nova', $p2 => '  ']])->assertSessionHasNoErrors();
+
+        $this->assertSame([$p1 => 'Nova'], $primeira->respostas()->pluck('valor_resposta', 'pergunta_id')->all());
+        $this->assertSame([$p1 => 'C'], $segunda->respostas()->pluck('valor_resposta', 'pergunta_id')->all());
+    }
+
+    public function test_excluir_anamnese_mantem_as_outras_e_exige_alguma_resposta(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $paciente = $this->paciente();
+        $p1 = AnamnesePergunta::orderBy('id')->value('id');
+        $this->post("/pacientes/{$paciente->id}/anamneses", ['respostas' => [$p1 => 'A']]);
+        $this->post("/pacientes/{$paciente->id}/anamneses", ['respostas' => [$p1 => 'B']]);
+        $primeira = $paciente->anamneses()->orderBy('id')->first();
+
+        $this->delete("/anamneses/{$primeira->id}");
+        $this->assertSame(1, $paciente->anamneses()->count());
+        $this->assertSame(1, $paciente->respostasAnamnese()->count());
+
+        $this->post("/pacientes/{$paciente->id}/anamneses", ['respostas' => [$p1 => '  ']])->assertSessionHasErrors('respostas');
+        $this->assertSame(1, $paciente->anamneses()->count());
     }
 
     public function test_salvar_configuracoes(): void

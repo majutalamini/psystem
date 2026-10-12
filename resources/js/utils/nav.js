@@ -5,6 +5,8 @@ export const ROUTES = {
   agenda: "/agenda",
   pacientes: "/pacientes",
   prontuarios: "/prontuarios",
+  anamneses: "/anamneses",
+  importacoes: "/importacoes",
   relatorios: "/relatorios",
   declaracoes: "/declaracoes",
   financeiro: "/financeiro",

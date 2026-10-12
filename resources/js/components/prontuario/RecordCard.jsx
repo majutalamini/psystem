@@ -25,7 +25,7 @@ export default function RecordCard({ entry, onEdit }) {
             </div>
           </div>
         </div>
-        <button onClick={onEdit} style={{ ...iconBtn, width: 44, height: 44, background: "#fff" }} title="Editar registro"><Edit3 size={21} /></button>
+        <button onClick={onEdit} style={{ ...iconBtn, width: 44, height: 44, background: T.surface }} title="Editar registro"><Edit3 size={21} /></button>
       </div>
       {entry.tecnicas && (
         <div style={{ marginBottom: 18 }}>

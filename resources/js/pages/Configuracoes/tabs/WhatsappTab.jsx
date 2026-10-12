@@ -29,9 +29,9 @@ export default function WhatsappTab({ value: whatsapp, onChange: updateWhatsapp,
     <>
       <div style={{
         display: "flex", alignItems: "flex-start", gap: 10, borderRadius: 12, padding: "14px 16px", marginBottom: 20, fontSize: 13.5, lineHeight: 1.55,
-        background: real ? "#F1FCF5" : T.warnTint, color: real ? T.text : "#8A6413",
+        background: real ? T.successTint : T.warnTint, color: real ? T.text : T.warnText,
       }}>
-        <WhatsappIcon size={18} color={real ? WA_GREEN_DARK : "#8A6413"} />
+        <WhatsappIcon size={18} color={real ? WA_GREEN_DARK : T.warnText} />
         <div>
           {modo === "evolution" && <><strong>Envio pela Evolution API.</strong> As mensagens saem de verdade pelo número conectado abaixo.</>}
           {modo === "twilio" && <><strong>Envio pela Twilio.</strong> As mensagens automáticas saem de verdade pelo WhatsApp.</>}
@@ -50,8 +50,8 @@ export default function WhatsappTab({ value: whatsapp, onChange: updateWhatsapp,
       >
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
-          background: whatsapp.enabled ? "#F1FCF5" : "#F7F8FC",
-          border: `1px solid ${whatsapp.enabled ? "#CFEEDC" : T.border}`,
+          background: whatsapp.enabled ? T.successTint : T.surfaceAlt,
+          border: `1px solid ${whatsapp.enabled ? T.border : T.border}`,
           borderRadius: 12, padding: "16px 18px", marginBottom: 22,
         }}>
           <div>
@@ -86,7 +86,7 @@ export default function WhatsappTab({ value: whatsapp, onChange: updateWhatsapp,
             disabled={rodando}
             style={{
               display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 10, border: `1px solid ${T.border}`,
-              background: "#fff", color: T.text, fontWeight: 700, fontSize: 14, cursor: rodando ? "default" : "pointer", opacity: rodando ? 0.6 : 1,
+              background: T.surface, color: T.text, fontWeight: 700, fontSize: 14, cursor: rodando ? "default" : "pointer", opacity: rodando ? 0.6 : 1,
             }}
           >
             <Play size={16} /> {rodando ? "Enviando..." : "Enviar agora"}
@@ -96,7 +96,7 @@ export default function WhatsappTab({ value: whatsapp, onChange: updateWhatsapp,
           </span>
         </div>
         {flash.envioAutomatico && (
-          <div style={{ fontSize: 13.5, fontWeight: 600, color: T.text, background: "#F7F8FC", borderRadius: 10, padding: "10px 14px", marginTop: 12 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 600, color: T.text, background: T.surfaceAlt, borderRadius: 10, padding: "10px 14px", marginTop: 12 }}>
             {flash.envioAutomatico}
           </div>
         )}

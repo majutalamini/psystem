@@ -1,0 +1,66 @@
+/* Cores do sistema. O tema claro é o padrão; o escuro vem de <html data-theme="dark">.
+   Um bloco com data-theme="light" (ex.: prévia de documento) mantém o claro dentro do modo escuro. */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --c-bg: #F5F7FC;
+  --c-surface: #FFFFFF;
+  --c-surface-alt: #FAFBFE;
+  --c-hover: #F5F6FA;
+  --c-muted-bg: #F1F3F9;
+  --c-border: #E8EBF3;
+  --c-track: #DFE3EE;
+  --c-faint: #C7CCDC;
+  --c-text: #1C2233;
+  --c-muted: #8A93AC;
+  --c-primary: #4C6FFF;
+  --c-primary-dark: #3853D6;
+  --c-primary-hover: #3853D6;
+  --c-primary-tint: #EAEFFF;
+  --c-success: #1FAE6E;
+  --c-success-tint: #E7F8EF;
+  --c-danger: #E5484D;
+  --c-danger-tint: #FDECEC;
+  --c-warn: #F0A93A;
+  --c-warn-tint: #FDF2E1;
+  --c-warn-text: #8A6413;
+  --ev-purple-bg: #F1E8FC; --ev-purple-border: #D9C4F5; --ev-purple-text: #6E3FA8;
+  --ev-yellow-bg: #FCF3D6; --ev-yellow-border: #F0DFA0; --ev-yellow-text: #8A6A0B;
+  --ev-pink-bg: #FCE1E5;   --ev-pink-border: #F4C0C8;   --ev-pink-text: #B23A50;
+  --ev-green-bg: #E3F4E1;  --ev-green-border: #C4E7C0;  --ev-green-text: #2E7D34;
+  --ev-teal-bg: #DAF2EF;   --ev-teal-border: #B9E4DE;   --ev-teal-text: #1E7A70;
+  --ev-gray-bg: #474C58;   --ev-gray-border: #474C58;   --ev-gray-text: #FFFFFF;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --c-bg: #0E1220;
+  --c-surface: #171C2E;
+  --c-surface-alt: #1C2236;
+  --c-hover: #222A42;
+  --c-muted-bg: #232B44;
+  --c-border: #2B3350;
+  --c-track: #3A4464;
+  --c-faint: #4A5476;
+  --c-text: #E8ECF8;
+  --c-muted: #9AA4C0;
+  --c-primary: #5B7BFF;
+  --c-primary-dark: #A9BBFF;
+  --c-primary-hover: #4563E8;
+  --c-primary-tint: #232F5C;
+  --c-success: #35C98A;
+  --c-success-tint: #14342A;
+  --c-danger: #F0676B;
+  --c-danger-tint: #3A1E24;
+  --c-warn: #F0B04E;
+  --c-warn-tint: #3A2F18;
+  --c-warn-text: #F3C778;
+  --ev-purple-bg: #35254F; --ev-purple-border: #4B3770; --ev-purple-text: #D2B4F5;
+  --ev-yellow-bg: #3D3517; --ev-yellow-border: #57491E; --ev-yellow-text: #F1D37A;
+  --ev-pink-bg: #4A2430;   --ev-pink-border: #66323F;   --ev-pink-text: #F4A8B7;
+  --ev-green-bg: #1E3A24;  --ev-green-border: #2B5233;  --ev-green-text: #8FD79A;
+  --ev-teal-bg: #16393A;   --ev-teal-border: #20504F;   --ev-teal-text: #7FD6CB;
+  --ev-gray-bg: #3A4054;   --ev-gray-border: #3A4054;   --ev-gray-text: #FFFFFF;
+}
+
+body { background: var(--c-bg); color: var(--c-text); }

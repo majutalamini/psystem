@@ -15,7 +15,7 @@ const ESTADOS = {
 
 const botao = {
   display: "flex", alignItems: "center", gap: 7, padding: "9px 14px", borderRadius: 10,
-  border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, fontSize: 13.5, cursor: "pointer", color: T.text,
+  border: `1px solid ${T.border}`, background: T.surface, fontWeight: 600, fontSize: 13.5, cursor: "pointer", color: T.text,
 };
 
 /* Modo evolution: o celular se conecta ao sistema pelo QR code, como no WhatsApp Web. */

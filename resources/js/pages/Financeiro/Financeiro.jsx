@@ -41,12 +41,12 @@ export default function Financeiro({ receivables, payables }) {
       />
 
       {/* Segmented tab control */}
-      <div style={{ display: "inline-flex", background: "#EEF1F8", borderRadius: 12, padding: 4, marginBottom: 20, gap: 4 }}>
+      <div style={{ display: "inline-flex", background: T.mutedBg, borderRadius: 12, padding: 4, marginBottom: 20, gap: 4 }}>
         <button
           onClick={() => setTab("receber")}
           style={{
             display: "flex", alignItems: "center", gap: 8, padding: "9px 18px", borderRadius: 9, border: "none",
-            cursor: "pointer", fontSize: 14, fontWeight: 700, background: tab === "receber" ? "#fff" : "transparent",
+            cursor: "pointer", fontSize: 14, fontWeight: 700, background: tab === "receber" ? T.surface : "transparent",
             color: tab === "receber" ? T.primaryDark : T.muted, boxShadow: tab === "receber" ? "0 1px 3px rgba(28,34,51,0.08)" : "none",
           }}
         >
@@ -56,7 +56,7 @@ export default function Financeiro({ receivables, payables }) {
           onClick={() => setTab("pagar")}
           style={{
             display: "flex", alignItems: "center", gap: 8, padding: "9px 18px", borderRadius: 9, border: "none",
-            cursor: "pointer", fontSize: 14, fontWeight: 700, background: tab === "pagar" ? "#fff" : "transparent",
+            cursor: "pointer", fontSize: 14, fontWeight: 700, background: tab === "pagar" ? T.surface : "transparent",
             color: tab === "pagar" ? T.primaryDark : T.muted, boxShadow: tab === "pagar" ? "0 1px 3px rgba(28,34,51,0.08)" : "none",
           }}
         >
@@ -79,7 +79,7 @@ export default function Financeiro({ receivables, payables }) {
             </div>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ background: "#FAFBFE", textAlign: "left" }}>
+                <tr style={{ background: T.surfaceAlt, textAlign: "left" }}>
                   {["Paciente", "Referência", "Valor", "Vencimento", "Recebimento", "Status", ""].map((h) => (
                     <th key={h} style={{ padding: "12px 20px", fontSize: 12, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.3 }}>{h}</th>
                   ))}
@@ -151,7 +151,7 @@ export default function Financeiro({ receivables, payables }) {
             </div>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ background: "#FAFBFE", textAlign: "left" }}>
+                <tr style={{ background: T.surfaceAlt, textAlign: "left" }}>
                   {["Descrição", "Categoria", "Valor", "Vencimento", "Pagamento", "Status", ""].map((h) => (
                     <th key={h} style={{ padding: "12px 20px", fontSize: 12, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.3 }}>{h}</th>
                   ))}
@@ -173,7 +173,7 @@ export default function Financeiro({ receivables, payables }) {
                         {p.status !== "Pago" ? (
                           <button
                             onClick={() => setPaying(p)}
-                            style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: "#fff", color: T.danger, fontWeight: 700, fontSize: 12.5, cursor: "pointer", letterSpacing: 0.3 }}
+                            style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.surface, color: T.danger, fontWeight: 700, fontSize: 12.5, cursor: "pointer", letterSpacing: 0.3 }}
                           >
                             <Banknote size={16} /> PAGAR
                           </button>

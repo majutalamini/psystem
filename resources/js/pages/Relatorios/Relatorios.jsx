@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { BackButton } from "../../components/ui";
 import { REPORT_CATEGORIES } from "../../data/reports";
 import { T } from "../../styles/theme";
 import CategoryReportList from "./CategoryReportList";
@@ -31,12 +31,7 @@ export default function Relatorios() {
 
   return (
     <div>
-      <button
-        onClick={() => setReportKey(null)}
-        style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: T.muted, fontWeight: 600, fontSize: 13, cursor: "pointer", marginBottom: 14, padding: 0 }}
-      >
-        <ArrowLeft size={16} /> Voltar para relatórios de {category.label.toLowerCase()}
-      </button>
+      <BackButton onClick={() => setReportKey(null)}>Voltar para relatórios de {category.label.toLowerCase()}</BackButton>
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 26, fontWeight: 700, color: T.text, margin: 0 }}>{report ? report.label : ""}</h1>
         <p style={{ color: T.muted, fontSize: 14, marginTop: 4 }}>{report ? report.desc : ""}</p>

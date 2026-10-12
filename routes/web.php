@@ -11,6 +11,7 @@ use App\Http\Controllers\MatriculaController;
 use App\Http\Controllers\PacienteController;
 use App\Http\Controllers\ProntuarioController;
 use App\Http\Controllers\RelatorioController;
+use App\Http\Controllers\ImportacaoController;
 use App\Http\Controllers\SenhaController;
 use App\Http\Controllers\WhatsappController;
 use Illuminate\Support\Facades\Route;
@@ -44,13 +45,17 @@ Route::middleware('auth')->group(function () {
     Route::put('/pacientes/{paciente}/matricula', [MatriculaController::class, 'update']);
     Route::delete('/pacientes/{paciente}/matricula', [MatriculaController::class, 'destroy']);
 
-    Route::put('/pacientes/{paciente}/anamnese', [AnamneseController::class, 'update']);
+    Route::post('/pacientes/{paciente}/anamneses', [AnamneseController::class, 'store']);
+    Route::put('/anamneses/{anamnese}', [AnamneseController::class, 'update']);
+    Route::delete('/anamneses/{anamnese}', [AnamneseController::class, 'destroy']);
 
     Route::post('/pacientes/{paciente}/documentos', [DocumentoController::class, 'store']);
     Route::get('/documentos/{documento}', [DocumentoController::class, 'show'])->name('documentos.show');
     Route::delete('/documentos/{documento}', [DocumentoController::class, 'destroy']);
 
     Route::get('/prontuarios', [ProntuarioController::class, 'index'])->name('prontuarios');
+    Route::get('/anamneses', [AnamneseController::class, 'index'])->name('anamneses');
+    Route::get('/importacoes', [ImportacaoController::class, 'index'])->name('importacoes');
     Route::post('/pacientes/{paciente}/prontuarios', [ProntuarioController::class, 'store']);
     Route::put('/prontuarios/{prontuario}', [ProntuarioController::class, 'update']);
 

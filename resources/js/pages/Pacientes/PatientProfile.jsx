@@ -1,11 +1,8 @@
 import { useRef, useState } from "react";
-import { ArrowLeft, BadgeCheck, CalendarClock, Camera, Check, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardList, Edit3, ExternalLink, FileText, HeartPulse, Paperclip, RefreshCw, User, Wallet } from "lucide-react";
-import NewReceivableModal from "../../components/financeiro/NewReceivableModal";
-import WhatsappIcon from "../../components/icons/WhatsappIcon";
-import { Avatar, Card } from "../../components/ui";
-import WhatsappQuickModal from "../../components/whatsapp/WhatsappQuickModal";
+import { CalendarClock, Camera, Check, Edit3, FileText, HeartPulse, Paperclip, User, Wallet } from "lucide-react";
+import { Avatar, BackButton, Card } from "../../components/ui";
 import { useAppData } from "../../hooks/useAppData";
-import { T } from "../../styles/theme";
+import { FONT_DISPLAY, T } from "../../styles/theme";
 import { ageFromBrDate } from "../../utils/date";
 import { navigate } from "../../utils/nav";
 import NewPatientModal from "./components/NewPatientModal";
@@ -23,23 +20,17 @@ const PROFILE_TABS = [
   { key: "anamnese", label: "Anamnese", icon: HeartPulse },
   { key: "documentos", label: "Documentos", icon: Paperclip },
   { key: "financeiro", label: "Financeiro", icon: Wallet },
-  { key: "matricula", label: "Matrícula", icon: CalendarClock },
+  { key: "matricula", label: "Matrículas", icon: CalendarClock },
 ];
 
-const profileTabArrow = {
-  width: 40, height: 40, borderRadius: "50%", border: "none", background: "transparent",
-  color: T.muted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-};
-
 export default function PatientProfile({ patientId, records, anamnese, documents, receivables }) {
-  const { patients, updatePatient, updatePatientPhoto, addReceivable } = useAppData();
-  const [tab, setTab] = useState("dados");
-  const [showEdit, setShowEdit] = useState(false);
-  const [showWhats, setShowWhats] = useState(false);
-  const [showReceivable, setShowReceivable] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
+  const { patients, updatePatient, updatePatientPhoto } = useAppData();
+  const [tab, setTab] = useState(() => {
+    const aba = new URLSearchParams(window.location.search).get("aba");
+    return PROFILE_TABS.some((t) => t.key === aba) ? aba : "dados";
+  });
+  const [showEdit, setShowEdit] = useState(() => new URLSearchParams(window.location.search).get("editar") === "1");
   const fileRef = useRef(null);
-  const tabsRef = useRef(null);
 
   const patient = patients.find((p) => p.id === patientId);
   if (!patient) return null;
@@ -54,122 +45,75 @@ export default function PatientProfile({ patientId, records, anamnese, documents
     e.target.value = "";
   }
 
-  function scrollTabs(dir) {
-    if (tabsRef.current) tabsRef.current.scrollBy({ left: dir * 280, behavior: "smooth" });
-  }
-
   return (
     <div>
-      <button onClick={() => navigate("pacientes")} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: T.primary, fontWeight: 700, fontSize: 14, cursor: "pointer", padding: 0, marginBottom: 16 }}>
-        <ArrowLeft size={19} /> Voltar para pacientes
-      </button>
+      <BackButton onClick={() => navigate("pacientes")}>Voltar para pacientes</BackButton>
 
       {/* Cabeçalho do paciente */}
-      <Card style={{ padding: "28px 30px", marginBottom: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 26, flexWrap: "wrap" }}>
+      <Card style={{ overflow: "hidden", marginBottom: 20 }}>
+        <div style={{ padding: "26px 32px", display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
           <div style={{ position: "relative", flexShrink: 0 }}>
             <Avatar
               initials={patient.initials}
               color={patient.color}
               src={patient.photo}
-              size={118}
-              style={{ border: `4px solid ${ativo ? T.success : "#C7CCDA"}` }}
+              size={108}
+              style={{ border: `5px solid ${T.surface}`, boxShadow: `0 0 0 3px ${ativo ? T.success : T.faint}` }}
             />
             <button
               onClick={() => fileRef.current && fileRef.current.click()}
               title="Alterar foto do paciente"
               style={{
-                position: "absolute", right: 2, bottom: 6, width: 36, height: 36, borderRadius: "50%",
+                position: "absolute", right: -2, bottom: 4, width: 34, height: 34, borderRadius: "50%",
                 background: T.primary, border: "3px solid #fff", color: "#fff", cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}
             >
-              <Camera size={17} />
+              <Camera size={16} />
             </button>
             <input ref={fileRef} type="file" accept="image/*" onChange={handlePhoto} style={{ display: "none" }} />
           </div>
 
-          <div style={{ flex: 1, minWidth: 260 }}>
+          <div style={{ flex: 1, minWidth: 240 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-              <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: 32, color: T.text, lineHeight: 1.15 }}>
+              <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 28, color: T.text, lineHeight: 1.15 }}>
                 {patient.name}
               </span>
-              <BadgeCheck size={26} color={T.primary} />
               <span style={{
-                display: "flex", alignItems: "center", gap: 7, padding: "7px 16px", borderRadius: 999,
-                background: ativo ? T.successTint : "#F1F3F9", color: ativo ? T.success : T.muted,
-                fontSize: 14.5, fontWeight: 700,
+                display: "flex", alignItems: "center", gap: 6, padding: "5px 13px", borderRadius: 999,
+                background: ativo ? T.successTint : T.mutedBg, color: ativo ? T.success : T.muted,
+                fontSize: 13, fontWeight: 700,
               }}>
-                <Check size={17} /> {patient.status}
+                <Check size={15} /> {patient.status}
               </span>
             </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 16, color: T.muted, marginTop: 8, flexWrap: "wrap" }}>
-              <span>
-                {idade != null ? `${idade} anos, ` : ""}{patient.genero || "Não informado"}
-              </span>
-              <button
-                onClick={() => setTab("dados")}
-                title="Ver dados pessoais"
-                style={{ background: "none", border: "none", cursor: "pointer", color: T.primary, display: "flex", padding: 0 }}
-              >
-                <ExternalLink size={19} />
-              </button>
-            </div>
-
-            <div style={{ fontSize: 14, color: T.muted, marginTop: 6 }}>
-              {patient.sessions} sessões · última em {patient.lastSession} · próxima {patient.nextSession}
-            </div>
-
-            <div style={{ display: "flex", gap: 12, marginTop: 20, flexWrap: "wrap", position: "relative" }}>
-              <ProfileActionButton icon={Edit3} onClick={() => setShowEdit(true)}>Cadastro</ProfileActionButton>
-              <ProfileActionButton icon={WhatsappIcon} variant="whatsapp" onClick={() => setShowWhats(true)}>WhatsApp</ProfileActionButton>
-              <div style={{ position: "relative" }}>
-                <ProfileActionButton icon={ClipboardList} variant="ghost" onClick={() => setShowMenu((v) => !v)}>Mais ações</ProfileActionButton>
-                {showMenu && (
-                  <>
-                    <div onClick={() => setShowMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-                    <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, width: 268, background: "#fff", border: `1px solid ${T.border}`, borderRadius: 14, boxShadow: "0 14px 38px rgba(20,24,38,0.16)", padding: 8, zIndex: 41 }}>
-                      {[
-                        { label: "Novo registro no prontuário", icon: FileText, onClick: () => setTab("prontuario") },
-                        { label: "Nova conta a receber", icon: CircleDollarSign, onClick: () => setShowReceivable(true) },
-                        { label: "Ver anamnese", icon: HeartPulse, onClick: () => setTab("anamnese") },
-                        { label: "Anexar documento", icon: Paperclip, onClick: () => setTab("documentos") },
-                        { label: "Alterar foto", icon: Camera, onClick: () => fileRef.current && fileRef.current.click() },
-                        {
-                          label: ativo ? "Marcar como inativo" : "Marcar como ativo",
-                          icon: RefreshCw,
-                          tone: ativo ? "danger" : undefined,
-                          onClick: () => updatePatient(patient.id, { ...patient, status: ativo ? "Inativo" : "Ativo" }),
-                        },
-                      ].map((it) => (
-                        <button
-                          key={it.label}
-                          onClick={() => { setShowMenu(false); it.onClick(); }}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 11, width: "100%", textAlign: "left",
-                            padding: "12px 13px", borderRadius: 9, border: "none", background: "none", cursor: "pointer",
-                            fontSize: 14.5, fontWeight: 600, color: it.tone === "danger" ? T.danger : T.text,
-                          }}
-                          onMouseEnter={(e) => (e.currentTarget.style.background = "#F5F6FA")}
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
-                        >
-                          <it.icon size={18} /> {it.label}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
+            <div style={{ fontSize: 14.5, color: T.muted, marginTop: 6 }}>
+              {[idade != null ? `${idade} anos` : null, patient.genero].filter(Boolean).join(" · ")}
             </div>
           </div>
+
+          <div>
+            <ProfileActionButton icon={Edit3} onClick={() => setShowEdit(true)}>Cadastro</ProfileActionButton>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", borderTop: `1px solid ${T.border}` }}>
+          {[
+            { label: "Sessões", value: patient.sessions },
+            { label: "Última sessão", value: patient.lastSession },
+            { label: "Próxima sessão", value: patient.nextSession },
+          ].map((it, i) => (
+            <div key={it.label} style={{ padding: "16px 24px", textAlign: "center", borderLeft: i > 0 ? `1px solid ${T.border}` : "none" }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: T.muted, letterSpacing: 0.3, textTransform: "uppercase" }}>{it.label}</div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: 600, color: T.text, marginTop: 3 }}>{it.value}</div>
+            </div>
+          ))}
         </div>
       </Card>
 
-      {/* Abas do perfil — roláveis horizontalmente, como no sistema de referência */}
-      <div style={{ display: "flex", alignItems: "center", gap: 4, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, padding: "0 10px", marginBottom: 24 }}>
-        <button onClick={() => scrollTabs(-1)} style={profileTabArrow} title="Abas anteriores"><ChevronLeft size={24} /></button>
-        <div ref={tabsRef} className="profile-tabs" style={{ display: "flex", gap: 2, overflowX: "auto", flex: 1 }}>
+      {/* Abas do perfil */}
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8, width: "100%", background: T.surface, border: `1.5px solid ${T.primary}`, borderRadius: 18, padding: 8, boxShadow: "0 4px 14px rgba(76,111,255,0.12)" }}>
           {PROFILE_TABS.map((t) => {
             const active = tab === t.key;
             return (
@@ -177,19 +121,19 @@ export default function PatientProfile({ patientId, records, anamnese, documents
                 key={t.key}
                 onClick={() => setTab(t.key)}
                 style={{
-                  padding: "22px 24px 18px", background: "none", cursor: "pointer",
-                  border: "none", borderBottom: active ? `4px solid ${T.primary}` : "4px solid transparent",
-                  color: active ? T.primary : T.muted,
-                  fontWeight: 800, fontSize: 16, textTransform: "uppercase", letterSpacing: 0.7,
-                  whiteSpace: "nowrap", flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center", flex: "1 1 auto", gap: 9, padding: "13px 22px", borderRadius: 12, border: "none", cursor: "pointer",
+                  background: active ? T.primary : "transparent", color: active ? T.surface : T.text,
+                  fontFamily: FONT_DISPLAY, fontWeight: active ? 600 : 500, fontSize: 16, letterSpacing: 0.1, whiteSpace: "nowrap",
+                  boxShadow: active ? "0 4px 10px rgba(76,111,255,0.28)" : "none", transition: "background .15s, color .15s",
                 }}
+                onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = T.primaryTint; }}
+                onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
               >
-                {t.label}
+                <t.icon size={19} color={active ? "#fff" : T.primary} /> {t.label}
               </button>
             );
           })}
         </div>
-        <button onClick={() => scrollTabs(1)} style={profileTabArrow} title="Próximas abas"><ChevronRight size={24} /></button>
       </div>
 
       {tab === "dados" && <DadosPessoaisTab patient={patient} />}
@@ -204,18 +148,6 @@ export default function PatientProfile({ patientId, records, anamnese, documents
           editingPatient={patient}
           onClose={() => setShowEdit(false)}
           onSave={(updated) => updatePatient(patient.id, updated, { onSuccess: () => setShowEdit(false) })}
-        />
-      )}
-
-      {showWhats && (
-        <WhatsappQuickModal initialPatientId={patient.id} onClose={() => setShowWhats(false)} />
-      )}
-
-      {showReceivable && (
-        <NewReceivableModal
-          patientId={patient.id}
-          onClose={() => setShowReceivable(false)}
-          onSave={(entry) => addReceivable(entry, { onSuccess: () => { setShowReceivable(false); setTab("financeiro"); } })}
         />
       )}
     </div>

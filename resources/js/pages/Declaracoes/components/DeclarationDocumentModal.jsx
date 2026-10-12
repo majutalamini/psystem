@@ -21,7 +21,7 @@ export default function DeclarationDocumentModal({ template, patient, values, on
 
   return (
     <Modal title="Documento gerado" onClose={onClose} width={560}>
-      <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: "28px 26px", background: "#FDFDFE" }}>
+      <div data-theme="light" style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: "28px 26px", background: "#FDFDFE", color: T.text }}>
         <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15, marginBottom: 4, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{template.title.toUpperCase()}</div>
         <div style={{ height: 2, width: 46, background: T.primary, margin: "6px auto 20px", borderRadius: 2 }} />
         {paragraphs.map((p, i) => (
@@ -36,7 +36,7 @@ export default function DeclarationDocumentModal({ template, patient, values, on
       </div>
 
       <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-        <button onClick={copyText} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "10px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, cursor: "pointer", fontSize: 13.5 }}>
+        <button onClick={copyText} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "10px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, fontWeight: 600, cursor: "pointer", fontSize: 13.5 }}>
           <Copy size={18} /> {copied ? "Copiado!" : "Copiar texto"}
         </button>
         <PrimaryButton style={{ flex: 1, justifyContent: "center" }} icon={Printer} onClick={() => onPrint(template, paragraphs)}>

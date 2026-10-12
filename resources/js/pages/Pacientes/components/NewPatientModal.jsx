@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { FormField, FormSectionTitle, Modal, PrimaryButton } from "../../../components/ui";
-import { SEXO_OPTIONS } from "../../../data/patients";
 import { useAppData } from "../../../hooks/useAppData";
 import { T } from "../../../styles/theme";
+import { isValidBrDate, isValidCpf, maskCpf, maskDate, onlyDigits } from "../../../utils/format";
 
 const BLANK = {
   name: "", nascimento: "", cpf: "", sexo: "", phone: "", email: "", endereco: "", cidade: "", uf: "",
@@ -18,15 +18,16 @@ export default function NewPatientModal({ onClose, onSave, editingPatient }) {
   const set = (key) => (val) => setForm((f) => ({ ...f, [key]: val }));
   const field = (key) => ({ value: form[key], onChange: set(key), error: errors[key] });
 
+  const cpfInvalido = onlyDigits(form.cpf).length === 11 && !isValidCpf(form.cpf);
+  const nascInvalido = form.nascimento.length === 10 && !isValidBrDate(form.nascimento);
+
   return (
     <Modal title={editingPatient ? "Editar cadastro do paciente" : "Cadastro de paciente"} onClose={onClose} width={640}>
       <FormSectionTitle first>Dados pessoais</FormSectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
         <FormField label="Nome completo *" {...field("name")} placeholder="Nome do paciente" />
-        <FormField label="Data de nascimento *" {...field("nascimento")} placeholder="dd/mm/aaaa" />
-        <FormField label="CPF *" {...field("cpf")} placeholder="000.000.000-00" />
-        <FormField label="Sexo" {...field("sexo")} options={SEXO_OPTIONS} />
-        <FormField label="Status" {...field("status")} options={["Ativo", "Inativo"]} />
+        <FormField label="Data de nascimento *" {...field("nascimento")} onChange={(v) => set("nascimento")(maskDate(v))} placeholder="dd/mm/aaaa" error={errors.nascimento || (nascInvalido ? "Data inválida ou no futuro." : undefined)} />
+        <FormField label="CPF *" {...field("cpf")} onChange={(v) => set("cpf")(maskCpf(v))} placeholder="000.000.000-00" error={errors.cpf || (cpfInvalido ? "CPF inválido." : undefined)} />
       </div>
 
       <FormSectionTitle>Contato</FormSectionTitle>
@@ -54,8 +55,8 @@ export default function NewPatientModal({ onClose, onSave, editingPatient }) {
       <FormField label="Observações" {...field("observacoes")} textarea placeholder="Informações adicionais relevantes" />
 
       <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-        <button onClick={onClose} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
-        <PrimaryButton style={{ flex: 1, justifyContent: "center" }} icon={Check} onClick={() => onSave(form)}>
+        <button onClick={onClose} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
+        <PrimaryButton style={{ flex: 1, justifyContent: "center" }} icon={Check} onClick={() => { if (!cpfInvalido && !nascInvalido) onSave(form); }}>
           {editingPatient ? "Salvar alterações" : "Cadastrar paciente"}
         </PrimaryButton>
       </div>

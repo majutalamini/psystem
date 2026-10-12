@@ -12,7 +12,7 @@ export default function PrimaryButton({ children, onClick, icon: Icon, style = {
         border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 14, fontWeight: 600,
         cursor: "pointer", boxShadow: "0 4px 10px rgba(76,111,255,0.25)", ...style,
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = T.primaryDark)}
+      onMouseEnter={(e) => (e.currentTarget.style.background = T.primaryHover)}
       onMouseLeave={(e) => (e.currentTarget.style.background = T.primary)}
     >
       {Icon && <Icon size={19} />}

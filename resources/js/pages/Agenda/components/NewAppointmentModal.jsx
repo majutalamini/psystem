@@ -56,7 +56,7 @@ export default function NewAppointmentModal({ date, dateLabel, defaultHour, occu
       </select>
 
       <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-        <button onClick={onClose} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
+        <button onClick={onClose} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
         <PrimaryButton style={{ flex: 1, justifyContent: "center" }} onClick={handleSave} disabled={!form.hora}>Agendar</PrimaryButton>
       </div>
     </Modal>

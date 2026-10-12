@@ -5,8 +5,8 @@ export default function Pill({ children, tone = "primary" }) {
     primary: { bg: T.primaryTint, text: T.primaryDark },
     success: { bg: T.successTint, text: T.success },
     danger: { bg: T.dangerTint, text: T.danger },
-    warn: { bg: T.warnTint, text: "#8A6413" },
-    muted: { bg: "#F1F3F9", text: T.muted },
+    warn: { bg: T.warnTint, text: T.warnText },
+    muted: { bg: T.mutedBg, text: T.muted },
   };
   const c = map[tone];
   return (

@@ -6,7 +6,7 @@ export default function PrintArea({ content }) {
   if (!content) return <div className="print-area" />;
   const { template, paragraphs } = content;
   return (
-    <div className="print-area" style={{ padding: "48px 56px", fontFamily: "'Inter', sans-serif" }}>
+    <div className="print-area" data-theme="light" style={{ padding: "48px 56px", fontFamily: "'Inter', sans-serif", background: "#fff", color: "#1C2233" }}>
       <div style={{ textAlign: "center", fontWeight: 700, fontSize: 17, marginBottom: 6 }}>{template.title.toUpperCase()}</div>
       <div style={{ height: 2, width: 60, background: "#1C2233", margin: "8px auto 28px" }} />
       {paragraphs.map((p, i) => (

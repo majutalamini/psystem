@@ -5,7 +5,7 @@ export default function ProfileActionButton({ icon: Icon, children, onClick, var
   const variants = {
     primary: { bg: T.primary, color: "#fff", border: "none" },
     whatsapp: { bg: WA_GREEN, color: "#fff", border: "none" },
-    ghost: { bg: "#fff", color: T.text, border: `1px solid ${T.border}` },
+    ghost: { bg: T.surface, color: T.text, border: `1px solid ${T.border}` },
   };
   const v = variants[variant];
   return (

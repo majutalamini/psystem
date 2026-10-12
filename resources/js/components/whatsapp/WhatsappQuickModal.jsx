@@ -54,7 +54,7 @@ export default function WhatsappQuickModal({ onClose, initialPatientId = null, i
           </div>
           <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>{enviado}</div>
           <div style={{ fontSize: 13, color: T.muted, marginTop: 4 }}>Ela aparece em Configurações › WhatsApp › Mensagens enviadas.</div>
-          <button onClick={onClose} style={{ marginTop: 18, padding: "10px 22px", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, cursor: "pointer", fontSize: 14 }}>Fechar</button>
+          <button onClick={onClose} style={{ marginTop: 18, padding: "10px 22px", borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, fontWeight: 600, cursor: "pointer", fontSize: 14 }}>Fechar</button>
         </div>
       </Modal>
     );
@@ -68,7 +68,7 @@ export default function WhatsappQuickModal({ onClose, initialPatientId = null, i
       </select>
 
       {patient && (
-        <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#F1FCF5", border: "1px solid #CFEEDC", borderRadius: 12, padding: "12px 14px", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, background: T.successTint, border: `1px solid ${T.border}`, borderRadius: 12, padding: "12px 14px", marginBottom: 16 }}>
           <Avatar initials={patient.initials} color={patient.color} src={patient.photo} size={42} />
           <div>
             <div style={{ fontSize: 14.5, fontWeight: 700, color: T.text }}>{patient.name}</div>
@@ -90,7 +90,7 @@ export default function WhatsappQuickModal({ onClose, initialPatientId = null, i
               style={{
                 padding: "8px 14px", borderRadius: 999, cursor: "pointer", fontSize: 13.5, fontWeight: 600,
                 border: `1px solid ${active ? T.primary : T.border}`,
-                background: active ? T.primaryTint : "#fff",
+                background: active ? T.primaryTint : T.surface,
                 color: active ? T.primaryDark : T.text,
               }}
             >
@@ -117,7 +117,7 @@ export default function WhatsappQuickModal({ onClose, initialPatientId = null, i
       </div>
 
       <div style={{ display: "flex", gap: 10 }}>
-        <button onClick={onClose} style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: "#fff", fontWeight: 600, cursor: "pointer", fontSize: 14 }}>Cancelar</button>
+        <button onClick={onClose} style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, fontWeight: 600, cursor: "pointer", fontSize: 14 }}>Cancelar</button>
         <button
           onClick={handleSend}
           disabled={!text.trim() || !patient || enviando}

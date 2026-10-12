@@ -27,7 +27,7 @@ export default function HorarioTab({ value, onChange, errors }) {
               onClick={() => toggleDay(d)}
               style={{
                 width: 64, height: 54, borderRadius: 12, border: `1.5px solid ${on ? T.primary : T.border}`,
-                background: on ? T.primaryTint : "#fff", color: on ? T.primaryDark : T.muted,
+                background: on ? T.primaryTint : T.surface, color: on ? T.primaryDark : T.muted,
                 fontWeight: 700, fontSize: 15, cursor: "pointer", transition: "all .12s",
               }}
             >

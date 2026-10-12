@@ -12,7 +12,7 @@ export default function GlobalStyles() {
       ::-webkit-scrollbar { width: 8px; height: 8px; }
       .profile-tabs { scrollbar-width: none; }
       .profile-tabs::-webkit-scrollbar { display: none; }
-      ::-webkit-scrollbar-thumb { background: #D8DCE9; border-radius: 8px; }
+      ::-webkit-scrollbar-thumb { background: ${T.track}; border-radius: 8px; }
       .spin { animation: spin 0.8s linear infinite; }
       @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       .print-area { display: none; }

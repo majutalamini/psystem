@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Banknote, ChevronDown, Clock, MessageSquare, Plus, TrendingUp, Undo2, X } from "lucide-react";
+import { Banknote, Clock, MessageSquare, Plus, SlidersHorizontal, TrendingUp, Undo2, X } from "lucide-react";
 import NewReceivableModal from "../../../components/financeiro/NewReceivableModal";
 import ReceivePaymentModal from "../../../components/financeiro/ReceivePaymentModal";
 import WhatsappIcon from "../../../components/icons/WhatsappIcon";
@@ -7,9 +7,10 @@ import { Card, Pill, PrimaryButton, RowMenu, StatCard } from "../../../component
 import WhatsappQuickModal from "../../../components/whatsapp/WhatsappQuickModal";
 import { SITUACOES } from "../../../data/finance";
 import { useAppData } from "../../../hooks/useAppData";
-import { filterInputStyle, iconBtn } from "../../../styles/formStyles";
+import { filterInputStyle } from "../../../styles/formStyles";
 import { T, WA_GREEN } from "../../../styles/theme";
 import { parseBrDate } from "../../../utils/date";
+import { maskDate } from "../../../utils/format";
 
 export default function FinanceiroTab({ patient, receivables }) {
   const { addReceivable, receiveReceivable, reopenReceivable } = useAppData();
@@ -23,7 +24,6 @@ export default function FinanceiroTab({ patient, receivables }) {
   const [dateStart, setDateStart] = useState("");
   const [dateEnd, setDateEnd] = useState("");
   const [situacaoSel, setSituacaoSel] = useState(SITUACOES.map((s) => s.key));
-  const [showSituacaoMenu, setShowSituacaoMenu] = useState(false);
   const [applied, setApplied] = useState({ dateStart: "", dateEnd: "", situacaoSel: SITUACOES.map((s) => s.key) });
 
   const filtered = mine.filter((r) => {
@@ -42,7 +42,6 @@ export default function FinanceiroTab({ patient, receivables }) {
 
   function applyFilters() {
     setApplied({ dateStart, dateEnd, situacaoSel });
-    setShowSituacaoMenu(false);
   }
 
   function clearFilters() {
@@ -50,70 +49,57 @@ export default function FinanceiroTab({ patient, receivables }) {
     setApplied({ dateStart: "", dateEnd: "", situacaoSel: SITUACOES.map((s) => s.key) });
   }
 
-  const situacaoLabel = situacaoSel.length === SITUACOES.length
-    ? "Todas"
-    : SITUACOES.filter((s) => situacaoSel.includes(s.key)).map((s) => s.label).join(", ") || "Nenhuma";
-
   return (
     <div>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
+        <button
+          onClick={() => setCobrando(true)}
+          style={{ display: "flex", alignItems: "center", gap: 10, padding: "15px 26px", borderRadius: 12, border: "none", background: WA_GREEN, color: "#fff", fontWeight: 700, fontSize: 16, cursor: "pointer", boxShadow: "0 4px 12px rgba(31,174,110,0.25)" }}
+        >
+          <WhatsappIcon size={24} color="#fff" /> Cobrar no WhatsApp
+        </button>
+        <PrimaryButton icon={Plus} style={{ padding: "15px 26px", fontSize: 16, borderRadius: 12 }} onClick={() => setShowModal(true)}>Novo lançamento</PrimaryButton>
+      </div>
+
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 18 }}>
         <StatCard label="Total pago" value={`R$ ${totalPago.toLocaleString("pt-BR")}`} icon={TrendingUp} tone="success" />
         <StatCard label="Em aberto" value={`R$ ${totalAberto.toLocaleString("pt-BR")}`} icon={Clock} tone={totalAberto > 0 ? "danger" : "primary"} />
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, gap: 12, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
         <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 18, color: T.text }}>Lançamentos</span>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button
-            onClick={() => setCobrando(true)}
-            style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 16px", borderRadius: 10, border: "none", background: WA_GREEN, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}
-          >
-            <WhatsappIcon size={18} color="#fff" /> Cobrar no WhatsApp
-          </button>
-          <PrimaryButton icon={Plus} style={{ padding: "11px 16px", fontSize: 14 }} onClick={() => setShowModal(true)}>Novo lançamento</PrimaryButton>
-        </div>
       </div>
 
-      <Card style={{ padding: "16px 20px", marginBottom: 16, overflow: "visible" }}>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 22, flexWrap: "wrap" }}>
-          <div>
-            <div style={{ fontSize: 12, color: T.muted, marginBottom: 6 }}>Data</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: T.text, padding: "9px 0" }}>Vencimento</div>
+      <Card style={{ padding: "18px 22px", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, flexWrap: "wrap" }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 700, color: T.text }}>
+            <SlidersHorizontal size={20} color={T.primary} /> Filtrar
+          </span>
+          <input value={dateStart} onChange={(e) => setDateStart(maskDate(e.target.value))} onKeyDown={(e) => e.key === "Enter" && applyFilters()} placeholder="Vencimento de" inputMode="numeric" title="Vencimento a partir de (dd/mm/aaaa)" style={{ ...filterInputStyle, minWidth: 0, width: 170, fontSize: 14.5, padding: "12px 14px", border: `1px solid ${T.muted}` }} />
+          <input value={dateEnd} onChange={(e) => setDateEnd(maskDate(e.target.value))} onKeyDown={(e) => e.key === "Enter" && applyFilters()} placeholder="até" inputMode="numeric" title="Vencimento até (dd/mm/aaaa)" style={{ ...filterInputStyle, minWidth: 0, width: 130, fontSize: 14.5, padding: "12px 14px", border: `1px solid ${T.muted}` }} />
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {SITUACOES.map((s) => {
+              const on = situacaoSel.includes(s.key);
+              return (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => toggleSituacao(s.key)}
+                  style={{
+                    padding: "10px 18px", borderRadius: 999, cursor: "pointer", fontSize: 14.5, fontWeight: 600,
+                    border: `1px solid ${on ? T.primary : T.border}`, background: on ? T.primaryTint : T.surface, color: on ? T.primaryDark : T.muted,
+                  }}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
           </div>
-          <div>
-            <div style={{ fontSize: 12, color: T.muted, marginBottom: 6 }}>Data inicial</div>
-            <input value={dateStart} onChange={(e) => setDateStart(e.target.value)} placeholder="dd/mm/aaaa" style={filterInputStyle} />
-          </div>
-          <div>
-            <div style={{ fontSize: 12, color: T.muted, marginBottom: 6 }}>Data final</div>
-            <input value={dateEnd} onChange={(e) => setDateEnd(e.target.value)} placeholder="dd/mm/aaaa" style={filterInputStyle} />
-          </div>
-          <div style={{ position: "relative" }}>
-            <div style={{ fontSize: 12, color: T.muted, marginBottom: 6 }}>Situação</div>
-            <button
-              onClick={() => setShowSituacaoMenu((v) => !v)}
-              style={{ ...filterInputStyle, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, cursor: "pointer", minWidth: 170 }}
-            >
-              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{situacaoLabel}</span>
-              <ChevronDown size={19} color={T.muted} />
-            </button>
-            {showSituacaoMenu && (
-              <div style={{ position: "absolute", top: "100%", left: 0, marginTop: 6, background: "#fff", border: `1px solid ${T.border}`, borderRadius: 10, boxShadow: "0 10px 30px rgba(20,24,38,0.14)", padding: 8, zIndex: 5, minWidth: 180 }}>
-                {SITUACOES.map((s) => (
-                  <label key={s.key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 8px", fontSize: 13.5, color: T.text, cursor: "pointer" }}>
-                    <input type="checkbox" checked={situacaoSel.includes(s.key)} onChange={() => toggleSituacao(s.key)} />
-                    {s.label}
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-          <button onClick={clearFilters} style={{ ...iconBtn, background: "#fff" }} title="Limpar filtros"><X size={20} /></button>
-          <button
-            onClick={applyFilters}
-            style={{ background: "none", border: "none", color: T.primary, fontWeight: 700, fontSize: 13, cursor: "pointer", textTransform: "uppercase", letterSpacing: 0.3, padding: "10px 0" }}
-          >
-            Aplicar filtros
+          <button onClick={applyFilters} style={{ padding: "12px 24px", borderRadius: 10, border: "none", background: T.primary, color: "#fff", fontWeight: 700, fontSize: 14.5, cursor: "pointer", boxShadow: "0 4px 10px rgba(76,111,255,0.25)" }}>
+            Aplicar
+          </button>
+          <button onClick={clearFilters} title="Limpar filtros" style={{ display: "flex", alignItems: "center", gap: 5, padding: "12px 10px", border: "none", background: "none", color: T.muted, fontWeight: 600, fontSize: 14.5, cursor: "pointer" }}>
+            <X size={17} /> Limpar
           </button>
         </div>
       </Card>
@@ -121,7 +107,7 @@ export default function FinanceiroTab({ patient, receivables }) {
       <Card style={{ overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ background: "#FAFBFE", textAlign: "left" }}>
+            <tr style={{ background: T.surfaceAlt, textAlign: "left" }}>
               {["Descrição", "Vencimento", "Recebimento", "Valor", "Recebido", "Situação", ""].map((h) => (
                 <th key={h} style={{ padding: "12px 20px", fontSize: 12, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.3 }}>{h}</th>
               ))}
@@ -158,7 +144,7 @@ export default function FinanceiroTab({ patient, receivables }) {
                         style={{
                           background: "none", border: `1px solid ${r.status === "Pago" ? "transparent" : T.border}`,
                           borderRadius: 8, padding: "8px 14px",
-                          color: r.status === "Pago" ? "#C7CCDA" : T.primary,
+                          color: r.status === "Pago" ? T.faint : T.primary,
                           fontWeight: 700, fontSize: 12.5, letterSpacing: 0.3,
                           cursor: r.status === "Pago" ? "default" : "pointer",
                         }}

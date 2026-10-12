@@ -5,7 +5,7 @@ export default function StatCard({ label, value, delta, deltaTone = "success", i
   const toneMap = {
     primary: { bg: T.primaryTint, icon: T.primary },
     success: { bg: T.successTint, icon: T.success },
-    warn: { bg: T.warnTint, icon: "#9C7A16" },
+    warn: { bg: T.warnTint, icon: T.warnText },
     danger: { bg: T.dangerTint, icon: T.danger },
   };
   const c = toneMap[tone] || toneMap.primary;

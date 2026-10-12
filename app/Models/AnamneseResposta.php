@@ -11,7 +11,7 @@ class AnamneseResposta extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['paciente_id', 'psicologo_id', 'pergunta_id', 'valor_resposta', 'data_preenchimento'];
+    protected $fillable = ['anamnese_id', 'paciente_id', 'psicologo_id', 'pergunta_id', 'valor_resposta', 'data_preenchimento'];
 
     protected function casts(): array
     {

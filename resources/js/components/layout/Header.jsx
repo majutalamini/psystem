@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Brain, LogOut, Settings } from "lucide-react";
+import { Brain, LogOut, Moon, Settings, Sun } from "lucide-react";
 import { FONT_DISPLAY, T, WA_GREEN, WA_GREEN_DARK } from "../../styles/theme";
 import WhatsappIcon from "../icons/WhatsappIcon";
 import { Avatar } from "../ui";
 import WhatsappQuickModal from "../whatsapp/WhatsappQuickModal";
 import { useAppData } from "../../hooks/useAppData";
 import { navigate } from "../../utils/nav";
+import { alternarTema, temaAtual } from "../../utils/theme";
 
 const headerIconBtn = {
   width: 40, height: 40, borderRadius: "50%", border: "none", cursor: "pointer",
@@ -22,6 +23,7 @@ const waHeaderBtn = {
 
 export default function Header() {
   const [showWhats, setShowWhats] = useState(false);
+  const [tema, setTema] = useState(temaAtual);
   const { auth, logout } = useAppData();
   const user = auth.user;
   return (
@@ -42,6 +44,9 @@ export default function Header() {
           onMouseLeave={(e) => (e.currentTarget.style.background = WA_GREEN)}
         >
           <WhatsappIcon size={20} color="#fff" /> WhatsApp
+        </button>
+        <button style={headerIconBtn} title={tema === "dark" ? "Modo claro" : "Modo escuro"} onClick={() => setTema(alternarTema())}>
+          {tema === "dark" ? <Sun size={20} /> : <Moon size={20} />}
         </button>
         <button style={headerIconBtn} title="Configurações" onClick={() => navigate("configuracoes")}><Settings size={20} /></button>
         <button style={headerIconBtn} title="Sair" onClick={logout}><LogOut size={20} /></button>

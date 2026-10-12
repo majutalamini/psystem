@@ -44,6 +44,11 @@ class Paciente extends Model
         return $this->hasMany(Prontuario::class);
     }
 
+    public function anamneses(): HasMany
+    {
+        return $this->hasMany(Anamnese::class);
+    }
+
     public function respostasAnamnese(): HasMany
     {
         return $this->hasMany(AnamneseResposta::class);

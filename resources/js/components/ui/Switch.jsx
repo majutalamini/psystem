@@ -6,7 +6,7 @@ export default function Switch({ checked, onChange }) {
       onClick={() => onChange(!checked)}
       style={{
         width: 42, height: 24, borderRadius: 999, border: "none", cursor: "pointer",
-        background: checked ? T.primary : "#DFE3EE", position: "relative", transition: "background .15s",
+        background: checked ? T.primary : T.track, position: "relative", transition: "background .15s",
         padding: 0, flexShrink: 0,
       }}
       aria-pressed={checked}

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Anamnese;
 use App\Models\AnamneseModelo;
 use App\Models\Paciente;
 use App\Models\Prontuario;
@@ -23,15 +24,12 @@ class PacienteController extends Controller
     public function show(Paciente $paciente)
     {
         $paciente->load(['documentos' => fn ($q) => $q->latest('criado_em')]);
-        $respostas = $paciente->respostasAnamnese()->get();
-
         return Inertia::render('Pacientes/PatientProfile', [
             'patientId' => $paciente->id,
             'records' => Prontuario::listaDoPaciente($paciente->id),
             'anamnese' => [
                 'secoes' => AnamneseModelo::with('perguntas')->first()?->secoes() ?? [],
-                'respostas' => $respostas->pluck('valor_resposta', 'pergunta_id'),
-                'preenchidoEm' => Tela::data($respostas->max('data_preenchimento')),
+                'lista' => Anamnese::listaDoPaciente($paciente->id),
             ],
             'documents' => $paciente->documentos->map->paraTela(),
             'receivables' => $paciente->cobrancas()

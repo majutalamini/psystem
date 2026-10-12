@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AnamneseResposta;
+use App\Models\Anamnese;
 use App\Models\Configuracao;
 use App\Models\Consulta;
 use App\Models\Despesa;
@@ -43,10 +43,9 @@ class RelatorioController extends Controller
                 'data' => Tela::data($c->data_hora_consulta),
                 'status' => self::STATUS_SESSAO[$c->status],
             ]),
-            'anamneses' => AnamneseResposta::selectRaw('paciente_id, max(data_preenchimento) as preenchido')
+            'anamneses' => Anamnese::orderBy('criado_em')->get(['paciente_id', 'criado_em'])
                 ->groupBy('paciente_id')
-                ->get()
-                ->mapWithKeys(fn ($r) => [$r->paciente_id => [['preenchidoEm' => Tela::data(Carbon::parse($r->preenchido))]]]),
+                ->map(fn ($lista) => $lista->map(fn ($a) => ['preenchidoEm' => Tela::data($a->criado_em)])->values()),
             'records' => Prontuario::orderBy('data_atendimento')->get(['paciente_id', 'data_atendimento'])
                 ->groupBy('paciente_id')
                 ->map(fn ($lista) => $lista->map(fn ($r) => ['date' => Tela::data($r->data_atendimento)])->values()),
