@@ -53,7 +53,7 @@ abstract class ConsultorioTestCase extends TestCase
     }
 
     /** Cria uma matrícula pela rota, como a tela faz. weekday: 0 = segunda ... 6 = domingo. */
-    protected function matricular(Paciente $paciente, int $weekday, string $time = '09:00', float $valor = 200)
+    protected function matricular(Paciente $paciente, int $weekday, string $time = '08:50', float $valor = 200)
     {
         return $this->from("/pacientes/{$paciente->id}")->post("/pacientes/{$paciente->id}/matriculas", [
             'weekday' => $weekday,
@@ -63,7 +63,7 @@ abstract class ConsultorioTestCase extends TestCase
         ]);
     }
 
-    protected function alterarMatricula(Matricula $matricula, int $weekday, string $time = '09:00', float $valor = 200)
+    protected function alterarMatricula(Matricula $matricula, int $weekday, string $time = '08:50', float $valor = 200)
     {
         return $this->from("/pacientes/{$matricula->paciente_id}")->put("/matriculas/{$matricula->id}", [
             'weekday' => $weekday,

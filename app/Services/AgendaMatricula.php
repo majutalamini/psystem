@@ -13,7 +13,7 @@ use Illuminate\Support\Carbon;
  */
 class AgendaMatricula
 {
-    public const SEMANAS = 4;
+    public const SEMANAS = 8;
 
     public function gerar(Matricula $matricula): int
     {
@@ -21,7 +21,12 @@ class AgendaMatricula
             return 0;
         }
 
-        $duracao = Configuracao::atual()->duracao_sessao;
+        $config = Configuracao::atual();
+        if (! $config->atendeNo($matricula->dia_da_matricula)) {
+            return 0;
+        }
+
+        $duracao = $config->duracao_sessao;
         $limite = today()->addWeeks(self::SEMANAS);
         $dia = today()->max($matricula->inicio_da_matricula)->copy();
 
@@ -32,6 +37,10 @@ class AgendaMatricula
 
         $criadas = 0;
         for (; $dia->lte($limite); $dia->addWeek()) {
+            if (! $config->atendeNo($dia)) {
+                continue;
+            }
+
             $dataHora = Carbon::parse($dia->toDateString().' '.$matricula->horario_da_matricula);
 
             if ($dataHora->isPast()) {

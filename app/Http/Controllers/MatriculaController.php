@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Configuracao;
 use App\Models\Matricula;
 use App\Models\Paciente;
 use App\Services\AgendaMatricula;
@@ -69,6 +70,14 @@ class MatriculaController extends Controller
             'tipo' => 'required|in:Consulta presencial,Consulta online',
             'valor' => 'required|numeric|min:0',
         ]);
+
+        $config = Configuracao::atual();
+        if (! $config->atendeNo((int) $dados['weekday'])) {
+            throw ValidationException::withMessages(['weekday' => 'Não há atendimento nesse dia da semana.']);
+        }
+        if (! in_array($dados['time'], $config->horarios(), true)) {
+            throw ValidationException::withMessages(['time' => 'Esse horário está fora do expediente.']);
+        }
 
         $ocupado = Matricula::ativas()
             ->where('dia_da_matricula', Matricula::DIAS[$dados['weekday']])

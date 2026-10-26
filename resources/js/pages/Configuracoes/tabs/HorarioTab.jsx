@@ -15,7 +15,7 @@ export default function HorarioTab({ value, onChange, errors }) {
     <SettingsSection
       icon={Clock}
       title="Horário de atendimento"
-      description="Define os dias e a faixa de horário disponíveis na agenda. Os horários da agenda são as horas cheias do expediente (08:00–18:00 → 08:00 a 17:00)."
+      description="Define os dias, o expediente, a pausa de almoço e a duração/intervalo das sessões disponíveis na agenda."
     >
       <label style={settingsLabelStyle}>Dias de atendimento</label>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 24 }}>
@@ -36,10 +36,36 @@ export default function HorarioTab({ value, onChange, errors }) {
           );
         })}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0 20px" }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 12 }}>
+        Expediente
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0 20px", marginBottom: 8 }}>
         <Field label="Início do expediente" type="time" value={value.inicio} onChange={(v) => onChange({ inicio: v })} error={errors.inicio} />
         <Field label="Término do expediente" type="time" value={value.fim} onChange={(v) => onChange({ fim: v })} error={errors.fim} />
         <GoalField label="Duração padrão da sessão" value={value.duracao} onChange={(v) => onChange({ duracao: v })} suffix="minutos" error={errors.duracao} />
+      </div>
+
+      <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 18, marginTop: 4, marginBottom: 12, fontSize: 13, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4 }}>
+        Pausas e intervalos
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0 20px" }}>
+        <Field
+          label="Início do almoço / pausa"
+          type="time"
+          value={value.almocoInicio ?? ""}
+          onChange={(v) => onChange({ almocoInicio: v })}
+          hint="Deixe em branco se não houver pausa"
+          error={errors.almocoInicio}
+        />
+        <Field
+          label="Término do almoço / pausa"
+          type="time"
+          value={value.almocoFim ?? ""}
+          onChange={(v) => onChange({ almocoFim: v })}
+          hint="Horário em que os atendimentos retomam"
+          error={errors.almocoFim}
+        />
+        <GoalField label="Intervalo entre sessões" value={value.intervalo ?? 0} onChange={(v) => onChange({ intervalo: v })} suffix="minutos" error={errors.intervalo} />
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13.5, color: T.muted, marginTop: 6 }}>
         <CalendarDays size={17} /> {days.length} {days.length === 1 ? "dia" : "dias"} por semana selecionados.

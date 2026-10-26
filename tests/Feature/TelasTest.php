@@ -112,6 +112,6 @@ class TelasTest extends ConsultorioTestCase
         ])->assertSessionHasNoErrors()->assertSessionHas('aviso');
 
         $this->assertSame('Dra. Nova', $this->psicologa->fresh()->nome);
-        $this->assertSame(['09:00', '10:00', '11:00'], Configuracao::atual()->horarios());
+        $this->assertSame(['09:00', '09:45', '10:30', '11:15'], Configuracao::atual()->horarios());
     }
 }

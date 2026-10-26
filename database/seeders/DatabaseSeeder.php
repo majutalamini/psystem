@@ -34,6 +34,9 @@ class DatabaseSeeder extends Seeder
             'expediente_inicio' => '08:00',
             'expediente_fim' => '18:00',
             'duracao_sessao' => 50,
+            'intervalo_sessao' => 10,
+            'almoco_inicio' => '12:00',
+            'almoco_fim' => '13:00',
         ]);
 
         if (! AnamneseModelo::exists()) {

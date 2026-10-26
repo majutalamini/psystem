@@ -28,7 +28,7 @@ class ConsultaEmBreve extends Notification
             ->line("Sua próxima consulta é hoje, às **{$hora}**.")
             ->line("**Paciente:** {$c->paciente->nome}")
             ->line('**Tipo:** '.Tela::MODALIDADES[$c->modalidade])
-            ->line('**Situação:** '.Consulta::STATUS[$c->status])
+            ->line('**Situação:** '.$c->rotuloStatus())
             ->line("**Telefone:** {$c->paciente->telefone}")
             ->action('Ver na agenda', url('/agenda?data='.$c->data_hora_consulta->toDateString()))
             ->salutation('Psystem');

@@ -29,7 +29,8 @@ class RelatorioController extends Controller
     public function __invoke()
     {
         $inicioSemana = today()->startOfWeek(Carbon::MONDAY);
-        $horarios = count(Configuracao::atual()->horarios());
+        $config = Configuracao::atual();
+        $horarios = count($config->horarios());
         $semana = Consulta::whereBetween('data_hora_consulta', [$inicioSemana, $inicioSemana->copy()->endOfWeek(Carbon::SUNDAY)])
             ->where('status', '!=', 'cancelado')
             ->get();
@@ -52,7 +53,7 @@ class RelatorioController extends Controller
             'ocupacao' => collect(Matricula::DIAS)->map(fn ($dia, $i) => [
                 'label' => ucfirst($dia),
                 'preenchidos' => $semana->filter(fn ($c) => $c->data_hora_consulta->dayOfWeekIso === $i + 1)->count(),
-                'total' => $horarios,
+                'total' => $config->atendeNo($i) ? $horarios : 0,
             ]),
         ]);
     }
