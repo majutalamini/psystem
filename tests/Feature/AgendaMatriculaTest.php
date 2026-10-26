@@ -22,7 +22,7 @@ class AgendaMatriculaTest extends ConsultorioTestCase
         $consulta = Consulta::where('paciente_id', $paciente->id)->first();
         $this->assertSame('agendado', $consulta->status);
         $this->assertSame('presencial', $consulta->modalidade);
-        $this->assertSame($paciente->matricula->id, $consulta->matricula_id);
+        $this->assertSame($paciente->matriculas()->first()->id, $consulta->matricula_id);
         $this->assertEquals(50, $consulta->duracao_minutos);
     }
 
@@ -60,7 +60,7 @@ class AgendaMatriculaTest extends ConsultorioTestCase
         $this->matricular($paciente, weekday: 2);
         Consulta::where('paciente_id', $paciente->id)->orderBy('data_hora_consulta')->first()->update(['status' => 'confirmado']);
 
-        $this->matricular($paciente, weekday: 3, time: '14:00', valor: 250);
+        $this->alterarMatricula($paciente->matriculas()->first(), weekday: 3, time: '14:00', valor: 250);
 
         // A quarta confirmada fica; as outras quartas saem; entram as quintas às 14:00.
         $this->assertSame(
@@ -68,7 +68,7 @@ class AgendaMatriculaTest extends ConsultorioTestCase
             $this->horarios($paciente),
         );
         $this->assertSame(['2026-09-30 09:00'], $this->horarios($paciente, 'confirmado'));
-        $this->assertEquals(250, $paciente->matricula()->first()->valor_sessao);
+        $this->assertEquals(250, $paciente->matriculas()->first()->valor_sessao);
     }
 
     public function test_matricula_no_mesmo_dia_e_horario_de_outro_paciente_e_recusada(): void
@@ -78,50 +78,49 @@ class AgendaMatriculaTest extends ConsultorioTestCase
 
         $this->matricular($paciente, weekday: 1, time: '15:00')
             ->assertSessionHasErrors(['time' => 'Esse horário já é da matrícula de Luiza.']);
-        $this->assertNull($paciente->matricula()->first());
+        $this->assertNull($paciente->matriculas()->first());
 
         // Outro horário no mesmo dia pode.
         $this->matricular($paciente, weekday: 1, time: '16:00')->assertSessionHasNoErrors();
     }
 
-    public function test_matricula_de_paciente_inativo_nao_bloqueia_o_horario(): void
+    public function test_matricula_encerrada_nao_bloqueia_o_horario(): void
     {
-        $this->matricular($this->paciente(['nome' => 'Luiza', 'status_paciente' => 'inativo']), weekday: 1, time: '15:00');
+        $luiza = $this->paciente(['nome' => 'Luiza']);
+        $this->matricular($luiza, weekday: 1, time: '15:00');
+        $this->delete('/matriculas/'.$luiza->matriculas()->first()->id);
 
         $this->matricular($this->paciente(), weekday: 1, time: '15:00')->assertSessionHasNoErrors();
     }
 
-    public function test_excluir_matricula_apaga_as_consultas_futuras_e_inativa_o_paciente(): void
+    public function test_encerrar_matricula_apaga_as_consultas_futuras_guarda_o_historico_e_inativa_o_paciente(): void
     {
         $paciente = $this->paciente();
         $this->matricular($paciente, weekday: 2);
         $confirmada = Consulta::where('paciente_id', $paciente->id)->orderBy('data_hora_consulta')->first();
         $confirmada->update(['status' => 'confirmado']);
 
-        $this->delete("/pacientes/{$paciente->id}/matricula")->assertRedirect();
+        $matricula = $paciente->matriculas()->first();
+        $this->delete("/matriculas/{$matricula->id}")->assertRedirect();
 
         // Só a consulta já confirmada continua na agenda.
         $this->assertSame(['2026-09-30 09:00'], $this->horarios($paciente));
-        $this->assertNull($paciente->matricula()->first());
+        $this->assertSame('encerrada', $matricula->fresh()->status_matricula);
+        $this->assertSame('2026-09-28', $matricula->fresh()->fim_da_matricula->toDateString());
         $this->assertSame('inativo', $paciente->fresh()->status_paciente);
     }
 
-    public function test_inativar_paciente_apaga_as_futuras_e_reativar_gera_de_novo(): void
+    public function test_nova_matricula_depois_de_encerrar_reativa_o_paciente_e_gera_de_novo(): void
     {
         $paciente = $this->paciente();
         $this->matricular($paciente, weekday: 2);
 
-        $formulario = [
-            'name' => $paciente->nome,
-            'cpf' => $paciente->cpf,
-            'nascimento' => '01/01/1990',
-            'phone' => $paciente->telefone,
-        ];
-
-        $this->put("/pacientes/{$paciente->id}", [...$formulario, 'status' => 'Inativo'])->assertSessionHasNoErrors();
+        $this->delete('/matriculas/'.$paciente->matriculas()->first()->id);
         $this->assertSame([], $this->horarios($paciente));
+        $this->assertSame('inativo', $paciente->fresh()->status_paciente);
 
-        $this->put("/pacientes/{$paciente->id}", [...$formulario, 'status' => 'Ativo'])->assertSessionHasNoErrors();
+        $this->matricular($paciente, weekday: 2)->assertSessionHasNoErrors();
+        $this->assertSame('ativo', $paciente->fresh()->status_paciente);
         $this->assertCount(4, $this->horarios($paciente));
     }
 

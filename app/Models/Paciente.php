@@ -6,7 +6,6 @@ use App\Support\Tela;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
@@ -29,9 +28,9 @@ class Paciente extends Model
         return ['data_nascimento' => 'date', 'aceita_whatsapp' => 'boolean'];
     }
 
-    public function matricula(): HasOne
+    public function matriculas(): HasMany
     {
-        return $this->hasOne(Matricula::class);
+        return $this->hasMany(Matricula::class);
     }
 
     public function consultas(): HasMany
@@ -69,6 +68,12 @@ class Paciente extends Model
         return $this->status_paciente === 'ativo';
     }
 
+    /** Ativo se tiver ao menos uma matrícula ativa; inativo se não tiver. */
+    public function sincronizarStatus(): void
+    {
+        $this->update(['status_paciente' => $this->matriculas()->ativas()->exists() ? 'ativo' : 'inativo']);
+    }
+
     /** Sessões realizadas, última e próxima sessão, matrícula e cobranças em aberto. */
     public function scopeComResumo(Builder $query): void
     {
@@ -78,7 +83,7 @@ class Paciente extends Model
             ->withMin(['consultas as proxima_sessao' => fn ($q) => $q
                 ->whereIn('status', ['agendado', 'confirmado'])
                 ->where('data_hora_consulta', '>=', now()->startOfDay())], 'data_hora_consulta')
-            ->with(['matricula', 'cobrancas' => fn ($q) => $q->where('situacao', 'pendente')->orderBy('vencimento')->with('pagamentos')])
+            ->with(['matriculas' => fn ($q) => $q->orderBy('id'), 'cobrancas' => fn ($q) => $q->where('situacao', 'pendente')->orderBy('vencimento')->with('pagamentos')])
             ->orderBy('nome');
     }
 
@@ -91,14 +96,12 @@ class Paciente extends Model
             'telefone' => $f['phone'],
             'email' => $f['email'] ?? null,
             'data_nascimento' => Tela::lerData($f['nascimento']),
-            'sexo' => $f['sexo'] ?? null,
             'endereco' => $f['endereco'] ?? null,
             'endereco_cidade' => $f['cidade'] ?? null,
             'endereco_uf' => isset($f['uf']) ? mb_strtoupper($f['uf']) : null,
             'contato_emergencia_nome' => $f['emergenciaNome'] ?? null,
             'contato_emergencia_telefone' => $f['emergenciaTelefone'] ?? null,
             'observacoes' => $f['observacoes'] ?? null,
-            'status_paciente' => $f['status'] === 'Ativo' ? 'ativo' : 'inativo',
             'aceita_whatsapp' => (bool) ($f['aceitaWhatsapp'] ?? false),
         ];
     }
@@ -134,7 +137,7 @@ class Paciente extends Model
             'emergenciaTelefone' => $this->contato_emergencia_telefone,
             'observacoes' => $this->observacoes,
             'aceitaWhatsapp' => (bool) $this->aceita_whatsapp,
-            'matricula' => $this->matricula?->paraTela(),
+            'matriculas' => $this->matriculas->map->paraTela()->values(),
             'cobrancaPendente' => $pendente?->paraTela(),
         ];
     }

@@ -42,8 +42,9 @@ Route::middleware('auth')->group(function () {
     Route::put('/pacientes/{paciente}', [PacienteController::class, 'update']);
     Route::post('/pacientes/{paciente}/foto', [PacienteController::class, 'foto']);
 
-    Route::put('/pacientes/{paciente}/matricula', [MatriculaController::class, 'update']);
-    Route::delete('/pacientes/{paciente}/matricula', [MatriculaController::class, 'destroy']);
+    Route::post('/pacientes/{paciente}/matriculas', [MatriculaController::class, 'store']);
+    Route::put('/matriculas/{matricula}', [MatriculaController::class, 'update']);
+    Route::delete('/matriculas/{matricula}', [MatriculaController::class, 'destroy']);
 
     Route::post('/pacientes/{paciente}/anamneses', [AnamneseController::class, 'store']);
     Route::put('/anamneses/{anamnese}', [AnamneseController::class, 'update']);
