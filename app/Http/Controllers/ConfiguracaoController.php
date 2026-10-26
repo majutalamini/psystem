@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Configuracao;
+use App\Models\Matricula;
 use App\Models\MensagemWhatsapp;
 use App\Services\AvisosWhatsapp;
 use App\Services\WhatsApp\EvolutionApi;
@@ -44,6 +45,9 @@ class ConfiguracaoController extends Controller
             'horario.inicio' => 'required|date_format:H:i',
             'horario.fim' => 'required|date_format:H:i|after:horario.inicio',
             'horario.duracao' => 'required|integer|min:10|max:240',
+            'horario.intervalo' => 'nullable|integer|min:0|max:120',
+            'horario.almocoInicio' => 'nullable|required_with:horario.almocoFim|date_format:H:i|after:horario.inicio',
+            'horario.almocoFim' => 'nullable|required_with:horario.almocoInicio|date_format:H:i|after:horario.almocoInicio|before:horario.fim',
             'goals.faturamentoMensal' => 'required|numeric|min:0',
             'goals.horasSemanais' => 'required|integer|min:0',
             'goals.sessoesSemanais' => 'required|integer|min:0',
@@ -64,11 +68,15 @@ class ConfiguracaoController extends Controller
         }
         $psicologo->save();
 
-        Configuracao::atual()->update([
+        $config = Configuracao::atual();
+        $config->update([
             'dias_atendimento' => $dados['horario']['dias'] ?? [],
             'expediente_inicio' => $dados['horario']['inicio'],
             'expediente_fim' => $dados['horario']['fim'],
             'duracao_sessao' => $dados['horario']['duracao'],
+            'intervalo_sessao' => (int) ($dados['horario']['intervalo'] ?? 0),
+            'almoco_inicio' => ($dados['horario']['almocoInicio'] ?? null) ?: null,
+            'almoco_fim' => ($dados['horario']['almocoFim'] ?? null) ?: null,
             'meta_faturamento_mensal' => $dados['goals']['faturamentoMensal'],
             'meta_horas_semanais' => $dados['goals']['horasSemanais'],
             'meta_sessoes_semanais' => $dados['goals']['sessoesSemanais'],
@@ -81,7 +89,19 @@ class ConfiguracaoController extends Controller
             'mensagem_cobranca' => $dados['whatsapp']['cobranca'] ?? null,
         ]);
 
-        return back()->with('aviso', 'Alterações salvas com sucesso.');
+        $horarios = $config->horarios();
+        $fora = Matricula::ativas()
+            ->with('paciente')
+            ->get()
+            ->filter(fn (Matricula $m) => ! $config->atendeNo($m->dia_da_matricula)
+                || ! in_array(substr($m->horario_da_matricula, 0, 5), $horarios, true))
+            ->map(fn (Matricula $m) => "{$m->paciente->nome} ({$m->dia_da_matricula} às ".substr($m->horario_da_matricula, 0, 5).')');
+
+        $aviso = $fora->isEmpty()
+            ? 'Alterações salvas com sucesso.'
+            : 'Alterações salvas com sucesso. Atenção: matrícula(s) fora do expediente: '.$fora->implode(', ').'.';
+
+        return back()->with('aviso', $aviso);
     }
 
     /** Botão "Enviar mensagem de teste": confere se o WhatsApp está configurado. */

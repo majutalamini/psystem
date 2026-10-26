@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class Consulta extends Model
 {
@@ -16,13 +17,22 @@ class Consulta extends Model
 
     const UPDATED_AT = null;
 
-    /** Rótulos da tela de Agenda. "Pendente" = agendado, ainda não confirmado. */
+    /** Rótulos da tela de Agenda. "Matriculado" = gerado pela matrícula; avulsa aparece como "Agendado". */
     public const STATUS = [
-        'agendado' => 'Pendente',
+        'agendado' => 'Matriculado',
         'confirmado' => 'Confirmado',
         'realizado' => 'Realizado',
         'falta' => 'Falta',
         'cancelado' => 'Cancelado',
+    ];
+
+    /** Transições de status permitidas na agenda. */
+    public const TRANSICOES = [
+        'agendado' => ['confirmado', 'realizado', 'cancelado'],
+        'confirmado' => ['realizado', 'falta', 'cancelado'],
+        'realizado' => ['confirmado', 'falta', 'cancelado'],
+        'falta' => ['realizado', 'cancelado'],
+        'cancelado' => [],
     ];
 
     protected $fillable = [
@@ -58,6 +68,20 @@ class Consulta extends Model
             ->exists();
     }
 
+    public function rotuloStatus(): string
+    {
+        if ($this->status === 'agendado' && $this->matricula_id === null) {
+            return 'Agendado';
+        }
+
+        return self::STATUS[$this->status];
+    }
+
+    public function transicaoPermitida(string $novoStatus): bool
+    {
+        return in_array($novoStatus, self::TRANSICOES[$this->status] ?? [], true);
+    }
+
     /**
      * Muda o status e mantém a cobrança da sessão em dia:
      * virou "realizado" → cobrança pendente com o valor da matrícula da própria consulta, vencendo no dia da sessão;
@@ -65,6 +89,15 @@ class Consulta extends Model
      */
     public function alterarStatus(string $status): void
     {
+        if (! $this->transicaoPermitida($status)) {
+            $de = $this->rotuloStatus();
+            $para = self::STATUS[$status] ?? $status;
+
+            throw ValidationException::withMessages([
+                'status' => "Não é permitido alterar o status de \"{$de}\" para \"{$para}\".",
+            ]);
+        }
+
         DB::transaction(function () use ($status) {
             $anterior = $this->status;
             $this->update(['status' => $status]);
@@ -110,7 +143,7 @@ class Consulta extends Model
             'date' => Tela::data($this->data_hora_consulta),
             'time' => $this->data_hora_consulta->format('H:i'),
             'type' => Tela::MODALIDADES[$this->modalidade],
-            'status' => self::STATUS[$this->status],
+            'status' => $this->rotuloStatus(),
             'statusKey' => $this->status,
             'recurring' => $this->matricula_id !== null,
         ];
