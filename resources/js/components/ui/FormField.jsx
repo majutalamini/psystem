@@ -4,7 +4,7 @@ import ErrorText from "./ErrorText";
 
 /* options aceita strings ou { value, label }. */
 export default function FormField({ label, value, onChange, type = "text", placeholder, textarea, options, error }) {
-  const style = error ? { ...inputStyle, borderColor: T.danger, marginBottom: 4 } : inputStyle;
+  const style = error ? { ...inputStyle, borderColor: T.danger } : inputStyle;
   return (
     <div>
       <label style={{ fontSize: 13.5, fontWeight: 600, color: T.muted }}>{label}</label>
@@ -15,7 +15,7 @@ export default function FormField({ label, value, onChange, type = "text", place
             : <option key={o.value} value={o.value}>{o.label}</option>))}
         </select>
       ) : textarea ? (
-        <textarea value={value ?? ""} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} style={error ? { ...textareaStyle, borderColor: T.danger, marginBottom: 4 } : textareaStyle} />
+        <textarea value={value ?? ""} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} style={error ? { ...textareaStyle, borderColor: T.danger } : textareaStyle} />
       ) : (
         <input type={type} value={value ?? ""} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} style={style} />
       )}
