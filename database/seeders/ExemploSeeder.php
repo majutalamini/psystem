@@ -26,7 +26,7 @@ class ExemploSeeder extends Seeder
                 continue;
             }
 
-            $matricula = $paciente->matricula()->create([
+            $matricula = $paciente->matriculas()->create([
                 'inicio_da_matricula' => today()->subWeeks(4),
                 'dia_da_matricula' => $matricula['dia'],
                 'horario_da_matricula' => $matricula['horario'],

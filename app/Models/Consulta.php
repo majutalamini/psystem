@@ -39,6 +39,11 @@ class Consulta extends Model
         return $this->belongsTo(Paciente::class);
     }
 
+    public function matricula(): BelongsTo
+    {
+        return $this->belongsTo(Matricula::class);
+    }
+
     public function cobranca(): HasOne
     {
         return $this->hasOne(Cobranca::class, 'agenda_id');
@@ -55,7 +60,7 @@ class Consulta extends Model
 
     /**
      * Muda o status e mantém a cobrança da sessão em dia:
-     * virou "realizado" → cobrança pendente com o valor da matrícula, vencendo no dia da sessão;
+     * virou "realizado" → cobrança pendente com o valor da matrícula da própria consulta, vencendo no dia da sessão;
      * saiu de "realizado" → a cobrança pendente é cancelada (uma paga, mesmo que em parte, não é mexida).
      */
     public function alterarStatus(string $status): void
@@ -75,9 +80,9 @@ class Consulta extends Model
                     return;
                 }
 
-                $valor = $this->paciente->matricula?->valor_sessao;
+                $valor = $this->matricula?->valor_sessao;
                 if ($valor === null) {
-                    return; // sem matrícula não há valor de sessão definido
+                    return; // consulta avulsa não tem valor de sessão definido
                 }
 
                 $this->cobranca()->create([

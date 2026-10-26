@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Configuracao;
 use App\Models\Consulta;
+use App\Models\Matricula;
 use App\Models\Paciente;
 use App\Models\Psicologo;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -51,10 +52,20 @@ abstract class ConsultorioTestCase extends TestCase
         ]);
     }
 
-    /** Salva a matrícula pela rota, como a tela faz. weekday: 0 = segunda ... 6 = domingo. */
+    /** Cria uma matrícula pela rota, como a tela faz. weekday: 0 = segunda ... 6 = domingo. */
     protected function matricular(Paciente $paciente, int $weekday, string $time = '09:00', float $valor = 200)
     {
-        return $this->from("/pacientes/{$paciente->id}")->put("/pacientes/{$paciente->id}/matricula", [
+        return $this->from("/pacientes/{$paciente->id}")->post("/pacientes/{$paciente->id}/matriculas", [
+            'weekday' => $weekday,
+            'time' => $time,
+            'tipo' => 'Consulta presencial',
+            'valor' => $valor,
+        ]);
+    }
+
+    protected function alterarMatricula(Matricula $matricula, int $weekday, string $time = '09:00', float $valor = 200)
+    {
+        return $this->from("/pacientes/{$matricula->paciente_id}")->put("/matriculas/{$matricula->id}", [
             'weekday' => $weekday,
             'time' => $time,
             'tipo' => 'Consulta presencial',

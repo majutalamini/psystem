@@ -3,8 +3,11 @@ import { createRoot } from "react-dom/client";
 import AppLayout from "./components/layout/AppLayout";
 import "../css/theme.css";
 import { T } from "./styles/theme";
+import { registrarAlertasDeRede } from "./utils/alertas";
 
 const pages = import.meta.glob("./pages/**/*.jsx", { eager: true });
+
+registrarAlertasDeRede();
 
 createInertiaApp({
   title: (title) => (title ? `${title} · Psystem` : "Psystem"),

@@ -83,7 +83,32 @@ class CobrancaSessaoTest extends ConsultorioTestCase
         $this->assertEquals(150, $cobranca->fresh()->saldo());
     }
 
-    public function test_consulta_de_paciente_sem_matricula_nao_gera_cobranca(): void
+    public function test_cobranca_usa_o_valor_da_matricula_da_propria_consulta(): void
+    {
+        $paciente = $this->paciente();
+        $this->matricular($paciente, weekday: 2, valor: 200);
+        $this->matricular($paciente, weekday: 3, valor: 120);
+
+        $quinta = Consulta::where('paciente_id', $paciente->id)->orderBy('data_hora_consulta')->get()
+            ->first(fn ($c) => $c->data_hora_consulta->dayOfWeekIso === 4);
+
+        $this->marcar($quinta, 'realizado');
+
+        $this->assertEquals(120, Cobranca::sole()->valor);
+    }
+
+    public function test_cobranca_de_sessao_continua_valendo_depois_de_encerrar_a_matricula(): void
+    {
+        $consulta = $this->consultaMatriculada(valor: 180);
+        $consulta->update(['status' => 'confirmado']);
+
+        $this->delete("/matriculas/{$consulta->matricula_id}");
+        $this->marcar($consulta, 'realizado');
+
+        $this->assertEquals(180, Cobranca::sole()->valor);
+    }
+
+    public function test_consulta_avulsa_sem_matricula_nao_gera_cobranca(): void
     {
         $consulta = Consulta::create([
             'paciente_id' => $this->paciente()->id,

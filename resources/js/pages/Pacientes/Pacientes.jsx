@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { router } from "@inertiajs/react";
 import { CalendarClock, ChevronLeft, ChevronRight, Edit3, ExternalLink, FolderOpen, Mail, Phone, Plus, SlidersHorizontal, Trash2, X } from "lucide-react";
-import { Avatar, Card, Modal, Pill, PrimaryButton, RowMenu, SearchInput } from "../../components/ui";
+import { Avatar, Card, Pill, PrimaryButton, RowMenu, SearchInput } from "../../components/ui";
 import { useAppData } from "../../hooks/useAppData";
 import { filterInputStyle, iconBtn } from "../../styles/formStyles";
 import { T } from "../../styles/theme";
+import { confirmar } from "../../utils/alertas";
 import { matriculasAtivas } from "../../utils/matricula";
 import NewPatientModal from "./components/NewPatientModal";
 
@@ -17,7 +18,6 @@ export default function Pacientes() {
   const [query, setQuery] = useState("");
   const [showNewModal, setShowNewModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [toDelete, setToDelete] = useState(null);
   const [filters, setFilters] = useState(SEM_FILTROS);
   const [page, setPage] = useState(1);
   const setFilter = (key) => (e) => { setFilters((f) => ({ ...f, [key]: e.target.value })); setPage(1); };
@@ -40,6 +40,16 @@ export default function Pacientes() {
   const visible = filtered.slice(start, start + PAGE_SIZE);
 
   const openPatient = (id) => router.visit(`/pacientes/${id}`);
+
+  async function excluir(p) {
+    const ok = await confirmar({
+      titulo: "Excluir cadastro?",
+      texto: `Você vai excluir o cadastro de ${p.name}. Matrícula, consultas, prontuários, anamnese, documentos e cobranças deste paciente também serão apagados. Essa ação não pode ser desfeita.`,
+      confirmar: "Excluir cadastro",
+      perigo: true,
+    });
+    if (ok) deletePatient(p.id);
+  }
 
   return (
     <div>
@@ -126,7 +136,7 @@ export default function Pacientes() {
                       { label: "Abrir", icon: FolderOpen, onClick: () => openPatient(p.id) },
                       { label: "Editar cadastro", icon: Edit3, onClick: () => router.visit(`/pacientes/${p.id}?editar=1`) },
                       { label: "Nova matrícula", icon: CalendarClock, onClick: () => router.visit(`/pacientes/${p.id}?aba=matricula`) },
-                      { label: "Excluir cadastro", icon: Trash2, tone: "danger", onClick: () => setToDelete(p) },
+                      { label: "Excluir cadastro", icon: Trash2, tone: "danger", onClick: () => excluir(p) },
                     ]} />
                   </div>
                 </td>
@@ -148,26 +158,6 @@ export default function Pacientes() {
           </div>
         </div>
       </Card>
-
-      {toDelete && (
-        <Modal title="Excluir cadastro?" onClose={() => setToDelete(null)} width={440}>
-          <p style={{ fontSize: 14, color: T.text, lineHeight: 1.6, margin: "0 0 8px" }}>
-            Você vai excluir o cadastro de <strong>{toDelete.name}</strong>.
-          </p>
-          <p style={{ fontSize: 13.5, color: T.muted, lineHeight: 1.6, margin: "0 0 20px" }}>
-            Matrícula, consultas, prontuários, anamnese, documentos e cobranças deste paciente também serão apagados. Essa ação não pode ser desfeita.
-          </p>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => setToDelete(null)} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, color: T.text, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
-            <button
-              onClick={() => deletePatient(toDelete.id, { onSuccess: () => setToDelete(null) })}
-              style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: T.danger, color: "#fff", fontWeight: 700, cursor: "pointer" }}
-            >
-              Excluir cadastro
-            </button>
-          </div>
-        </Modal>
-      )}
 
       {showNewModal && (
         <NewPatientModal

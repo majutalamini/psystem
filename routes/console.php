@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Matricula;
+use App\Models\Paciente;
 use App\Services\AgendaMatricula;
 use App\Services\Avisos;
 use App\Services\AvisosWhatsapp;
@@ -9,11 +10,20 @@ use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('agenda:gerar', function (AgendaMatricula $agenda) {
     $total = 0;
-    foreach (Matricula::with('paciente')->get() as $matricula) {
+    foreach (Matricula::ativas()->with('paciente')->get() as $matricula) {
         $total += $agenda->gerar($matricula);
     }
     $this->info("{$total} consulta(s) criada(s) a partir das matrículas.");
 })->purpose('Completa a agenda com as consultas das matrículas das próximas semanas');
+
+Artisan::command('pacientes:sincronizar-status', function () {
+    $alterados = 0;
+    foreach (Paciente::all() as $paciente) {
+        $paciente->sincronizarStatus();
+        $alterados += $paciente->wasChanged('status_paciente');
+    }
+    $this->info("{$alterados} paciente(s) com o status acertado pelas matrículas.");
+})->purpose('Deixa cada paciente ativo se tiver matrícula ativa e inativo se não tiver');
 
 Artisan::command('avisos:consultas', function (Avisos $avisos) {
     $this->info($avisos->consultas().' aviso(s) de consulta enviado(s).');
