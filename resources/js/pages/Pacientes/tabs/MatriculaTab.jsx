@@ -5,6 +5,7 @@ import { WEEKDAY_FULL } from "../../../data/agenda";
 import { useAppData } from "../../../hooks/useAppData";
 import { inputStyle } from "../../../styles/formStyles";
 import { FONT_DISPLAY, T } from "../../../styles/theme";
+import { confirmar } from "../../../utils/alertas";
 import { matriculasAtivas, matriculasDe, suportaVariasMatriculas } from "../../../utils/matricula";
 
 const LEGACY_KEY = "legacy";
@@ -19,7 +20,6 @@ export default function MatriculaTab({ patient }) {
   const varias = suportaVariasMatriculas(patient);
 
   const [editingKey, setEditingKey] = useState(null); // null | "new" | id da matrícula
-  const [confirmKey, setConfirmKey] = useState(null);
 
   // Horários livres no dia: sem os de matrículas de outros pacientes ativos nem as outras matrículas deste paciente.
   const livresNo = (dia, ignorarKey) => {
@@ -39,10 +39,17 @@ export default function MatriculaTab({ patient }) {
   }
 
   /* Encerrar apaga as consultas futuras da matrícula; sem matrícula ativa o paciente fica inativo (no servidor). */
-  function excluir(m) {
-    const opts = { onSuccess: () => setConfirmKey(null) };
-    if (!varias) removeMatricula(patient.id, opts);
-    else deleteMatricula(m.id, opts);
+  async function excluir(m) {
+    const ultima = matriculasAtivas(patient).length <= 1;
+    const ok = await confirmar({
+      titulo: "Encerrar esta matrícula?",
+      texto: `As próximas consultas ainda não confirmadas saem da agenda. ${ultima ? "Como é a última matrícula ativa, o paciente ficará inativo. " : ""}O histórico de sessões e cobranças continua.`,
+      confirmar: "Encerrar matrícula",
+      perigo: true,
+    });
+    if (!ok) return;
+    if (!varias) removeMatricula(patient.id);
+    else deleteMatricula(m.id);
   }
 
   const podeAdicionar = varias || lista.length === 0;
@@ -107,24 +114,10 @@ export default function MatriculaTab({ patient }) {
                 {!encerrada && (
                   <div style={{ display: "flex", gap: 8 }}>
                     <button onClick={() => setEditingKey(k)} style={{ ...ghostBtn, display: "flex", alignItems: "center", gap: 6 }}><Edit3 size={16} /> Editar</button>
-                    <button onClick={() => setConfirmKey(k)} style={{ ...ghostBtn, display: "flex", alignItems: "center", gap: 6, color: T.danger }}><Trash2 size={16} /> Encerrar</button>
+                    <button onClick={() => excluir(m)} style={{ ...ghostBtn, display: "flex", alignItems: "center", gap: 6, color: T.danger }}><Trash2 size={16} /> Encerrar</button>
                   </div>
                 )}
               </div>
-              {confirmKey === k && (
-                <div style={{ marginTop: 16, background: T.dangerTint, borderRadius: 12, padding: "14px 16px" }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: T.text }}>Encerrar esta matrícula?</div>
-                  <div style={{ fontSize: 13, color: T.muted, marginTop: 3 }}>
-                    As próximas consultas ainda não confirmadas saem da agenda. {matriculasAtivas(patient).length <= 1 ? "Como é a última matrícula ativa, o paciente ficará inativo. " : ""}O histórico de sessões e cobranças continua.
-                  </div>
-                  <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-                    <button onClick={() => setConfirmKey(null)} style={ghostBtn}>Cancelar</button>
-                    <button onClick={() => excluir(m)} style={{ padding: "9px 16px", borderRadius: 10, border: "none", background: T.danger, color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13.5 }}>
-                      Encerrar matrícula
-                    </button>
-                  </div>
-                </div>
-              )}
             </Card>
           );
         })}

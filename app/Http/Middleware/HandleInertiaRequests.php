@@ -30,6 +30,8 @@ class HandleInertiaRequests extends Middleware
             'hours' => fn () => $logado ? Configuracao::atual()->horarios() : [],
             'flash' => fn () => [
                 'aviso' => $request->session()->get('aviso'),
+                'sucesso' => $request->session()->get('sucesso'),
+                'erro' => $request->session()->get('erro'),
                 'whatsapp' => $request->session()->get('aviso_whatsapp'),
                 'envioAutomatico' => $request->session()->get('aviso_envio_automatico'),
             ],

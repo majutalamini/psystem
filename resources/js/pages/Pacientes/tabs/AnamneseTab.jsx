@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, Edit3, HeartPulse, Plus, Trash2 } from "lucide-
 import { Card, PrimaryButton } from "../../../components/ui";
 import { useAppData } from "../../../hooks/useAppData";
 import { FONT_DISPLAY, T } from "../../../styles/theme";
+import { confirmar } from "../../../utils/alertas";
 import AnamneseForm from "../components/AnamneseForm";
 
 const ghostBtn = { display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, color: T.text, fontWeight: 600, cursor: "pointer", fontSize: 13.5 };
@@ -12,11 +13,20 @@ export default function AnamneseTab({ patient, anamnese }) {
   const { saveAnamnese, deleteAnamnese } = useAppData();
   const { secoes, lista } = anamnese;
   const [editingId, setEditingId] = useState(null); // null | "new" | id da anamnese
-  const [confirmId, setConfirmId] = useState(null);
   const [abertas, setAbertas] = useState(() => new Set(lista.length ? [lista[0].id] : []));
 
   function alternar(id) {
     setAbertas((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  }
+
+  async function excluir(id) {
+    const ok = await confirmar({
+      titulo: "Excluir esta anamnese?",
+      texto: "As respostas dela serão apagadas. As outras anamneses do paciente continuam. Não dá para desfazer.",
+      confirmar: "Excluir anamnese",
+      perigo: true,
+    });
+    if (ok) deleteAnamnese(id);
   }
 
   function handleSave(form) {
@@ -81,25 +91,9 @@ export default function AnamneseTab({ patient, anamnese }) {
                   </button>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button onClick={() => setEditingId(a.id)} style={ghostBtn}><Edit3 size={16} /> Editar</button>
-                    <button onClick={() => setConfirmId(a.id)} style={{ ...ghostBtn, color: T.danger }}><Trash2 size={16} /> Excluir</button>
+                    <button onClick={() => excluir(a.id)} style={{ ...ghostBtn, color: T.danger }}><Trash2 size={16} /> Excluir</button>
                   </div>
                 </div>
-
-                {confirmId === a.id && (
-                  <div style={{ margin: "0 20px 16px", background: T.dangerTint, borderRadius: 12, padding: "14px 16px" }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 700, color: T.text }}>Excluir esta anamnese?</div>
-                    <div style={{ fontSize: 13, color: T.muted, marginTop: 3 }}>As respostas dela serão apagadas. As outras anamneses do paciente continuam. Não dá para desfazer.</div>
-                    <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-                      <button onClick={() => setConfirmId(null)} style={ghostBtn}>Cancelar</button>
-                      <button
-                        onClick={() => deleteAnamnese(a.id, { onSuccess: () => setConfirmId(null) })}
-                        style={{ padding: "9px 16px", borderRadius: 10, border: "none", background: T.danger, color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13.5 }}
-                      >
-                        Excluir anamnese
-                      </button>
-                    </div>
-                  </div>
-                )}
 
                 {aberta && (
                   <div style={{ padding: "4px 24px 22px", borderTop: `1px solid ${T.border}` }}>
