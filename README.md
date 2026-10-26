@@ -21,9 +21,10 @@ Pré-requisito: Docker com Docker Compose.
 
 ```bash
 cp .env.example .env
-docker compose up -d --build
+docker compose build
+docker compose run --rm app composer install
+docker compose up -d
 
-docker compose exec app composer install
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate
 docker compose exec app php artisan db:seed
@@ -38,6 +39,8 @@ Depois de subir:
 | E-mails de teste (Mailpit) | http://localhost:8025 |
 | Evolution API (WhatsApp) | http://localhost:8080/manager |
 | Postgres no host | `localhost:5433` (usuário, senha e banco: `psystem`) |
+
+O `composer install` roda antes do `up` porque a pasta `vendor/` fica num volume do Docker, que começa vazio. Sem ele o `app` e o `scheduler` caem ao subir.
 
 O `db:seed` cria o login de desenvolvimento `isadora.talamini@psystem.com` / `psystem123`, as configurações padrão e o modelo de anamnese.
 
