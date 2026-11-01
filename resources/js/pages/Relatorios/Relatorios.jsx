@@ -3,6 +3,7 @@ import { BackButton } from "../../components/ui";
 import { REPORT_CATEGORIES } from "../../data/reports";
 import { T } from "../../styles/theme";
 import CategoryReportList from "./CategoryReportList";
+import { ReportTitleContext } from "./components/ReportTableCard";
 import RelatoriosHub from "./RelatoriosHub";
 import { REPORT_COMPONENTS } from "./reports/index";
 
@@ -36,7 +37,11 @@ export default function Relatorios() {
         <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 26, fontWeight: 700, color: T.text, margin: 0 }}>{report ? report.label : ""}</h1>
         <p style={{ color: T.muted, fontSize: 14, marginTop: 4 }}>{report ? report.desc : ""}</p>
       </div>
-      {ReportComponent && <ReportComponent />}
+      {ReportComponent && (
+        <ReportTitleContext.Provider value={report ? report.label : "Relatório"}>
+          <ReportComponent />
+        </ReportTitleContext.Provider>
+      )}
     </div>
   );
 }

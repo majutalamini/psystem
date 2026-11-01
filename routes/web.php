@@ -40,6 +40,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/pacientes', [PacienteController::class, 'store']);
     Route::get('/pacientes/{paciente}', [PacienteController::class, 'show'])->name('pacientes.show');
     Route::put('/pacientes/{paciente}', [PacienteController::class, 'update']);
+    Route::delete('/pacientes/{paciente}', [PacienteController::class, 'destroy']);
     Route::post('/pacientes/{paciente}/foto', [PacienteController::class, 'foto']);
 
     Route::post('/pacientes/{paciente}/matriculas', [MatriculaController::class, 'store']);
@@ -59,6 +60,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/importacoes', [ImportacaoController::class, 'index'])->name('importacoes');
     Route::post('/pacientes/{paciente}/prontuarios', [ProntuarioController::class, 'store']);
     Route::put('/prontuarios/{prontuario}', [ProntuarioController::class, 'update']);
+    Route::delete('/prontuarios/{prontuario}', [ProntuarioController::class, 'destroy']);
 
     Route::get('/financeiro', [FinanceiroController::class, 'index'])->name('financeiro');
     Route::post('/cobrancas', [FinanceiroController::class, 'storeCobranca']);

@@ -39,6 +39,8 @@ export const actions = {
     ? router.put(`/prontuarios/${entry.id}`, entry, { ...keep, ...feedback("Prontuário atualizado.", opts) })
     : router.post(`/pacientes/${patientId}/prontuarios`, entry, { ...keep, ...feedback("Prontuário salvo.", opts) })),
 
+  deleteRecord: (id, opts) => router.delete(`/prontuarios/${id}`, { ...keep, ...feedback("Prontuário excluído.", opts) }),
+
   // form = { id?, titulo, respostas }: com id edita aquela anamnese; sem id cria uma nova (as outras não mudam).
   saveAnamnese: (patientId, form, opts) => {
     const { id, ...dados } = form;

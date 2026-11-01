@@ -10,10 +10,11 @@ import AtencaoPacientesCard from "./components/AtencaoPacientesCard";
 import PendenciasFinanceirasCard from "./components/PendenciasFinanceirasCard";
 import QuickActionButton from "./components/QuickActionButton";
 import WeekOverviewCard from "./components/WeekOverviewCard";
+import { formatMoney } from "../../utils/format";
 
 const STATUS_COLORS = [T.primary, T.track];
 
-const brl = (v) => v.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+const brl = (v) => formatMoney(v);
 
 /* "Dra. Isadora Talamini" → "Dra. Isadora"; "Isadora Talamini" → "Isadora". */
 function saudacao(nome) {

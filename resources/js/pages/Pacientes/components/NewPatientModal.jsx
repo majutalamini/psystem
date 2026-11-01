@@ -3,7 +3,7 @@ import { Check } from "lucide-react";
 import { FormField, FormSectionTitle, Modal, PrimaryButton } from "../../../components/ui";
 import { useAppData } from "../../../hooks/useAppData";
 import { T } from "../../../styles/theme";
-import { isValidBrDate, isValidCpf, maskCpf, maskDate, onlyDigits } from "../../../utils/format";
+import { isValidBrDate, isValidCpf, maskCpf, maskDate, maskPhone, onlyDigits } from "../../../utils/format";
 
 const BLANK = {
   name: "", nascimento: "", cpf: "", sexo: "", phone: "", email: "", endereco: "", cidade: "", uf: "",
@@ -32,7 +32,7 @@ export default function NewPatientModal({ onClose, onSave, editingPatient }) {
 
       <FormSectionTitle>Contato</FormSectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
-        <FormField label="Telefone *" {...field("phone")} placeholder="(00) 00000-0000" />
+        <FormField label="Telefone *" {...field("phone")} onChange={(v) => set("phone")(maskPhone(v))} placeholder="(00) 00000-0000" />
         <FormField label="E-mail" {...field("email")} type="email" placeholder="paciente@email.com" />
       </div>
       <label style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13.5, color: T.text, marginBottom: 16, cursor: "pointer" }}>
@@ -49,7 +49,7 @@ export default function NewPatientModal({ onClose, onSave, editingPatient }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
         <FormField label="Contato de emergência" {...field("emergenciaNome")} placeholder="Nome (parentesco)" />
-        <FormField label="Telefone de emergência" {...field("emergenciaTelefone")} placeholder="(00) 00000-0000" />
+        <FormField label="Telefone de emergência" {...field("emergenciaTelefone")} onChange={(v) => set("emergenciaTelefone")(maskPhone(v))} placeholder="(00) 00000-0000" />
       </div>
 
       <FormField label="Observações" {...field("observacoes")} textarea placeholder="Informações adicionais relevantes" />

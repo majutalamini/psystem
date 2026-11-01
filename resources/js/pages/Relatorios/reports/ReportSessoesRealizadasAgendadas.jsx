@@ -10,6 +10,7 @@ import FilterBar from "../components/FilterBar";
 import FilterField from "../components/FilterField";
 import { reportCellStyle } from "../components/reportStyles";
 import ReportTableCard from "../components/ReportTableCard";
+import DateInput from "../../../components/ui/DateInput";
 
 export default function ReportSessoesRealizadasAgendadas() {
   const { sessions } = useAppData();
@@ -34,10 +35,10 @@ export default function ReportSessoesRealizadasAgendadas() {
     <div>
       <FilterBar onApply={() => setApplied({ from: dateFrom, to: dateTo })}>
         <FilterField label="Data inicial">
-          <input value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} placeholder="dd/mm/aaaa" style={{ ...filterInputStyle, minWidth: 130 }} />
+          <DateInput value={dateFrom} onChange={(v) => setDateFrom(v)} style={{ ...filterInputStyle, minWidth: 130 }} />
         </FilterField>
         <FilterField label="Data final">
-          <input value={dateTo} onChange={(e) => setDateTo(e.target.value)} placeholder="dd/mm/aaaa" style={{ ...filterInputStyle, minWidth: 130 }} />
+          <DateInput value={dateTo} onChange={(v) => setDateTo(v)} style={{ ...filterInputStyle, minWidth: 130 }} />
         </FilterField>
       </FilterBar>
 

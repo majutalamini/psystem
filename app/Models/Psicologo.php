@@ -40,7 +40,7 @@ class Psicologo extends Authenticatable
             'nome' => $this->nome,
             'crp' => $this->crp,
             'email' => $this->email,
-            'telefone' => $this->telefone,
+            'telefone' => Tela::telefone($this->telefone),
             'initials' => Tela::iniciais($this->nome),
             'photo' => $this->foto ? Storage::url($this->foto) : null,
         ];

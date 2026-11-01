@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, Edit3 } from "lucide-react";
+import { CalendarDays, ClipboardList, Edit3, Printer, Trash2 } from "lucide-react";
 import { iconBtn } from "../../styles/formStyles";
 import { T } from "../../styles/theme";
 import { Card } from "../ui";
@@ -10,7 +10,7 @@ const recordLabelStyle = {
 
 const recordTextStyle = { fontSize: 15.5, color: T.text, lineHeight: 1.75 };
 
-export default function RecordCard({ entry, onEdit }) {
+export default function RecordCard({ entry, onEdit, onDelete, onPrint }) {
   return (
     <Card style={{ padding: 28, marginBottom: 18 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, gap: 14, paddingBottom: 16, borderBottom: `1px solid ${T.border}` }}>
@@ -25,7 +25,11 @@ export default function RecordCard({ entry, onEdit }) {
             </div>
           </div>
         </div>
-        <button onClick={onEdit} style={{ ...iconBtn, width: 44, height: 44, background: T.surface }} title="Editar registro"><Edit3 size={21} /></button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {onPrint && <button onClick={onPrint} style={{ ...iconBtn, width: 44, height: 44, background: T.surface }} title="Imprimir registro"><Printer size={21} /></button>}
+          <button onClick={onEdit} style={{ ...iconBtn, width: 44, height: 44, background: T.surface }} title="Editar registro"><Edit3 size={21} /></button>
+          {onDelete && <button onClick={onDelete} style={{ ...iconBtn, width: 44, height: 44, background: T.surface, color: T.danger }} title="Excluir registro"><Trash2 size={21} /></button>}
+        </div>
       </div>
       {entry.tecnicas && (
         <div style={{ marginBottom: 18 }}>

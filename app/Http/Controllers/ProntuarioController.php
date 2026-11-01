@@ -40,6 +40,13 @@ class ProntuarioController extends Controller
         return back();
     }
 
+    public function destroy(Prontuario $prontuario)
+    {
+        $prontuario->delete();
+
+        return back();
+    }
+
     private function validar(Request $request): array
     {
         $dados = $request->validate([

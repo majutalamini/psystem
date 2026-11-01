@@ -4,6 +4,7 @@ import { T } from "../../../styles/theme";
 import { TODAY, daysBetweenBr, parseBrDate } from "../../../utils/date";
 import { reportCellStyle } from "../components/reportStyles";
 import ReportTableCard from "../components/ReportTableCard";
+import { formatMoney } from "../../../utils/format";
 
 export default function ReportInadimplencia() {
   const { receivables } = useAppData();
@@ -16,7 +17,7 @@ export default function ReportInadimplencia() {
 
   return (
     <ReportTableCard
-      countLabel={<>Total em atraso: <strong>R$ {total.toLocaleString("pt-BR")}</strong> &nbsp;·&nbsp; {rows.length} cobrança(s)</>}
+      countLabel={<>Total em atraso: <strong>R$ {formatMoney(total)}</strong> &nbsp;·&nbsp; {rows.length} cobrança(s)</>}
       columns={["Paciente", "Referência", "Em aberto", "Vencimento", "Dias em atraso"]}
       rows={rows}
       emptyText="Nenhuma cobrança em atraso."
@@ -24,7 +25,7 @@ export default function ReportInadimplencia() {
         <tr key={r.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
           <td style={{ ...reportCellStyle, fontWeight: 600 }}>{r.paciente}</td>
           <td style={reportCellStyle}>{r.referencia}</td>
-          <td style={reportCellStyle}>R$ {r.saldo.toLocaleString("pt-BR")}</td>
+          <td style={reportCellStyle}>R$ {formatMoney(r.saldo)}</td>
           <td style={reportCellStyle}>{r.vencimento}</td>
           <td style={{ padding: "14px 20px" }}><Pill tone="danger">{r.diasAtraso} dias</Pill></td>
         </tr>

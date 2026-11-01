@@ -1,19 +1,44 @@
+import { createContext, useContext, useRef } from "react";
 import { Download, Printer } from "lucide-react";
 import { Card } from "../../../components/ui";
+import { useAppData } from "../../../hooks/useAppData";
 import { iconBtn } from "../../../styles/formStyles";
 import { T } from "../../../styles/theme";
+import { baixarCsv, imprimirTabela } from "../../../utils/imprimir";
+
+/* Relatorios.jsx informa o nome do relatório aberto; ele vira o título do papel e do arquivo. */
+export const ReportTitleContext = createContext("Relatório");
 
 export default function ReportTableCard({ countLabel, columns, rows, emptyText, renderRow }) {
+  const { auth } = useAppData();
+  const titulo = useContext(ReportTitleContext);
+  const tabelaRef = useRef(null);
+  const resumoRef = useRef(null);
+
+  /* Lê o que está na tela (já filtrado e formatado), então impressão e arquivo saem iguais ao que se vê. */
+  function lerTabela() {
+    const linhas = [...tabelaRef.current.querySelectorAll("tbody tr")]
+      .map((tr) => [...tr.children].map((td) => td.innerText.replace(/\s+/g, " ").trim()))
+      .filter((l) => l.length === columns.length);
+    return { linhas, resumo: resumoRef.current?.innerText.replace(/\s+/g, " ").trim() };
+  }
+
+  const imprimir = () => {
+    const { linhas, resumo } = lerTabela();
+    imprimirTabela(titulo, columns, linhas, auth.user, resumo);
+  };
+  const exportar = () => baixarCsv(titulo, columns, lerTabela().linhas);
+
   return (
     <Card style={{ overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderBottom: `1px solid ${T.border}` }}>
-        <span style={{ fontSize: 13.5, color: T.text }}>{countLabel}</span>
+        <span ref={resumoRef} style={{ fontSize: 13.5, color: T.text }}>{countLabel}</span>
         <div style={{ display: "flex", gap: 10 }}>
-          <button style={{ ...iconBtn, background: T.surface }} title="Imprimir"><Printer size={20} /></button>
-          <button style={{ ...iconBtn, background: T.surface }} title="Exportar"><Download size={20} /></button>
+          <button onClick={imprimir} style={{ ...iconBtn, background: T.surface }} title="Imprimir"><Printer size={20} /></button>
+          <button onClick={exportar} style={{ ...iconBtn, background: T.surface }} title="Baixar em planilha (CSV)"><Download size={20} /></button>
         </div>
       </div>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <table ref={tabelaRef} style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ background: T.surfaceAlt, textAlign: "left" }}>
             {columns.map((h) => (

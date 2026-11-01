@@ -8,6 +8,7 @@ use App\Models\Paciente;
 use App\Models\Prontuario;
 use App\Rules\Cpf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -57,6 +58,27 @@ class PacienteController extends Controller
         return back();
     }
 
+    /** Apaga o paciente e tudo o que é dele (várias tabelas travam a exclusão, então saem na ordem certa). */
+    public function destroy(Paciente $paciente)
+    {
+        $arquivos = $paciente->documentos()->pluck('caminho');
+
+        DB::transaction(function () use ($paciente) {
+            $paciente->prontuarios()->delete();
+            $paciente->cobrancas()->delete();
+            $paciente->consultas()->delete();
+            $paciente->matriculas()->delete();
+            $paciente->delete();
+        });
+
+        Storage::delete($arquivos->all());
+        if ($paciente->foto) {
+            Storage::disk('public')->delete($paciente->foto);
+        }
+
+        return redirect()->route('pacientes')->with('sucesso', 'Cadastro excluído.');
+    }
+
     public function foto(Request $request, Paciente $paciente)
     {
         $request->validate(['foto' => 'required|image|max:4096']);
@@ -88,6 +110,7 @@ class PacienteController extends Controller
             'aceitaWhatsapp' => 'boolean',
         ], [
             'nascimento.before_or_equal' => 'A data de nascimento não pode ser futura.',
+            'cpf.unique' => 'Já existe um paciente cadastrado com este CPF.',
         ], [
             'name' => 'nome', 'nascimento' => 'data de nascimento', 'phone' => 'telefone',
         ]);

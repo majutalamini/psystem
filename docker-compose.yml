@@ -1,7 +1,8 @@
 services:
   app:
     build: docker/php
-    command: php artisan serve --host=0.0.0.0 --port=8000
+    # storage:link publica as fotos (public/storage); sem ele o upload funciona mas a imagem não aparece.
+    command: sh -c "php artisan storage:link --force && php artisan serve --host=0.0.0.0 --port=8000"
     environment:
       # O servidor embutido atende uma requisição por vez; com workers a tela não trava esperando a outra.
       PHP_CLI_SERVER_WORKERS: 4
@@ -23,15 +24,6 @@ services:
       - vendor:/var/www/vendor
     depends_on:
       - db
-
-  node:
-    image: node:24
-    working_dir: /var/www
-    command: sh -c "npm install && npm run dev"
-    volumes:
-      - .:/var/www
-    ports:
-      - "5173:5173"
 
   db:
     image: postgres:17

@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { router } from "@inertiajs/react";
-import { ClipboardList, Plus } from "lucide-react";
+import { ClipboardList, Plus, Printer } from "lucide-react";
 import { blankRecordForm } from "../../components/prontuario/blankRecordForm";
 import RecordCard from "../../components/prontuario/RecordCard";
 import RecordForm from "../../components/prontuario/RecordForm";
 import { Avatar, Card, PageHeader, Pill, PrimaryButton, SearchInput } from "../../components/ui";
 import { useAppData } from "../../hooks/useAppData";
 import { T } from "../../styles/theme";
+import { confirmar } from "../../utils/alertas";
+import { imprimirProntuario } from "../../utils/imprimir";
 
 /* O servidor manda os registros só do paciente selecionado (?paciente=id) e a contagem de todos. */
 export default function Prontuarios({ selectedId, records, recordCounts }) {
-  const { patients, saveRecord } = useAppData();
+  const { auth, patients, saveRecord, deleteRecord } = useAppData();
   const [query, setQuery] = useState("");
   const [editingId, setEditingId] = useState(null); // null | "new" | entry id
 
@@ -22,6 +24,16 @@ export default function Prontuarios({ selectedId, records, recordCounts }) {
   function selectPatient(id) {
     setEditingId(null);
     router.get("/prontuarios", { paciente: id }, { preserveState: true, preserveScroll: true });
+  }
+
+  async function excluir(entry) {
+    const ok = await confirmar({
+      titulo: "Excluir este prontuário?",
+      texto: `O registro de ${entry.date} (${entry.sessao}) será apagado. Essa ação não pode ser desfeita.`,
+      confirmar: "Excluir prontuário",
+      perigo: true,
+    });
+    if (ok) deleteRecord(entry.id);
   }
 
   function handleSave(form) {
@@ -86,7 +98,11 @@ export default function Prontuarios({ selectedId, records, recordCounts }) {
               </div>
             </div>
             {editingId === null && (
-              <PrimaryButton icon={Plus} style={{ padding: "12px 18px", fontSize: 14.5 }} onClick={() => setEditingId("new")}>Novo registro</PrimaryButton>
+              <div style={{ display: "flex", gap: 10 }}>
+                {history.length > 0 && (
+                )}
+                <PrimaryButton icon={Plus} style={{ padding: "12px 18px", fontSize: 14.5 }} onClick={() => setEditingId("new")}>Novo registro</PrimaryButton>
+              </div>
             )}
           </Card>
 
@@ -103,7 +119,7 @@ export default function Prontuarios({ selectedId, records, recordCounts }) {
             </Card>
           ) : (
             history.map((entry) => (
-              <RecordCard key={entry.id} entry={entry} onEdit={() => setEditingId(entry.id)} />
+              <RecordCard key={entry.id} entry={entry} onEdit={() => setEditingId(entry.id)} onDelete={() => excluir(entry)} onPrint={() => imprimirProntuario(active, [entry], auth.user)} />
             ))
           )}
         </div>

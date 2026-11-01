@@ -47,6 +47,21 @@ export function formatMoney(valor) {
   return Number(valor).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+/* Máscara (00) 00000-0000 (celular) ou (00) 0000-0000 (fixo) enquanto digita. */
+export function maskPhone(v) {
+  const d = onlyDigits(v).slice(0, 11);
+  if (d.length === 0) return "";
+  if (d.length <= 2) return `(${d}`;
+  if (d.length <= 6) return d.replace(/^(\d{2})(\d+)/, "($1) $2");
+  if (d.length <= 10) return d.replace(/^(\d{2})(\d{4})(\d+)/, "($1) $2-$3");
+  return d.replace(/^(\d{2})(\d{5})(\d+)/, "($1) $2-$3");
+}
+
+/* Só dígitos, até `max` (idade etc.). */
+export function maskNumber(v, max = 3) {
+  return onlyDigits(v).slice(0, max);
+}
+
 /* Máscara 000.000.000-00 enquanto digita. */
 export function maskCpf(v) {
   const d = onlyDigits(v).slice(0, 11);
