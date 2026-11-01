@@ -1,6 +1,7 @@
 import { WA_SAMPLE } from "../data/whatsapp";
 import { matriculasAtivas } from "./matricula";
 import { firstName, onlyDigits } from "./format";
+import { formatMoney } from "./format";
 
 /* Normaliza para o formato aceito pelo wa.me (DDI + DDD + número). */
 export function waNumber(phone) {
@@ -24,7 +25,7 @@ export function fillWaVars(template, patient, receivable) {
     "{hora}": patient && matriculasAtivas(patient)[0] ? matriculasAtivas(patient)[0].time : "09:00",
     "{ultimaSessao}": (patient && patient.lastSession) || "—",
     "{referencia}": receivable ? receivable.referencia : "das sessões",
-    "{valor}": receivable ? `R$ ${(receivable.saldo ?? receivable.valor).toLocaleString("pt-BR")}` : "—",
+    "{valor}": receivable ? `R$ ${formatMoney(receivable.saldo ?? receivable.valor)}` : "—",
     "{vencimento}": receivable ? receivable.vencimento : "—",
   };
   return Object.keys(values).reduce((acc, k) => acc.split(k).join(values[k]), template);

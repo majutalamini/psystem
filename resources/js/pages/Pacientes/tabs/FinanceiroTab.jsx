@@ -9,8 +9,9 @@ import { SITUACOES } from "../../../data/finance";
 import { useAppData } from "../../../hooks/useAppData";
 import { filterInputStyle } from "../../../styles/formStyles";
 import { T, WA_GREEN } from "../../../styles/theme";
+import DateInput from "../../../components/ui/DateInput";
 import { parseBrDate } from "../../../utils/date";
-import { maskDate } from "../../../utils/format";
+import { maskDate, formatMoney } from "../../../utils/format";
 
 export default function FinanceiroTab({ patient, receivables }) {
   const { addReceivable, receiveReceivable, reopenReceivable } = useAppData();
@@ -62,8 +63,8 @@ export default function FinanceiroTab({ patient, receivables }) {
       </div>
 
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 18 }}>
-        <StatCard label="Total pago" value={`R$ ${totalPago.toLocaleString("pt-BR")}`} icon={TrendingUp} tone="success" />
-        <StatCard label="Em aberto" value={`R$ ${totalAberto.toLocaleString("pt-BR")}`} icon={Clock} tone={totalAberto > 0 ? "danger" : "primary"} />
+        <StatCard label="Total pago" value={`R$ ${formatMoney(totalPago)}`} icon={TrendingUp} tone="success" />
+        <StatCard label="Em aberto" value={`R$ ${formatMoney(totalAberto)}`} icon={Clock} tone={totalAberto > 0 ? "danger" : "primary"} />
       </div>
 
       <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
@@ -75,8 +76,8 @@ export default function FinanceiroTab({ patient, receivables }) {
           <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 700, color: T.text }}>
             <SlidersHorizontal size={20} color={T.primary} /> Filtrar
           </span>
-          <input value={dateStart} onChange={(e) => setDateStart(maskDate(e.target.value))} onKeyDown={(e) => e.key === "Enter" && applyFilters()} placeholder="Vencimento de" inputMode="numeric" title="Vencimento a partir de (dd/mm/aaaa)" style={{ ...filterInputStyle, minWidth: 0, width: 170, fontSize: 14.5, padding: "12px 14px", border: `1px solid ${T.muted}` }} />
-          <input value={dateEnd} onChange={(e) => setDateEnd(maskDate(e.target.value))} onKeyDown={(e) => e.key === "Enter" && applyFilters()} placeholder="até" inputMode="numeric" title="Vencimento até (dd/mm/aaaa)" style={{ ...filterInputStyle, minWidth: 0, width: 130, fontSize: 14.5, padding: "12px 14px", border: `1px solid ${T.muted}` }} />
+          <DateInput value={dateStart} onChange={setDateStart} onKeyDown={(e) => e.key === "Enter" && applyFilters()} placeholder="Vencimento de" title="Vencimento a partir de (dd/mm/aaaa)" style={{ ...filterInputStyle, minWidth: 0, width: 170, fontSize: 14.5, padding: "12px 14px", border: `1px solid ${T.muted}` }} />
+          <DateInput value={dateEnd} onChange={setDateEnd} onKeyDown={(e) => e.key === "Enter" && applyFilters()} placeholder="até" title="Vencimento até (dd/mm/aaaa)" style={{ ...filterInputStyle, minWidth: 0, width: 130, fontSize: 14.5, padding: "12px 14px", border: `1px solid ${T.muted}` }} />
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {SITUACOES.map((s) => {
               const on = situacaoSel.includes(s.key);
@@ -123,9 +124,9 @@ export default function FinanceiroTab({ patient, receivables }) {
                   <td style={{ padding: "14px 20px", fontSize: 13.5, color: T.text, fontWeight: 600 }}>{r.referencia}</td>
                   <td style={{ padding: "14px 20px", fontSize: 13.5, color: T.text }}>{r.vencimento}</td>
                   <td style={{ padding: "14px 20px", fontSize: 13.5, color: T.text }}>{r.recebimento || "—"}</td>
-                  <td style={{ padding: "14px 20px", fontSize: 13.5, color: T.text, fontWeight: 600 }}>R$ {r.valor.toLocaleString("pt-BR")}</td>
+                  <td style={{ padding: "14px 20px", fontSize: 13.5, color: T.text, fontWeight: 600 }}>R$ {formatMoney(r.valor)}</td>
                   <td style={{ padding: "14px 20px", fontSize: 13.5, color: r.recebido != null ? T.success : T.muted, fontWeight: 600 }}>
-                    {r.recebido != null ? `R$ ${r.recebido.toLocaleString("pt-BR")}` : "—"}
+                    {r.recebido != null ? `R$ ${formatMoney(r.recebido)}` : "—"}
                   </td>
                   <td style={{ padding: "14px 20px" }}>
                     {r.status === "Pago" ? (

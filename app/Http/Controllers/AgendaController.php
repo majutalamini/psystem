@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Configuracao;
 use App\Models\Consulta;
+use App\Services\AgendaMatricula;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
@@ -13,10 +14,11 @@ use Inertia\Inertia;
 class AgendaController extends Controller
 {
     /** Semana do dia escolhido (?data=AAAA-MM-DD), sem as consultas canceladas. */
-    public function index(Request $request)
+    public function index(Request $request, AgendaMatricula $matriculas)
     {
         $dia = $request->date('data') ?? today();
         $inicioSemana = $dia->copy()->startOfWeek(Carbon::MONDAY);
+        $matriculas->gerarSemana($inicioSemana);
 
         $consultas = Consulta::with('paciente')
             ->whereBetween('data_hora_consulta', [$inicioSemana, $inicioSemana->copy()->endOfWeek(Carbon::SUNDAY)])

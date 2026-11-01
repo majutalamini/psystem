@@ -3,8 +3,7 @@ import { parseMoney, sanitizeMoney } from "../../utils/format";
 
 const toText = (v) => {
   if (v === "" || v == null || Number.isNaN(Number(v))) return "";
-  const n = Number(v);
-  return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(".", ",");
+  return Number(v).toFixed(2).replace(".", ",");
 };
 
 /*

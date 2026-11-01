@@ -1,16 +1,17 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Edit3, HeartPulse, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Edit3, HeartPulse, Plus, Printer, Trash2 } from "lucide-react";
 import { Card, PrimaryButton } from "../../../components/ui";
 import { useAppData } from "../../../hooks/useAppData";
 import { FONT_DISPLAY, T } from "../../../styles/theme";
 import { confirmar } from "../../../utils/alertas";
+import { imprimirAnamnese } from "../../../utils/imprimir";
 import AnamneseForm from "../components/AnamneseForm";
 
 const ghostBtn = { display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, color: T.text, fontWeight: 600, cursor: "pointer", fontSize: 13.5 };
 
 /* Um paciente pode ter várias anamneses: cada uma é criada, editada e excluída sozinha. */
 export default function AnamneseTab({ patient, anamnese }) {
-  const { saveAnamnese, deleteAnamnese } = useAppData();
+  const { auth, saveAnamnese, deleteAnamnese } = useAppData();
   const { secoes, lista } = anamnese;
   const [editingId, setEditingId] = useState(null); // null | "new" | id da anamnese
   const [abertas, setAbertas] = useState(() => new Set(lista.length ? [lista[0].id] : []));
@@ -38,6 +39,7 @@ export default function AnamneseTab({ patient, anamnese }) {
     const atual = editingId === "new" ? null : lista.find((a) => a.id === editingId);
     return (
       <AnamneseForm
+        patient={patient}
         secoes={secoes}
         initial={atual || { titulo: "", respostas: {} }}
         editando={Boolean(atual)}
@@ -90,6 +92,7 @@ export default function AnamneseTab({ patient, anamnese }) {
                     <span style={{ marginLeft: "auto", color: T.muted, display: "flex" }}>{aberta ? <ChevronUp size={20} /> : <ChevronDown size={20} />}</span>
                   </button>
                   <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => imprimirAnamnese(patient, a, secoes, auth.user)} style={ghostBtn}><Printer size={16} /> Imprimir</button>
                     <button onClick={() => setEditingId(a.id)} style={ghostBtn}><Edit3 size={16} /> Editar</button>
                     <button onClick={() => excluir(a.id)} style={{ ...ghostBtn, color: T.danger }}><Trash2 size={16} /> Excluir</button>
                   </div>

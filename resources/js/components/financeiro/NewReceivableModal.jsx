@@ -5,6 +5,7 @@ import { T } from "../../styles/theme";
 import { todayLabel } from "../../utils/date";
 import { matriculasAtivas } from "../../utils/matricula";
 import { ErrorText, Modal, MoneyInput, PrimaryButton } from "../ui";
+import DateInput from "../ui/DateInput";
 
 /* Lançamento manual. Nasce em aberto; a baixa é feita pelo botão Receber. */
 export default function NewReceivableModal({ onClose, onSave, patientId }) {
@@ -37,7 +38,7 @@ export default function NewReceivableModal({ onClose, onSave, patientId }) {
       <ErrorText>{errors.valor}</ErrorText>
 
       <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Vencimento</label>
-      <input value={form.vencimento} onChange={(e) => setForm({ ...form, vencimento: e.target.value })} placeholder="dd/mm/aaaa" style={errorStyle("vencimento")} />
+      <DateInput value={form.vencimento} onChange={(v) => setForm({ ...form, vencimento: v })} style={errorStyle("vencimento")} />
       <ErrorText>{errors.vencimento}</ErrorText>
 
       <div style={{ display: "flex", gap: 10, marginTop: 6 }}>

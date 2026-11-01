@@ -62,6 +62,18 @@ class Tela
         return preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $cpf);
     }
 
+    /** (00) 00000-0000 ou (00) 0000-0000; o que não tem 10 ou 11 dígitos fica como foi digitado. */
+    public static function telefone(?string $telefone): ?string
+    {
+        $d = preg_replace('/\D/', '', (string) $telefone);
+
+        return match (strlen($d)) {
+            11 => preg_replace('/(\d{2})(\d{5})(\d{4})/', '($1) $2-$3', $d),
+            10 => preg_replace('/(\d{2})(\d{4})(\d{4})/', '($1) $2-$3', $d),
+            default => $telefone,
+        };
+    }
+
     /** Rótulo da forma de pagamento; formas que saíram da lista (ex.: convênio) aparecem pelo nome gravado. */
     public static function rotuloMetodo(?string $metodo): ?string
     {

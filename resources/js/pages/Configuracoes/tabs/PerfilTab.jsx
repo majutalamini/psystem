@@ -3,6 +3,7 @@ import { Camera, User } from "lucide-react";
 import { Avatar } from "../../../components/ui";
 import { useAppData } from "../../../hooks/useAppData";
 import { FONT_DISPLAY, T } from "../../../styles/theme";
+import { maskPhone } from "../../../utils/format";
 import Field from "../components/Field";
 import SettingsSection from "../components/SettingsSection";
 
@@ -52,7 +53,7 @@ export default function PerfilTab({ value, onChange, errors }) {
         <Field label="Nome completo" value={value.nome} onChange={(v) => onChange({ nome: v })} error={errors.nome} />
         <Field label="CRP" value={value.crp} onChange={(v) => onChange({ crp: v })} error={errors.crp} />
         <Field label="E-mail" type="email" value={value.email} onChange={(v) => onChange({ email: v })} error={errors.email} />
-        <Field label="Telefone" value={value.telefone} onChange={(v) => onChange({ telefone: v })} error={errors.telefone} />
+        <Field label="Telefone" value={value.telefone} onChange={(v) => onChange({ telefone: maskPhone(v) })} error={errors.telefone} />
       </div>
     </SettingsSection>
   );

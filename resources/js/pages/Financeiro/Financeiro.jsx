@@ -6,7 +6,7 @@ import { Card, PageHeader, Pill, PrimaryButton, RowMenu, StatCard } from "../../
 import WhatsappQuickModal from "../../components/whatsapp/WhatsappQuickModal";
 import { useAppData } from "../../hooks/useAppData";
 import { T } from "../../styles/theme";
-import { statusTone } from "../../utils/format";
+import { statusTone, formatMoney } from "../../utils/format";
 import NewPayableModal from "./components/NewPayableModal";
 
 export default function Financeiro({ receivables, payables }) {
@@ -67,10 +67,10 @@ export default function Financeiro({ receivables, payables }) {
       {tab === "receber" ? (
         <div>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
-            <StatCard label="Total a receber" value={`R$ ${totalReceber.toLocaleString("pt-BR")}`} delta={`${receivables.length} lançamentos`} icon={CircleDollarSign} />
-            <StatCard label="Recebido no mês" value={`R$ ${recebido.toLocaleString("pt-BR")}`} delta="Pago" icon={TrendingUp} />
-            <StatCard label="Pendente" value={`R$ ${pendenteReceber.toLocaleString("pt-BR")}`} delta="A vencer" deltaTone="danger" icon={Clock} />
-            <StatCard label="Atrasado" value={`R$ ${atrasadoReceber.toLocaleString("pt-BR")}`} delta="Requer cobrança" deltaTone="danger" icon={TrendingDown} />
+            <StatCard label="Total a receber" value={`R$ ${formatMoney(totalReceber)}`} delta={`${receivables.length} lançamentos`} icon={CircleDollarSign} />
+            <StatCard label="Recebido no mês" value={`R$ ${formatMoney(recebido)}`} delta="Pago" icon={TrendingUp} />
+            <StatCard label="Pendente" value={`R$ ${formatMoney(pendenteReceber)}`} delta="A vencer" deltaTone="danger" icon={Clock} />
+            <StatCard label="Atrasado" value={`R$ ${formatMoney(atrasadoReceber)}`} delta="Requer cobrança" deltaTone="danger" icon={TrendingDown} />
           </div>
 
           <Card style={{ overflow: "hidden" }}>
@@ -90,13 +90,13 @@ export default function Financeiro({ receivables, payables }) {
                   <tr key={r.id} style={{ borderTop: `1px solid ${T.border}` }}>
                     <td style={{ padding: "13px 20px", fontSize: 13.5, fontWeight: 600, color: T.text }}>{r.paciente}</td>
                     <td style={{ padding: "13px 20px", fontSize: 13, color: T.muted }}>{r.referencia}</td>
-                    <td style={{ padding: "13px 20px", fontSize: 13.5, fontWeight: 700, color: T.success }}>R$ {r.valor.toLocaleString("pt-BR")}</td>
+                    <td style={{ padding: "13px 20px", fontSize: 13.5, fontWeight: 700, color: T.success }}>R$ {formatMoney(r.valor)}</td>
                     <td style={{ padding: "13px 20px", fontSize: 13, color: T.text }}>{r.vencimento}</td>
                     <td style={{ padding: "13px 20px", fontSize: 13, color: r.recebimento ? T.text : T.muted }}>
                       {r.recebimento ? `${r.recebimento}${r.forma ? ` · ${r.forma}` : ""}` : "—"}
                       {r.status !== "Pago" && r.recebido != null && (
                         <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
-                          R$ {r.recebido.toLocaleString("pt-BR")} recebido · falta R$ {r.saldo.toLocaleString("pt-BR")}
+                          R$ {formatMoney(r.recebido)} recebido · falta R$ {formatMoney(r.saldo)}
                         </div>
                       )}
                     </td>
@@ -139,10 +139,10 @@ export default function Financeiro({ receivables, payables }) {
       ) : (
         <div>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
-            <StatCard label="Total a pagar" value={`R$ ${totalPagar.toLocaleString("pt-BR")}`} delta={`${payables.length} lançamentos`} icon={CircleDollarSign} />
-            <StatCard label="Pago no mês" value={`R$ ${pago.toLocaleString("pt-BR")}`} delta="Quitado" icon={TrendingUp} />
-            <StatCard label="Pendente" value={`R$ ${pendentePagar.toLocaleString("pt-BR")}`} delta="A vencer" deltaTone="danger" icon={Clock} />
-            <StatCard label="Saldo do mês" value={`R$ ${(recebido - pago).toLocaleString("pt-BR")}`} delta="Receber − Pagar" icon={Wallet} />
+            <StatCard label="Total a pagar" value={`R$ ${formatMoney(totalPagar)}`} delta={`${payables.length} lançamentos`} icon={CircleDollarSign} />
+            <StatCard label="Pago no mês" value={`R$ ${formatMoney(pago)}`} delta="Quitado" icon={TrendingUp} />
+            <StatCard label="Pendente" value={`R$ ${formatMoney(pendentePagar)}`} delta="A vencer" deltaTone="danger" icon={Clock} />
+            <StatCard label="Saldo do mês" value={`R$ ${formatMoney(recebido - pago)}`} delta="Receber − Pagar" icon={Wallet} />
           </div>
 
           <Card style={{ overflow: "hidden" }}>
@@ -162,7 +162,7 @@ export default function Financeiro({ receivables, payables }) {
                   <tr key={p.id} style={{ borderTop: `1px solid ${T.border}` }}>
                     <td style={{ padding: "13px 20px", fontSize: 13.5, fontWeight: 600, color: T.text }}>{p.descricao}</td>
                     <td style={{ padding: "13px 20px" }}><Pill tone="muted">{p.categoria}</Pill></td>
-                    <td style={{ padding: "13px 20px", fontSize: 13.5, fontWeight: 700, color: T.danger }}>R$ {p.valor.toLocaleString("pt-BR")}</td>
+                    <td style={{ padding: "13px 20px", fontSize: 13.5, fontWeight: 700, color: T.danger }}>R$ {formatMoney(p.valor)}</td>
                     <td style={{ padding: "13px 20px", fontSize: 13, color: T.text }}>{p.vencimento}</td>
                     <td style={{ padding: "13px 20px", fontSize: 13, color: p.pagamento ? T.text : T.muted }}>
                       {p.pagamento ? `${p.pagamento}${p.forma ? ` · ${p.forma}` : ""}` : "—"}

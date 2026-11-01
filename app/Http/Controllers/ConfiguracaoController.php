@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Configuracao;
+use App\Models\Matricula;
 use App\Models\MensagemWhatsapp;
 use App\Services\AvisosWhatsapp;
 use App\Services\WhatsApp\EvolutionApi;
@@ -54,9 +55,14 @@ class ConfiguracaoController extends Controller
             'whatsapp.lembrete' => 'nullable|string',
             'whatsapp.retorno' => 'nullable|string',
             'whatsapp.cobranca' => 'nullable|string',
-        ], [], [
+        ], [
+            'perfil.crp.unique' => 'Já existe uma psicóloga cadastrada com este CRP.',
+            'perfil.email.unique' => 'Já existe uma psicóloga cadastrada com este e-mail.',
+        ], [
             'senha.atual' => 'senha atual', 'senha.nova' => 'nova senha', 'horario.fim' => 'término do expediente',
         ]);
+
+        $this->conferirMatriculas($dados['horario']);
 
         $psicologo->fill($dados['perfil']);
         if (! empty($dados['senha']['nova'])) {
@@ -82,6 +88,39 @@ class ConfiguracaoController extends Controller
         ]);
 
         return back()->with('aviso', 'Alterações salvas com sucesso.');
+    }
+
+    /** Dia ou horário que ainda tem matrícula ativa não pode sair do expediente: a matrícula precisa ser alterada antes. */
+    private function conferirMatriculas(array $horario): void
+    {
+        $dias = $horario['dias'] ?? [];
+        $inicio = (int) substr($horario['inicio'], 0, 2);
+        $fim = (int) substr($horario['fim'], 0, 2);
+        $horas = array_map(fn ($h) => sprintf('%02d:00', $h), $inicio < $fim ? range($inicio, $fim - 1) : []);
+        $rotulos = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+
+        $semDia = $foraDoExpediente = [];
+        foreach (Matricula::ativas()->with('paciente')->orderBy('id')->get() as $matricula) {
+            $hora = substr($matricula->horario_da_matricula, 0, 5);
+            $descricao = "{$matricula->paciente->nome} ({$matricula->dia_da_matricula}, {$hora})";
+
+            if (! in_array($rotulos[$matricula->diaIso() - 1], $dias, true)) {
+                $semDia[] = $descricao;
+            } elseif (! in_array($hora, $horas, true)) {
+                $foraDoExpediente[] = $descricao;
+            }
+        }
+
+        $erros = [];
+        if ($semDia) {
+            $erros['horario.dias'] = 'Este dia não pode ser removido: há matrícula ativa nele — '.implode('; ', $semDia).'. Altere a matrícula para outro dia/horário antes de retirar o dia do atendimento.';
+        }
+        if ($foraDoExpediente) {
+            $erros['horario.inicio'] = 'O expediente não pode deixar de fora horários com matrícula ativa — '.implode('; ', $foraDoExpediente).'. Altere a matrícula antes de mudar o expediente.';
+        }
+        if ($erros) {
+            throw ValidationException::withMessages($erros);
+        }
     }
 
     /** Botão "Enviar mensagem de teste": confere se o WhatsApp está configurado. */

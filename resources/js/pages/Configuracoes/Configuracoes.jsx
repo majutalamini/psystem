@@ -4,6 +4,7 @@ import { Check, ChevronRight, Clock, ShieldCheck, Star, User } from "lucide-reac
 import WhatsappIcon from "../../components/icons/WhatsappIcon";
 import { Card, PageHeader, PrimaryButton } from "../../components/ui";
 import { FONT_DISPLAY, T } from "../../styles/theme";
+import { erro } from "../../utils/alertas";
 import HorarioTab from "./tabs/HorarioTab";
 import MetasTab from "./tabs/MetasTab";
 import PerfilTab from "./tabs/PerfilTab";
@@ -44,6 +45,8 @@ export default function Configuracoes({ goals, horario, whatsappModo, whatsappCo
     saveSettings(form, {
       onSuccess: () => setForm((f) => ({ ...f, senha: { atual: "", nova: "" } })),
       onError: (errs) => {
+        const horarioErros = Object.entries(errs).filter(([k]) => k.startsWith("horario.") && /matrícula/.test(String(errs[k])));
+        if (horarioErros.length) erro(horarioErros.map(([, m]) => m).join(" "), "Não foi possível salvar o horário");
         const withError = SETTINGS_TABS.find((t) => Object.keys(errs).some((k) => k.startsWith(`${t.section}.`)));
         if (withError) setTab(withError.key);
       },

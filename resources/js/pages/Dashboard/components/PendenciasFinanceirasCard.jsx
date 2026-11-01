@@ -1,7 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { Card, Pill } from "../../../components/ui";
 import { T } from "../../../styles/theme";
-import { statusTone } from "../../../utils/format";
+import { statusTone, formatMoney } from "../../../utils/format";
 import { navigate } from "../../../utils/nav";
 
 /* pendencias: as cobranças em aberto que vencem primeiro (no máximo quatro); total: todas em aberto. */
@@ -23,7 +23,7 @@ export default function PendenciasFinanceirasCard({ pendencias, total }) {
                 <div style={{ fontSize: 13.5, fontWeight: 600, color: T.text }}>{r.paciente}</div>
                 <div style={{ fontSize: 12, color: T.muted }}>{r.referencia} · vence {r.vencimento}</div>
               </div>
-              <span style={{ fontSize: 13.5, fontWeight: 700, color: T.text }}>R$ {r.saldo.toLocaleString("pt-BR")}</span>
+              <span style={{ fontSize: 13.5, fontWeight: 700, color: T.text }}>R$ {formatMoney(r.saldo)}</span>
               <Pill tone={statusTone(r.status)}>{r.status}</Pill>
             </div>
           ))}

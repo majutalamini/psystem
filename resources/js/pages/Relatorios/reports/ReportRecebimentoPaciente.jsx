@@ -6,6 +6,7 @@ import FilterBar from "../components/FilterBar";
 import FilterField from "../components/FilterField";
 import { reportCellStyle } from "../components/reportStyles";
 import ReportTableCard from "../components/ReportTableCard";
+import { formatMoney } from "../../../utils/format";
 
 export default function ReportRecebimentoPaciente() {
   const { receivables } = useAppData();
@@ -35,7 +36,7 @@ export default function ReportRecebimentoPaciente() {
       </FilterBar>
 
       <ReportTableCard
-        countLabel={<>Total recebido: <strong>R$ {total.toLocaleString("pt-BR")}</strong></>}
+        countLabel={<>Total recebido: <strong>R$ {formatMoney(total)}</strong></>}
         columns={["Paciente", "Cobranças com recebimento", "Total recebido"]}
         rows={rows}
         emptyText="Nenhum recebimento encontrado para o paciente pesquisado."
@@ -43,7 +44,7 @@ export default function ReportRecebimentoPaciente() {
           <tr key={r.name} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
             <td style={{ ...reportCellStyle, fontWeight: 600 }}>{r.name}</td>
             <td style={reportCellStyle}>{r.count}</td>
-            <td style={reportCellStyle}>R$ {r.total.toLocaleString("pt-BR")}</td>
+            <td style={reportCellStyle}>R$ {formatMoney(r.total)}</td>
           </tr>
         )}
       />
