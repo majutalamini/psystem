@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { router } from "@inertiajs/react";
-import { ClipboardList, Plus, Printer } from "lucide-react";
+import { ClipboardList, Plus } from "lucide-react";
 import { blankRecordForm } from "../../components/prontuario/blankRecordForm";
 import RecordCard from "../../components/prontuario/RecordCard";
 import RecordForm from "../../components/prontuario/RecordForm";
@@ -99,8 +99,6 @@ export default function Prontuarios({ selectedId, records, recordCounts }) {
             </div>
             {editingId === null && (
               <div style={{ display: "flex", gap: 10 }}>
-                {history.length > 0 && (
-                )}
                 <PrimaryButton icon={Plus} style={{ padding: "12px 18px", fontSize: 14.5 }} onClick={() => setEditingId("new")}>Novo registro</PrimaryButton>
               </div>
             )}

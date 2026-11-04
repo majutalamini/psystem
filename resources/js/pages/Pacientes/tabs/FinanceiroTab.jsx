@@ -1,14 +1,12 @@
 import { useState } from "react";
-import { Banknote, Clock, MessageSquare, Plus, SlidersHorizontal, TrendingUp, Undo2, X } from "lucide-react";
+import { Banknote, Clock, Plus, SlidersHorizontal, TrendingUp, Undo2, X } from "lucide-react";
 import NewReceivableModal from "../../../components/financeiro/NewReceivableModal";
 import ReceivePaymentModal from "../../../components/financeiro/ReceivePaymentModal";
-import WhatsappIcon from "../../../components/icons/WhatsappIcon";
 import { Card, Pill, PrimaryButton, RowMenu, StatCard } from "../../../components/ui";
-import WhatsappQuickModal from "../../../components/whatsapp/WhatsappQuickModal";
 import { SITUACOES } from "../../../data/finance";
 import { useAppData } from "../../../hooks/useAppData";
 import { filterInputStyle } from "../../../styles/formStyles";
-import { T, WA_GREEN } from "../../../styles/theme";
+import { T } from "../../../styles/theme";
 import DateInput from "../../../components/ui/DateInput";
 import { parseBrDate } from "../../../utils/date";
 import { maskDate, formatMoney } from "../../../utils/format";
@@ -17,7 +15,6 @@ export default function FinanceiroTab({ patient, receivables }) {
   const { addReceivable, receiveReceivable, reopenReceivable } = useAppData();
   const [showModal, setShowModal] = useState(false);
   const [receiving, setReceiving] = useState(null);   // lançamento em baixa
-  const [cobrando, setCobrando] = useState(false);    // cobrança via WhatsApp
   const mine = receivables;
   const totalPago = mine.reduce((s, r) => s + (r.recebido || 0), 0);
   const totalAberto = mine.reduce((s, r) => s + r.saldo, 0);
@@ -53,12 +50,6 @@ export default function FinanceiroTab({ patient, receivables }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
-        <button
-          onClick={() => setCobrando(true)}
-          style={{ display: "flex", alignItems: "center", gap: 10, padding: "15px 26px", borderRadius: 12, border: "none", background: WA_GREEN, color: "#fff", fontWeight: 700, fontSize: 16, cursor: "pointer", boxShadow: "0 4px 12px rgba(31,174,110,0.25)" }}
-        >
-          <WhatsappIcon size={24} color="#fff" /> Cobrar no WhatsApp
-        </button>
         <PrimaryButton icon={Plus} style={{ padding: "15px 26px", fontSize: 16, borderRadius: 12 }} onClick={() => setShowModal(true)}>Novo lançamento</PrimaryButton>
       </div>
 
@@ -156,7 +147,6 @@ export default function FinanceiroTab({ patient, receivables }) {
                         items={[
                           ...(r.status !== "Pago" ? [
                             { label: "Registrar recebimento", icon: Banknote, onClick: () => setReceiving(r) },
-                            { label: "Cobrar no WhatsApp", icon: MessageSquare, onClick: () => setCobrando(true) },
                           ] : []),
                           ...(r.recebido != null ? [
                             { label: "Estornar último recebimento", icon: Undo2, tone: "danger", onClick: () => reopenReceivable(r.id) },
@@ -192,13 +182,6 @@ export default function FinanceiroTab({ patient, receivables }) {
         />
       )}
 
-      {cobrando && (
-        <WhatsappQuickModal
-          initialPatientId={patient.id}
-          initialTemplate="cobranca"
-          onClose={() => setCobrando(false)}
-        />
-      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 <?php
 
 // Pacientes de exemplo (os mesmos do protótipo do front).
-// Todos com o mesmo telefone de teste, para nenhuma mensagem de WhatsApp ir para um número de verdade.
+// Todos usam o mesmo telefone fictício para demonstração.
 return [
     [
         'nome' => 'Maria Aparecida',

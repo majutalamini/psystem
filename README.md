@@ -1,6 +1,6 @@
 # Psystem
 
-Sistema de agendamento e gestão para consultório de psicologia: pacientes, matrículas (dia e horário fixos), agenda, prontuários, anamnese, documentos, financeiro, relatórios, declarações e lembretes por WhatsApp e e-mail.
+Sistema de agendamento e gestão para consultório de psicologia: pacientes, matrículas (dia e horário fixos), agenda, prontuários, anamnese, documentos, financeiro, relatórios, declarações e avisos por e-mail.
 
 Um único projeto Laravel que entrega as telas em React pelo Inertia. Não existe API separada: o controller devolve os dados como props e a tela React os recebe.
 
@@ -12,18 +12,19 @@ Um único projeto Laravel que entrega as telas em React pelo Inertia. Não exist
 | Front | React 19, Inertia.js 3, Vite 8, lucide-react, recharts, SweetAlert2 |
 | Banco | PostgreSQL 17 |
 | Infra de dev | Docker Compose |
-| WhatsApp | Evolution API ou Twilio (ou modo "teste", que só registra) |
 | Testes | PHPUnit 12, SQLite em memória |
 
 ## Como iniciar
 
-Pré-requisito: Docker com Docker Compose.
+Pré-requisitos: Docker com Docker Compose e Node.js instalado na máquina para o Vite. O Node não roda em container.
 
 ```bash
 cp .env.example .env
 docker compose build
 docker compose run --rm app composer install
-docker compose up -d
+docker compose up -d --remove-orphans
+npm ci
+npm run build
 
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate
@@ -37,10 +38,9 @@ Depois de subir:
 | Sistema | http://localhost:8000 |
 | Vite (hot reload) | http://localhost:5173 |
 | E-mails de teste (Mailpit) | http://localhost:8025 |
-| Evolution API (WhatsApp) | http://localhost:8080/manager |
 | Postgres no host | `localhost:5433` (usuário, senha e banco: `psystem`) |
 
-O `composer install` roda antes do `up` porque a pasta `vendor/` fica num volume do Docker, que começa vazio. Sem ele o `app` e o `scheduler` caem ao subir.
+A pasta `vendor/` fica num volume do Docker. O `app` instala as dependências se elas ainda não existirem, e o `scheduler` aguarda a instalação antes de iniciar.
 
 O `db:seed` cria o login de desenvolvimento `isadora.talamini@psystem.com` / `psystem123`, as configurações padrão e o modelo de anamnese.
 
@@ -54,18 +54,21 @@ docker compose exec app php artisan db:seed --class=ExemploSeeder
 
 - `app`: `php artisan serve` com 4 workers.
 - `scheduler`: `php artisan schedule:work`, que roda as tarefas agendadas.
-- `node`: `npm install && npm run dev`.
 - `db`: Postgres.
 - `mailpit`: caixa de entrada de teste.
-- `evolution` e `redis`: só são usados se `WHATSAPP_MODO=evolution`.
 
-### WhatsApp
+### Frontend local
 
-`WHATSAPP_MODO` no `.env`:
+Os containers executam PHP, PostgreSQL e Mailpit. As dependências e o build do frontend ficam na máquina:
 
-- `teste`: só registra as mensagens (Configurações › WhatsApp). É o padrão.
-- `evolution`: envia pela Evolution API. Defina `EVOLUTION_API_KEY` e conecte o número por QR code no painel.
-- `twilio`: envia pela Twilio. Preencha as variáveis `TWILIO_*`.
+```bash
+npm ci
+npm run build
+```
+
+Para desenvolver com atualização automática, rode `npm run dev` em outro terminal e mantenha-o aberto. Acesse o sistema pela porta 8000; a porta 5173 serve os arquivos do Vite. Para voltar ao build estático, pare o Vite, remova `public/hot` se existir e execute `npm run build`.
+
+Ao atualizar uma instalação existente, execute `docker compose exec app php artisan migrate`. A migration de remoção da integração antiga apaga apenas seus registros de mensagens, consentimento e configurações; pacientes, agenda e financeiro são preservados. O rollback recria a estrutura, sem recuperar as mensagens apagadas. `docker compose up -d --remove-orphans` remove os containers que deixaram de ser usados, preservando os volumes.
 
 ## Comandos úteis
 
@@ -74,18 +77,16 @@ docker compose exec app php artisan test
 docker compose exec app php artisan migrate
 docker compose exec app php artisan agenda:gerar
 docker compose exec app php artisan pacientes:sincronizar-status
-docker compose exec node npm run build
+npm run build
 ```
 
 Tarefas agendadas (`routes/console.php`):
 
 | Comando | Quando | O que faz |
 |---|---|---|
-| `agenda:gerar` | todo dia 01:00 | Completa a agenda das próximas 4 semanas a partir das matrículas ativas |
+| `agenda:gerar` | todo dia 01:00 | Completa a agenda das próximas 8 semanas a partir das matrículas ativas |
 | `avisos:consultas` | a cada minuto | E-mail para a psicóloga cerca de 1 hora antes de cada consulta |
 | `avisos:vencimentos` | todo dia 07:00 | E-mail das contas que vencem nos próximos 3 dias |
-| `whatsapp:lembretes` | todo dia 09:00 | Lembrete de sessão do dia seguinte |
-| `whatsapp:cobrancas` | todo dia 09:00 | Cobranças que vencem em "dias antes" (Configurações) |
 
 `pacientes:sincronizar-status` não é agendado: serve para acertar de uma vez o status dos pacientes já cadastrados.
 
@@ -103,7 +104,7 @@ app/
   Http/Middleware/HandleInertiaRequests.php   dados compartilhados em toda tela
   Models/             Paciente, Matricula, Consulta (tabela agenda), Cobranca...
   Rules/Cpf.php       validação de CPF com dígitos verificadores
-  Services/           AgendaMatricula, Avisos, AvisosWhatsapp, WhatsApp/
+  Services/           AgendaMatricula, Avisos
   Support/Tela.php    formatação de datas, CPF e rótulos para o front
 database/
   migrations/
@@ -129,7 +130,7 @@ tests/Feature/
 
 **Matrículas (P13)**
 - Um paciente pode ter várias matrículas. Cada uma é um dia e horário fixos por semana, com modalidade e `valor_sessao`.
-- Ao criar ou alterar, o sistema gera as consultas das próximas 4 semanas na tabela `agenda` (`AgendaMatricula`). Ao alterar, as consultas futuras ainda "agendadas" são apagadas e geradas de novo.
+- Ao criar ou alterar, o sistema gera as consultas das próximas 8 semanas na tabela `agenda` (`AgendaMatricula`). Ao alterar, as consultas futuras ainda "agendadas" são apagadas e geradas de novo.
 - Encerrar (`DELETE /matriculas/{id}`) não apaga a linha: marca `status_matricula = encerrada` e `fim_da_matricula`, e tira as consultas futuras não confirmadas. O histórico e as cobranças continuam.
 - Não pode haver duas matrículas ativas no mesmo dia e horário, nem de pacientes diferentes nem do mesmo.
 - Rotas: `POST /pacientes/{id}/matriculas`, `PUT /matriculas/{id}`, `DELETE /matriculas/{id}`.
@@ -160,10 +161,10 @@ tests/Feature/
 docker compose exec app php artisan test
 ```
 
-Rodam em SQLite em memória, com o relógio parado em 28/09/2026 às 10:00 (`ConsultorioTestCase`). Os testes cobrem agenda e matrícula, cobrança por sessão, financeiro, WhatsApp, e-mails de aviso, recuperação de senha, cadastro de paciente e as telas com os dados de exemplo.
+Rodam em SQLite em memória, com o relógio parado em 28/09/2026 às 10:00 (`ConsultorioTestCase`). Os testes cobrem agenda e matrícula, cobrança por sessão, financeiro, e-mails de aviso, recuperação de senha, cadastro de paciente e as telas com os dados de exemplo.
 
 Os testes não passam pelo Postgres. Mudanças em migration devem ser conferidas também com `php artisan migrate` no Docker.
 
 ## Produção
 
-Ainda não há configuração de produção no repositório. O `app` roda `php artisan serve`, que é servidor de desenvolvimento. Antes de publicar é preciso um Compose de produção (PHP-FPM com Nginx ou FrankenPHP), `npm run build` em vez do container `node`, `.env` com `APP_ENV=production`, `APP_DEBUG=false` e senhas fortes, o banco e o Mailpit fora de portas públicas, HTTPS, volumes persistentes e backup do Postgres e de `storage/app`. Os dados são sensíveis (saúde), então o servidor deve ficar no Brasil.
+Ainda não há configuração de produção no repositório. O `app` roda `php artisan serve`, que é servidor de desenvolvimento. Antes de publicar é preciso um Compose de produção (PHP-FPM com Nginx ou FrankenPHP), `npm run build` no ambiente de build, `.env` com `APP_ENV=production`, `APP_DEBUG=false` e senhas fortes, o banco e o Mailpit fora de portas públicas, HTTPS, volumes persistentes e backup do Postgres e de `storage/app`. Os dados são sensíveis (saúde), então o servidor deve ficar no Brasil.

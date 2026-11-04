@@ -243,24 +243,18 @@ class AgendaMatriculaTest extends ConsultorioTestCase
         ])->assertSessionHasErrors(['hora' => 'Esse horário está fora do expediente.']);
     }
 
-    public function test_geracao_da_agenda_pula_dia_sem_atendimento_e_configuracao_avisa_matriculas_fora(): void
+    public function test_geracao_da_agenda_pula_dia_sem_atendimento(): void
     {
         $paciente = $this->paciente(['nome' => 'Carla Dias']);
         $this->matricular($paciente, weekday: 2, time: '08:50')->assertSessionHasNoErrors();
 
-        // Altera configuração tirando Quarta e mudando início para 09:00.
-        $this->put('/configuracoes', [
-            'perfil' => ['nome' => 'Dra. Teste', 'crp' => '12/00001', 'email' => 'teste@psystem.com', 'telefone' => ''],
-            'senha' => ['atual' => '', 'nova' => ''],
-            'horario' => ['dias' => ['Seg', 'Ter'], 'inicio' => '09:00', 'fim' => '18:00', 'duracao' => 50],
-            'goals' => ['faturamentoMensal' => 5000, 'horasSemanais' => 10, 'sessoesSemanais' => 12, 'novosPacientesMes' => 2],
-            'whatsapp' => ['enabled' => false, 'numero' => '', 'diasAntes' => 1, 'lembrete' => '', 'retorno' => '', 'cobranca' => ''],
-        ])->assertSessionHasNoErrors()
-            ->assertSessionHas('aviso', 'Alterações salvas com sucesso. Atenção: matrícula(s) fora do expediente: Carla Dias (quarta-feira às 08:50).');
+        // Simula um cadastro legado: a tela impede retirar dias com matrícula ativa.
+        Configuracao::atual()->update(['dias_atendimento' => ['Seg', 'Ter']]);
 
         // Se limpar e tentar gerar com quarta fora dos dias de atendimento, não gera nenhuma consulta.
         Consulta::query()->delete();
         $this->artisan('agenda:gerar')->assertSuccessful();
+        $this->get('/agenda?data=2026-12-23')->assertOk();
         $this->assertSame([], $this->horarios($paciente));
     }
 
@@ -339,7 +333,6 @@ class AgendaMatriculaTest extends ConsultorioTestCase
                 'almocoFim' => '13:30',
             ],
             'goals' => ['faturamentoMensal' => 5000, 'horasSemanais' => 10, 'sessoesSemanais' => 12, 'novosPacientesMes' => 2],
-            'whatsapp' => ['enabled' => false, 'numero' => '', 'diasAntes' => 1, 'lembrete' => '', 'retorno' => '', 'cobranca' => ''],
         ])->assertSessionHasNoErrors();
 
         $this->assertSame(

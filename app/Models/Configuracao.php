@@ -24,8 +24,6 @@ class Configuracao extends Model
 
     protected $fillable = [
         'meta_faturamento_mensal', 'meta_horas_semanais', 'meta_sessoes_semanais', 'meta_novos_pacientes_mes',
-        'whatsapp_ativo', 'whatsapp_numero', 'whatsapp_dias_antes',
-        'mensagem_lembrete', 'mensagem_retorno', 'mensagem_cobranca',
         'dias_atendimento', 'expediente_inicio', 'expediente_fim', 'duracao_sessao',
         'intervalo_sessao', 'almoco_inicio', 'almoco_fim',
     ];
@@ -34,7 +32,6 @@ class Configuracao extends Model
     {
         return [
             'meta_faturamento_mensal' => 'decimal:2',
-            'whatsapp_ativo' => 'boolean',
             'dias_atendimento' => 'array',
         ];
     }
@@ -110,18 +107,6 @@ class Configuracao extends Model
             'horasSemanais' => $this->meta_horas_semanais,
             'sessoesSemanais' => $this->meta_sessoes_semanais,
             'novosPacientesMes' => $this->meta_novos_pacientes_mes,
-        ];
-    }
-
-    public function whatsapp(): array
-    {
-        return [
-            'enabled' => $this->whatsapp_ativo,
-            'numero' => $this->whatsapp_numero,
-            'diasAntes' => $this->whatsapp_dias_antes,
-            'lembrete' => $this->mensagem_lembrete,
-            'retorno' => $this->mensagem_retorno,
-            'cobranca' => $this->mensagem_cobranca,
         ];
     }
 

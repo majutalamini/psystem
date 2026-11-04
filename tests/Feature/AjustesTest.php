@@ -3,11 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Cobranca;
+use App\Models\Configuracao;
 use App\Models\Consulta;
 use App\Models\Paciente;
 use App\Models\Prontuario;
 use App\Support\Tela;
-use Illuminate\Support\Carbon;
 
 class AjustesTest extends ConsultorioTestCase
 {
@@ -17,7 +17,6 @@ class AjustesTest extends ConsultorioTestCase
             'perfil' => ['nome' => 'Dra. Teste', 'crp' => '12/00001', 'email' => 'teste@psystem.com'],
             'horario' => [...['dias' => ['Seg', 'Ter', 'Qua', 'Qui', 'Sex'], 'inicio' => '08:00', 'fim' => '18:00', 'duracao' => 50], ...$horario],
             'goals' => ['faturamentoMensal' => 1000, 'horasSemanais' => 10, 'sessoesSemanais' => 10, 'novosPacientesMes' => 1],
-            'whatsapp' => ['enabled' => false, 'diasAntes' => 2],
         ];
     }
 
@@ -71,13 +70,13 @@ class AjustesTest extends ConsultorioTestCase
             ->assertSessionHasErrors('horario.dias');
 
         $this->assertStringContainsString('Maria', session('errors')->first('horario.dias'));
-        $this->assertContains('Qua', \App\Models\Configuracao::atual()->dias_atendimento);
+        $this->assertContains('Qua', Configuracao::atual()->dias_atendimento);
     }
 
     public function test_nao_deixa_encurtar_expediente_sobre_horario_de_matricula(): void
     {
         $paciente = $this->paciente();
-        $this->matricular($paciente, weekday: 2, time: '16:00');
+        $this->matricular($paciente, weekday: 2, time: '16:20')->assertSessionHasNoErrors();
 
         $this->put('/configuracoes', $this->formularioConfig(['fim' => '16:00']))->assertSessionHasErrors('horario.inicio');
     }
@@ -91,15 +90,43 @@ class AjustesTest extends ConsultorioTestCase
         $this->put('/configuracoes', $this->formularioConfig(['dias' => ['Seg', 'Ter', 'Qui', 'Sex']]))->assertSessionHasNoErrors();
     }
 
+    public function test_salva_configuracoes_com_matricula_em_horario_fracionado(): void
+    {
+        $this->matricular($this->paciente(), weekday: 2)->assertSessionHasNoErrors();
+
+        $this->put('/configuracoes', $this->formularioConfig())->assertSessionHasNoErrors();
+    }
+
+    public function test_pausa_de_almoco_nao_pode_cobrir_matricula_ativa(): void
+    {
+        $this->matricular($this->paciente(), weekday: 2, time: '12:10')->assertSessionHasNoErrors();
+
+        $this->put('/configuracoes', $this->formularioConfig(['almocoInicio' => '12:00', 'almocoFim' => '13:00']))
+            ->assertSessionHasErrors('horario.inicio');
+    }
+
+    public function test_visao_mensal_gera_todas_as_semanas_das_matriculas(): void
+    {
+        $paciente = $this->paciente();
+        $this->matricular($paciente, weekday: 2)->assertSessionHasNoErrors();
+
+        $eventos = $this->get('/agenda?data=2026-12-23&visao=mes')->assertOk()->viewData('page')['props']['events'];
+
+        $this->assertSame(
+            ['2026-12-02', '2026-12-09', '2026-12-16', '2026-12-23', '2026-12-30'],
+            collect($eventos)->pluck('isoDate')->all(),
+        );
+    }
+
     public function test_matricula_aparece_em_qualquer_semana_aberta_na_agenda(): void
     {
         $paciente = $this->paciente();
         $this->matricular($paciente, weekday: 2); // quartas
 
-        // Três meses à frente, bem além das 4 semanas geradas na hora.
+        // Três meses à frente, além das oito semanas geradas na hora.
         $this->get('/agenda?data=2026-12-23')->assertOk();
 
-        $this->assertContains('2026-12-23 09:00', $this->horarios($paciente));
+        $this->assertContains('2026-12-23 08:50', $this->horarios($paciente));
     }
 
     public function test_matricula_encerrada_nao_volta_para_a_agenda(): void
@@ -110,6 +137,6 @@ class AjustesTest extends ConsultorioTestCase
 
         $this->get('/agenda?data=2026-12-23')->assertOk();
 
-        $this->assertNotContains('2026-12-23 09:00', $this->horarios($paciente));
+        $this->assertNotContains('2026-12-23 08:50', $this->horarios($paciente));
     }
 }

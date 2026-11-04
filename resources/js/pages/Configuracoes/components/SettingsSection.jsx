@@ -1,12 +1,11 @@
 import { Card } from "../../../components/ui";
-import { FONT_DISPLAY, T, WA_GREEN_DARK } from "../../../styles/theme";
+import { FONT_DISPLAY, T } from "../../../styles/theme";
 
 export default function SettingsSection({ title, description, icon: Icon, action, children, tone = "primary" }) {
   const tones = {
     primary: { bg: T.primaryTint, fg: T.primary },
     success: { bg: T.successTint, fg: T.success },
     warn: { bg: T.warnTint, fg: T.warnText },
-    whatsapp: { bg: T.successTint, fg: WA_GREEN_DARK },
   };
   const c = tones[tone] || tones.primary;
   return (

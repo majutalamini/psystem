@@ -4,9 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Configuracao;
 use App\Models\Matricula;
-use App\Models\MensagemWhatsapp;
-use App\Services\AvisosWhatsapp;
-use App\Services\WhatsApp\EvolutionApi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -22,9 +19,6 @@ class ConfiguracaoController extends Controller
         return Inertia::render('Configuracoes/Configuracoes', [
             'goals' => $config->metas(),
             'horario' => $config->horario(),
-            // Só no modo evolution: situação da conexão com o celular e o QR code para conectar.
-            'whatsappConexao' => fn () => config('services.whatsapp.modo') === 'evolution' ? app(EvolutionApi::class)->conexao() : null,
-            'mensagensWhatsapp' => MensagemWhatsapp::with('paciente')->latest('id')->limit(30)->get()->map->paraTela(),
         ]);
     }
 
@@ -52,12 +46,6 @@ class ConfiguracaoController extends Controller
             'goals.horasSemanais' => 'required|integer|min:0',
             'goals.sessoesSemanais' => 'required|integer|min:0',
             'goals.novosPacientesMes' => 'required|integer|min:0',
-            'whatsapp.enabled' => 'boolean',
-            'whatsapp.numero' => 'nullable|string|max:20',
-            'whatsapp.diasAntes' => 'required|integer|min:0',
-            'whatsapp.lembrete' => 'nullable|string',
-            'whatsapp.retorno' => 'nullable|string',
-            'whatsapp.cobranca' => 'nullable|string',
         ], [
             'perfil.crp.unique' => 'Já existe uma psicóloga cadastrada com este CRP.',
             'perfil.email.unique' => 'Já existe uma psicóloga cadastrada com este e-mail.',
@@ -86,12 +74,6 @@ class ConfiguracaoController extends Controller
             'meta_horas_semanais' => $dados['goals']['horasSemanais'],
             'meta_sessoes_semanais' => $dados['goals']['sessoesSemanais'],
             'meta_novos_pacientes_mes' => $dados['goals']['novosPacientesMes'],
-            'whatsapp_ativo' => $dados['whatsapp']['enabled'] ?? false,
-            'whatsapp_numero' => $dados['whatsapp']['numero'] ?? null,
-            'whatsapp_dias_antes' => $dados['whatsapp']['diasAntes'],
-            'mensagem_lembrete' => $dados['whatsapp']['lembrete'] ?? null,
-            'mensagem_retorno' => $dados['whatsapp']['retorno'] ?? null,
-            'mensagem_cobranca' => $dados['whatsapp']['cobranca'] ?? null,
         ]);
 
         $horarios = $config->horarios();
@@ -113,9 +95,15 @@ class ConfiguracaoController extends Controller
     private function conferirMatriculas(array $horario): void
     {
         $dias = $horario['dias'] ?? [];
-        $inicio = (int) substr($horario['inicio'], 0, 2);
-        $fim = (int) substr($horario['fim'], 0, 2);
-        $horas = array_map(fn ($h) => sprintf('%02d:00', $h), $inicio < $fim ? range($inicio, $fim - 1) : []);
+        $config = new Configuracao([
+            'expediente_inicio' => $horario['inicio'],
+            'expediente_fim' => $horario['fim'],
+            'duracao_sessao' => $horario['duracao'],
+            'intervalo_sessao' => (int) ($horario['intervalo'] ?? 0),
+            'almoco_inicio' => ($horario['almocoInicio'] ?? null) ?: null,
+            'almoco_fim' => ($horario['almocoFim'] ?? null) ?: null,
+        ]);
+        $horas = $config->horarios();
         $rotulos = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
         $semDia = $foraDoExpediente = [];
@@ -140,43 +128,6 @@ class ConfiguracaoController extends Controller
         if ($erros) {
             throw ValidationException::withMessages($erros);
         }
-    }
-
-    /** Botão "Enviar mensagem de teste": confere se o WhatsApp está configurado. */
-    public function testarWhatsapp(Request $request, AvisosWhatsapp $whatsapp)
-    {
-        $request->validate(['telefone' => 'required|string|max:20'], [], ['telefone' => 'telefone']);
-
-        $mensagem = $whatsapp->teste($request->input('telefone'));
-        if ($mensagem->situacao === 'erro') {
-            throw ValidationException::withMessages(['telefone' => $mensagem->erro]);
-        }
-
-        return back()->with('aviso_whatsapp', $mensagem->situacao === 'simulada'
-            ? 'Mensagem de teste registrada (modo teste: nada foi enviado).'
-            : 'Mensagem de teste enviada pelo WhatsApp.');
-    }
-
-    /** Botão "Enviar agora": roda na hora o que o agendador faz às 09:00 (lembretes de amanhã e cobranças). */
-    public function enviarAgora(AvisosWhatsapp $whatsapp)
-    {
-        if (! Configuracao::atual()->whatsapp_ativo) {
-            return back()->with('aviso_envio_automatico', 'O "Envio automático" está desligado. Ligue e clique em "Salvar alterações" antes.');
-        }
-
-        $lembretes = $whatsapp->lembretes();
-        $cobrancas = $whatsapp->cobrancas();
-
-        return back()->with('aviso_envio_automatico', $lembretes + $cobrancas === 0
-            ? 'Nada para enviar agora: nenhum paciente que aceita mensagens tem consulta amanhã ou cobrança vencendo no prazo configurado.'
-            : "{$lembretes} lembrete(s) e {$cobrancas} cobrança(s) processados. Veja o resultado em Mensagens enviadas.");
-    }
-
-    public function desconectarWhatsapp(EvolutionApi $evolution)
-    {
-        $evolution->desconectar();
-
-        return back()->with('aviso_whatsapp', 'WhatsApp desconectado do sistema.');
     }
 
     public function foto(Request $request)

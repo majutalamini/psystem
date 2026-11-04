@@ -82,8 +82,6 @@
         "goals.faturamentoMensal": "meta de faturamento mensal",
         "goals.horasSemanais": "meta de horas semanais",
         "goals.sessoesSemanais": "meta de sessões semanais",
-        "goals.novosPacientesMes": "meta de novos pacientes no mês",
-        "whatsapp.numero": "número do WhatsApp",
-        "whatsapp.diasAntes": "dias de antecedência"
+        "goals.novosPacientesMes": "meta de novos pacientes no mês"
     }
 }

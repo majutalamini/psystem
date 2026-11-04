@@ -1,6 +1,7 @@
 FROM php:8.4-cli
 
-RUN apt-get update \
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* \
+    && apt-get update --fix-missing \
     && apt-get install -y --no-install-recommends git unzip libpq-dev libzip-dev libicu-dev \
     && docker-php-ext-install pdo_pgsql zip intl opcache \
     && rm -rf /var/lib/apt/lists/*

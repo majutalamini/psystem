@@ -108,7 +108,6 @@ class TelasTest extends ConsultorioTestCase
             'senha' => ['atual' => '', 'nova' => ''],
             'horario' => ['dias' => ['Seg', 'Qua'], 'inicio' => '09:00', 'fim' => '12:00', 'duracao' => 45],
             'goals' => ['faturamentoMensal' => 5000, 'horasSemanais' => 10, 'sessoesSemanais' => 12, 'novosPacientesMes' => 2],
-            'whatsapp' => ['enabled' => false, 'numero' => '', 'diasAntes' => 1, 'lembrete' => 'Oi', 'retorno' => '', 'cobranca' => ''],
         ])->assertSessionHasNoErrors()->assertSessionHas('aviso');
 
         $this->assertSame('Dra. Nova', $this->psicologa->fresh()->nome);

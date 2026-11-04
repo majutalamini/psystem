@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { ArrowDownCircle, ArrowUpCircle, Banknote, Check, CircleDollarSign, Clock, MessageSquare, Plus, TrendingDown, TrendingUp, Undo2, Wallet } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Banknote, Check, CircleDollarSign, Clock, Plus, TrendingDown, TrendingUp, Undo2, Wallet } from "lucide-react";
 import NewReceivableModal from "../../components/financeiro/NewReceivableModal";
 import ReceivePaymentModal from "../../components/financeiro/ReceivePaymentModal";
 import { Card, PageHeader, Pill, PrimaryButton, RowMenu, StatCard } from "../../components/ui";
-import WhatsappQuickModal from "../../components/whatsapp/WhatsappQuickModal";
 import { useAppData } from "../../hooks/useAppData";
 import { T } from "../../styles/theme";
 import { statusTone, formatMoney } from "../../utils/format";
@@ -16,7 +15,6 @@ export default function Financeiro({ receivables, payables }) {
   const [showPayableModal, setShowPayableModal] = useState(false);
   const [receiving, setReceiving] = useState(null);   // conta a receber em baixa
   const [paying, setPaying] = useState(null);         // conta a pagar em baixa
-  const [cobrandoId, setCobrandoId] = useState(null); // cobrança via WhatsApp
 
   const totalReceber = receivables.reduce((s, r) => s + r.valor, 0);
   // Cobranças podem ser recebidas em partes: somam o que entrou (recebido) e o que falta (saldo).
@@ -121,7 +119,6 @@ export default function Financeiro({ receivables, payables }) {
                           items={[
                             ...(r.status !== "Pago" ? [
                               { label: "Registrar recebimento", icon: Banknote, onClick: () => setReceiving(r) },
-                              { label: "Cobrar no WhatsApp", icon: MessageSquare, onClick: () => setCobrandoId(r.patientId) },
                             ] : []),
                             ...(r.recebido != null ? [
                               { label: "Estornar último recebimento", icon: Undo2, tone: "danger", onClick: () => reopenReceivable(r.id) },
@@ -234,13 +231,6 @@ export default function Financeiro({ receivables, payables }) {
         />
       )}
 
-      {cobrandoId && (
-        <WhatsappQuickModal
-          initialPatientId={cobrandoId}
-          initialTemplate="cobranca"
-          onClose={() => setCobrandoId(null)}
-        />
-      )}
     </div>
   );
 }

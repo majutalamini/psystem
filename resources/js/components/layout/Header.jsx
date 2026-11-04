@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { Brain, LogOut, Moon, Settings, Sun } from "lucide-react";
-import { FONT_DISPLAY, T, WA_GREEN, WA_GREEN_DARK } from "../../styles/theme";
-import WhatsappIcon from "../icons/WhatsappIcon";
+import { FONT_DISPLAY, T } from "../../styles/theme";
 import { Avatar } from "../ui";
-import WhatsappQuickModal from "../whatsapp/WhatsappQuickModal";
 import { useAppData } from "../../hooks/useAppData";
 import { navigate } from "../../utils/nav";
 import { alternarTema, temaAtual } from "../../utils/theme";
@@ -14,15 +12,7 @@ const headerIconBtn = {
   display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
 };
 
-const waHeaderBtn = {
-  display: "flex", alignItems: "center", gap: 9, height: 42, padding: "0 18px",
-  borderRadius: 999, border: "none", cursor: "pointer", background: WA_GREEN, color: "#fff",
-  fontSize: 14, fontWeight: 700, flexShrink: 0, boxShadow: "0 4px 12px rgba(0,0,0,0.16)",
-  whiteSpace: "nowrap",
-};
-
 export default function Header() {
-  const [showWhats, setShowWhats] = useState(false);
   const [tema, setTema] = useState(temaAtual);
   const { auth, logout } = useAppData();
   const user = auth.user;
@@ -36,15 +26,6 @@ export default function Header() {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0, marginLeft: "auto" }}>
-        <button
-          onClick={() => setShowWhats(true)}
-          title="Enviar mensagem no WhatsApp"
-          style={waHeaderBtn}
-          onMouseEnter={(e) => (e.currentTarget.style.background = WA_GREEN_DARK)}
-          onMouseLeave={(e) => (e.currentTarget.style.background = WA_GREEN)}
-        >
-          <WhatsappIcon size={20} color="#fff" /> WhatsApp
-        </button>
         <button style={headerIconBtn} title={tema === "dark" ? "Modo claro" : "Modo escuro"} onClick={() => setTema(alternarTema())}>
           {tema === "dark" ? <Sun size={20} /> : <Moon size={20} />}
         </button>
@@ -59,7 +40,6 @@ export default function Header() {
         </div>
       </div>
 
-      {showWhats && <WhatsappQuickModal onClose={() => setShowWhats(false)} />}
     </header>
   );
 }

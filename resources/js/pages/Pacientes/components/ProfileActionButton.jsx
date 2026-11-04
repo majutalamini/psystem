@@ -1,10 +1,9 @@
-import { T, WA_GREEN } from "../../../styles/theme";
+import { T } from "../../../styles/theme";
 
-/* Botão de ação do cabeçalho do perfil (CADASTRO / WHATSAPP / MAIS AÇÕES) */
+/* Botão de ação do cabeçalho do perfil (CADASTRO / MAIS AÇÕES) */
 export default function ProfileActionButton({ icon: Icon, children, onClick, variant = "primary" }) {
   const variants = {
     primary: { bg: T.primary, color: "#fff", border: "none" },
-    whatsapp: { bg: WA_GREEN, color: "#fff", border: "none" },
     ghost: { bg: T.surface, color: T.text, border: `1px solid ${T.border}` },
   };
   const v = variants[variant];

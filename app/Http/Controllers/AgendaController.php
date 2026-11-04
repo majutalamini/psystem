@@ -21,13 +21,16 @@ class AgendaController extends Controller
             ? $request->query('visao')
             : 'semana';
         $inicioSemana = $dia->copy()->startOfWeek(Carbon::MONDAY);
-        $matriculas->gerarSemana($inicioSemana);
 
         [$inicio, $fim] = match ($visao) {
             'dia' => [$dia->copy()->startOfDay(), $dia->copy()->endOfDay()],
             'mes' => [$dia->copy()->startOfMonth()->startOfDay(), $dia->copy()->endOfMonth()->endOfDay()],
             default => [$inicioSemana, $inicioSemana->copy()->endOfWeek(Carbon::SUNDAY)],
         };
+
+        for ($semana = $inicio->copy()->startOfWeek(Carbon::MONDAY); $semana->lte($fim); $semana->addWeek()) {
+            $matriculas->gerarSemana($semana);
+        }
 
         $consultas = Consulta::with('paciente')
             ->whereBetween('data_hora_consulta', [$inicio, $fim])

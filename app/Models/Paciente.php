@@ -20,12 +20,12 @@ class Paciente extends Model
     protected $fillable = [
         'nome', 'cpf', 'telefone', 'email', 'data_nascimento', 'sexo', 'endereco',
         'endereco_cidade', 'endereco_uf', 'contato_emergencia_nome',
-        'contato_emergencia_telefone', 'observacoes', 'status_paciente', 'foto', 'aceita_whatsapp',
+        'contato_emergencia_telefone', 'observacoes', 'status_paciente', 'foto',
     ];
 
     protected function casts(): array
     {
-        return ['data_nascimento' => 'date', 'aceita_whatsapp' => 'boolean'];
+        return ['data_nascimento' => 'date'];
     }
 
     public function matriculas(): HasMany
@@ -102,7 +102,6 @@ class Paciente extends Model
             'contato_emergencia_nome' => $f['emergenciaNome'] ?? null,
             'contato_emergencia_telefone' => $f['emergenciaTelefone'] ?? null,
             'observacoes' => $f['observacoes'] ?? null,
-            'aceita_whatsapp' => (bool) ($f['aceitaWhatsapp'] ?? false),
         ];
     }
 
@@ -136,7 +135,6 @@ class Paciente extends Model
             'emergenciaNome' => $this->contato_emergencia_nome,
             'emergenciaTelefone' => Tela::telefone($this->contato_emergencia_telefone),
             'observacoes' => $this->observacoes,
-            'aceitaWhatsapp' => (bool) $this->aceita_whatsapp,
             'matriculas' => $this->matriculas->map->paraTela()->values(),
             'cobrancaPendente' => $pendente?->paraTela(),
         ];

@@ -7,13 +7,12 @@ use App\Http\Controllers\ConfiguracaoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\FinanceiroController;
+use App\Http\Controllers\ImportacaoController;
 use App\Http\Controllers\MatriculaController;
 use App\Http\Controllers\PacienteController;
 use App\Http\Controllers\ProntuarioController;
 use App\Http\Controllers\RelatorioController;
-use App\Http\Controllers\ImportacaoController;
 use App\Http\Controllers\SenhaController;
-use App\Http\Controllers\WhatsappController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -78,8 +77,4 @@ Route::middleware('auth')->group(function () {
     Route::get('/configuracoes', [ConfiguracaoController::class, 'edit'])->name('configuracoes');
     Route::put('/configuracoes', [ConfiguracaoController::class, 'update']);
     Route::post('/configuracoes/foto', [ConfiguracaoController::class, 'foto']);
-    Route::post('/configuracoes/whatsapp/teste', [ConfiguracaoController::class, 'testarWhatsapp']);
-    Route::post('/configuracoes/whatsapp/desconectar', [ConfiguracaoController::class, 'desconectarWhatsapp']);
-    Route::post('/configuracoes/whatsapp/enviar-agora', [ConfiguracaoController::class, 'enviarAgora']);
-    Route::post('/whatsapp/enviar', [WhatsappController::class, 'enviar'])->middleware('throttle:20,1');
 });

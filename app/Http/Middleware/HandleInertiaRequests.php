@@ -11,10 +11,7 @@ class HandleInertiaRequests extends Middleware
 {
     protected $rootView = 'app';
 
-    /**
-     * Dados que toda tela usa: psicóloga logada, lista de pacientes (seletores e atalho do WhatsApp)
-     * e os textos do WhatsApp. Consultório de uma profissional só, então a lista é pequena.
-     */
+    /** Dados compartilhados: psicóloga logada, pacientes, horários e avisos. */
     public function share(Request $request): array
     {
         $logado = $request->user();
@@ -25,15 +22,11 @@ class HandleInertiaRequests extends Middleware
             'patients' => fn () => $logado
                 ? Paciente::comResumo()->get()->map->paraTela()
                 : [],
-            'whatsapp' => fn () => $logado ? Configuracao::atual()->whatsapp() : null,
-            'whatsappModo' => fn () => $logado ? config('services.whatsapp.modo') : null,
             'hours' => fn () => $logado ? Configuracao::atual()->horarios() : [],
             'flash' => fn () => [
                 'aviso' => $request->session()->get('aviso'),
                 'sucesso' => $request->session()->get('sucesso'),
                 'erro' => $request->session()->get('erro'),
-                'whatsapp' => $request->session()->get('aviso_whatsapp'),
-                'envioAutomatico' => $request->session()->get('aviso_envio_automatico'),
             ],
         ];
     }

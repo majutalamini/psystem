@@ -24,6 +24,7 @@ class PacienteController extends Controller
     public function show(Paciente $paciente)
     {
         $paciente->load(['documentos' => fn ($q) => $q->latest('criado_em')]);
+
         return Inertia::render('Pacientes/PatientProfile', [
             'patientId' => $paciente->id,
             'records' => Prontuario::listaDoPaciente($paciente->id),
@@ -107,7 +108,6 @@ class PacienteController extends Controller
             'emergenciaNome' => 'nullable|string|max:150',
             'emergenciaTelefone' => 'nullable|string|max:20',
             'observacoes' => 'nullable|string',
-            'aceitaWhatsapp' => 'boolean',
         ], [
             'nascimento.before_or_equal' => 'A data de nascimento não pode ser futura.',
             'cpf.unique' => 'Já existe um paciente cadastrado com este CPF.',

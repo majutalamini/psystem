@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useAppData } from "../../hooks/useAppData";
 import { Check, ChevronRight, Clock, ShieldCheck, Star, User } from "lucide-react";
-import WhatsappIcon from "../../components/icons/WhatsappIcon";
 import { Card, PageHeader, PrimaryButton } from "../../components/ui";
 import { FONT_DISPLAY, T } from "../../styles/theme";
 import { erro } from "../../utils/alertas";
@@ -9,7 +8,6 @@ import HorarioTab from "./tabs/HorarioTab";
 import MetasTab from "./tabs/MetasTab";
 import PerfilTab from "./tabs/PerfilTab";
 import SegurancaTab from "./tabs/SegurancaTab";
-import WhatsappTab from "./tabs/WhatsappTab";
 
 /* section: a parte do formulário (e dos erros do Laravel, ex. "perfil.nome") que cada aba edita. */
 const SETTINGS_TABS = [
@@ -17,12 +15,11 @@ const SETTINGS_TABS = [
   { key: "seguranca", section: "senha", label: "Segurança", desc: "Senha e acesso", icon: ShieldCheck },
   { key: "horario", section: "horario", label: "Horário de atendimento", desc: "Dias e expediente", icon: Clock },
   { key: "metas", section: "goals", label: "Metas", desc: "Objetivos do consultório", icon: Star },
-  { key: "whatsapp", section: "whatsapp", label: "WhatsApp", desc: "Mensagens automáticas", icon: WhatsappIcon },
 ];
 
 /* O botão "Salvar alterações" manda todas as abas juntas; as abas só editam este estado. */
-export default function Configuracoes({ goals, horario, whatsappModo, whatsappConexao, mensagensWhatsapp }) {
-  const { auth, whatsapp, flash, errors = {}, saveSettings } = useAppData();
+export default function Configuracoes({ goals, horario }) {
+  const { auth, flash, errors = {}, saveSettings } = useAppData();
   const [tab, setTab] = useState("pessoais");
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(() => ({
@@ -30,7 +27,6 @@ export default function Configuracoes({ goals, horario, whatsappModo, whatsappCo
     senha: { atual: "", nova: "" },
     horario,
     goals,
-    whatsapp: { ...whatsapp, numero: whatsapp.numero || "", lembrete: whatsapp.lembrete || "", retorno: whatsapp.retorno || "", cobranca: whatsapp.cobranca || "" },
   }));
 
   const update = (section) => (patch) => setForm((f) => ({ ...f, [section]: { ...f[section], ...patch } }));
@@ -45,7 +41,7 @@ export default function Configuracoes({ goals, horario, whatsappModo, whatsappCo
     saveSettings(form, {
       onSuccess: () => setForm((f) => ({ ...f, senha: { atual: "", nova: "" } })),
       onError: (errs) => {
-        const horarioErros = Object.entries(errs).filter(([k]) => k.startsWith("horario.") && /matrícula/.test(String(errs[k])));
+        const horarioErros = Object.entries(errs).filter(([k, mensagem]) => k.startsWith("horario.") && /matrícula/.test(String(mensagem)));
         if (horarioErros.length) erro(horarioErros.map(([, m]) => m).join(" "), "Não foi possível salvar o horário");
         const withError = SETTINGS_TABS.find((t) => Object.keys(errs).some((k) => k.startsWith(`${t.section}.`)));
         if (withError) setTab(withError.key);
@@ -55,8 +51,7 @@ export default function Configuracoes({ goals, horario, whatsappModo, whatsappCo
   }
 
   const tabProps = (section) => ({ value: form[section], onChange: update(section), errors: sectionErrors(section) });
-  // O erro do botão "Enviar mensagem de teste" (campo telefone) aparece na aba do WhatsApp, não no rodapé.
-  const saveErrors = Object.keys(errors).filter((k) => k !== "telefone");
+  const saveErrors = Object.keys(errors);
   const saved = flash.aviso && !saving && saveErrors.length === 0;
 
   return (
@@ -108,7 +103,6 @@ export default function Configuracoes({ goals, horario, whatsappModo, whatsappCo
           {tab === "seguranca" && <SegurancaTab {...tabProps("senha")} />}
           {tab === "horario" && <HorarioTab {...tabProps("horario")} />}
           {tab === "metas" && <MetasTab {...tabProps("goals")} />}
-          {tab === "whatsapp" && <WhatsappTab {...tabProps("whatsapp")} modo={whatsappModo} conexao={whatsappConexao} mensagens={mensagensWhatsapp} />}
 
           <div style={{
             position: "sticky", bottom: 0, display: "flex", alignItems: "center", justifyContent: "flex-end",

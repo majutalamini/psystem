@@ -75,7 +75,8 @@ class AgendaMatricula
             return 0;
         }
 
-        $duracao = Configuracao::atual()->duracao_sessao;
+        $config = Configuracao::atual();
+        $duracao = $config->duracao_sessao;
         $criadas = 0;
 
         $matriculas = Matricula::ativas()->with('paciente')->get()->filter(fn ($m) => $m->paciente->ativo());
@@ -83,7 +84,7 @@ class AgendaMatricula
             $dia = $inicioSemana->copy()->addDays($matricula->diaIso() - 1);
             $dataHora = Carbon::parse($dia->toDateString().' '.$matricula->horario_da_matricula);
 
-            if ($dataHora->isPast() || $dia->lt($matricula->inicio_da_matricula)) {
+            if ($dataHora->isPast() || $dia->lt($matricula->inicio_da_matricula) || ! $config->atendeNo($dia)) {
                 continue;
             }
 

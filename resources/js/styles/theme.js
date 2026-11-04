@@ -37,7 +37,3 @@ export const EVENT_STYLES = {
 };
 
 export const COLOR_PALETTE = ["purple", "yellow", "pink", "green", "teal"];
-
-export const WA_GREEN = "#25D366";
-
-export const WA_GREEN_DARK = "#1EBE5B";
