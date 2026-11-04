@@ -6,15 +6,27 @@ import RecordForm from "../../../components/prontuario/RecordForm";
 import { Card, PrimaryButton } from "../../../components/ui";
 import { useAppData } from "../../../hooks/useAppData";
 import { T } from "../../../styles/theme";
+import { confirmar } from "../../../utils/alertas";
+import { imprimirProntuario } from "../../../utils/imprimir";
 
 export default function ProntuarioTab({ patient, records }) {
-  const { saveRecord } = useAppData();
+  const { auth, saveRecord, deleteRecord } = useAppData();
   const list = records;
   const [editingId, setEditingId] = useState(null); // null | "new" | entry id
 
   function handleSave(form) {
     const entry = editingId === "new" ? form : { ...form, id: editingId };
     saveRecord(patient.id, entry, { onSuccess: () => setEditingId(null) });
+  }
+
+  async function excluir(entry) {
+    const ok = await confirmar({
+      titulo: "Excluir este prontuário?",
+      texto: `O registro de ${entry.date} (${entry.sessao}) será apagado. Essa ação não pode ser desfeita.`,
+      confirmar: "Excluir prontuário",
+      perigo: true,
+    });
+    if (ok) deleteRecord(entry.id);
   }
 
   if (editingId !== null) {
@@ -28,7 +40,9 @@ export default function ProntuarioTab({ patient, records }) {
         <div style={{ fontSize: 14.5, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4 }}>
           {list.length} {list.length === 1 ? "registro no prontuário" : "registros no prontuário"}
         </div>
-        <PrimaryButton icon={Plus} style={{ padding: "12px 18px", fontSize: 14.5 }} onClick={() => setEditingId("new")}>Novo registro</PrimaryButton>
+        <div style={{ display: "flex", gap: 10 }}>
+          <PrimaryButton icon={Plus} style={{ padding: "12px 18px", fontSize: 14.5 }} onClick={() => setEditingId("new")}>Novo registro</PrimaryButton>
+        </div>
       </div>
 
       {list.length === 0 ? (
@@ -38,7 +52,7 @@ export default function ProntuarioTab({ patient, records }) {
         </Card>
       ) : (
         list.map((entry) => (
-          <RecordCard key={entry.id} entry={entry} onEdit={() => setEditingId(entry.id)} />
+          <RecordCard key={entry.id} entry={entry} onEdit={() => setEditingId(entry.id)} onDelete={() => excluir(entry)} onPrint={() => imprimirProntuario(patient, [entry], auth.user)} />
         ))
       )}
     </div>

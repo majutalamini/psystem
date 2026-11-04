@@ -6,6 +6,7 @@ import { Switch } from "../../../components/ui";
 import WhatsappQuickModal from "../../../components/whatsapp/WhatsappQuickModal";
 import { WA_VARIABLES } from "../../../data/whatsapp";
 import { T, WA_GREEN_DARK } from "../../../styles/theme";
+import { maskPhone } from "../../../utils/format";
 import ConexaoWhatsapp from "../components/ConexaoWhatsapp";
 import MensagensWhatsapp from "../components/MensagensWhatsapp";
 import Field from "../components/Field";
@@ -67,7 +68,7 @@ export default function WhatsappTab({ value: whatsapp, onChange: updateWhatsapp,
           <Field
             label="Número do WhatsApp comercial"
             value={whatsapp.numero}
-            onChange={(v) => updateWhatsapp({ numero: v })}
+            onChange={(v) => updateWhatsapp({ numero: maskPhone(v) })}
             hint={modo === "evolution" ? "Número de contato do consultório. As mensagens saem pelo celular conectado em “Conexão do WhatsApp”." : "Número de contato do consultório."}
             error={errors.numero}
           />

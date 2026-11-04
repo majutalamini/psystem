@@ -6,6 +6,8 @@ import { T } from "../../styles/theme";
 import { todayLabel } from "../../utils/date";
 import { useAppData } from "../../hooks/useAppData";
 import { ErrorText, Modal, MoneyInput } from "../ui";
+import { formatMoney } from "../../utils/format";
+import DateInput from "../ui/DateInput";
 
 /* saldo: quanto falta receber (cobrança já recebida em parte). O valor sugerido é o saldo. */
 export default function ReceivePaymentModal({ title, subtitle, valor, saldo = valor, vencimento, kind = "receber", onClose, onConfirm }) {
@@ -22,19 +24,19 @@ export default function ReceivePaymentModal({ title, subtitle, valor, saldo = va
         {subtitle && <div style={{ fontSize: 13, color: T.muted, marginTop: 2 }}>{subtitle}</div>}
         <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 8 }}>
           <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 22, fontWeight: 800, color: isPay ? T.danger : T.success }}>
-            R$ {Number(valor).toLocaleString("pt-BR")}
+            R$ {formatMoney(Number(valor))}
           </span>
           <span style={{ fontSize: 12.5, color: T.muted }}>vence em {vencimento}</span>
         </div>
         {saldo < valor && (
           <div style={{ fontSize: 13, fontWeight: 600, color: T.text, marginTop: 6 }}>
-            Já recebido: R$ {(valor - saldo).toLocaleString("pt-BR")} · falta R$ {Number(saldo).toLocaleString("pt-BR")}
+            Já recebido: R$ {formatMoney(valor - saldo)} · falta R$ {formatMoney(Number(saldo))}
           </div>
         )}
       </div>
 
       <label style={{ fontSize: 13, fontWeight: 600, color: T.muted }}>Data do {isPay ? "pagamento" : "recebimento"}</label>
-      <input value={data} onChange={(e) => setData(e.target.value)} placeholder="dd/mm/aaaa" style={inputStyle} />
+      <DateInput value={data} onChange={(v) => setData(v)} style={inputStyle} />
       <ErrorText>{errors.data}</ErrorText>
 
       <label style={{ fontSize: 13, fontWeight: 600, color: T.muted }}>Valor {isPay ? "pago" : "recebido"} (R$)</label>

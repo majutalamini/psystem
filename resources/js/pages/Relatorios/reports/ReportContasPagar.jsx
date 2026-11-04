@@ -3,7 +3,7 @@ import { Pill } from "../../../components/ui";
 import { useAppData } from "../../../hooks/useAppData";
 import { filterInputStyle } from "../../../styles/formStyles";
 import { T } from "../../../styles/theme";
-import { statusTone } from "../../../utils/format";
+import { statusTone, formatMoney } from "../../../utils/format";
 import FilterBar from "../components/FilterBar";
 import FilterField from "../components/FilterField";
 import { reportCellStyle } from "../components/reportStyles";
@@ -28,7 +28,7 @@ export default function ReportContasPagar() {
       </FilterBar>
 
       <ReportTableCard
-        countLabel={<>Total: <strong>R$ {total.toLocaleString("pt-BR")}</strong> &nbsp;·&nbsp; {rows.length} lançamento(s)</>}
+        countLabel={<>Total: <strong>R$ {formatMoney(total)}</strong> &nbsp;·&nbsp; {rows.length} lançamento(s)</>}
         columns={["Descrição", "Categoria", "Valor", "Vencimento", "Status"]}
         rows={rows}
         emptyText="Nenhuma conta a pagar encontrada."
@@ -36,7 +36,7 @@ export default function ReportContasPagar() {
           <tr key={p.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
             <td style={{ ...reportCellStyle, fontWeight: 600 }}>{p.descricao}</td>
             <td style={reportCellStyle}>{p.categoria}</td>
-            <td style={reportCellStyle}>R$ {p.valor.toLocaleString("pt-BR")}</td>
+            <td style={reportCellStyle}>R$ {formatMoney(p.valor)}</td>
             <td style={reportCellStyle}>{p.vencimento}</td>
             <td style={{ padding: "14px 20px" }}><Pill tone={statusTone(p.status)}>{p.status}</Pill></td>
           </tr>

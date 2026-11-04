@@ -5,6 +5,7 @@ import { useAppData } from "../../../hooks/useAppData";
 import { inputStyle } from "../../../styles/formStyles";
 import { T } from "../../../styles/theme";
 import { todayLabel } from "../../../utils/date";
+import DateInput from "../../../components/ui/DateInput";
 
 /* A despesa nasce em aberto; a baixa é feita pelo botão Pagar. */
 export default function NewPayableModal({ onClose, onSave }) {
@@ -28,7 +29,7 @@ export default function NewPayableModal({ onClose, onSave }) {
       <ErrorText>{errors.valor}</ErrorText>
 
       <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Vencimento</label>
-      <input value={form.vencimento} onChange={(e) => setForm({ ...form, vencimento: e.target.value })} placeholder="dd/mm/aaaa" style={errorStyle("vencimento")} />
+      <DateInput value={form.vencimento} onChange={(v) => setForm({ ...form, vencimento: v })} style={errorStyle("vencimento")} />
       <ErrorText>{errors.vencimento}</ErrorText>
 
       <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
