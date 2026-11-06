@@ -1,10 +1,14 @@
 import { useRef, useState } from "react";
-import { Eye, FileText, Paperclip, Trash2, Upload } from "lucide-react";
+import { Download, Eye, FileText, Paperclip, Trash2, Upload } from "lucide-react";
 import { Card, ErrorText, FormField, PrimaryButton } from "../../../components/ui";
 import { useAppData } from "../../../hooks/useAppData";
 import { iconBtn } from "../../../styles/formStyles";
 import { T } from "../../../styles/theme";
+import { confirmar } from "../../../utils/alertas";
 import { formatFileSize } from "../../../utils/format";
+
+/* Tipos que o navegador mostra sem baixar; os demais (ex.: Word) só podem ser baixados. */
+const VISUALIZAVEL = /\.(pdf|png|jpe?g|gif|webp|svg|txt)$/i;
 
 export default function DocumentosTab({ patient, documents }) {
   const { addDocument, removeDocument, errors = {} } = useAppData();
@@ -12,6 +16,16 @@ export default function DocumentosTab({ patient, documents }) {
   const [title, setTitle] = useState("");
   const [pendingFile, setPendingFile] = useState(null);
   const fileRef = useRef(null);
+
+  async function remover(d) {
+    const ok = await confirmar({
+      titulo: "Remover este documento?",
+      texto: `"${d.title}" será apagado do perfil do paciente. Essa ação não pode ser desfeita.`,
+      confirmar: "Remover documento",
+      perigo: true,
+    });
+    if (ok) removeDocument(d.id);
+  }
 
   function handleAdd() {
     addDocument(patient.id, { title: title.trim(), file: pendingFile }, {
@@ -72,8 +86,13 @@ export default function DocumentosTab({ patient, documents }) {
                   {d.fileName} · {formatFileSize(d.size)} · Anexado em {d.date}
                 </div>
               </div>
-              <a href={d.url} target="_blank" rel="noopener noreferrer" style={{ ...iconBtn, textDecoration: "none" }} title="Abrir documento"><Eye size={20} /></a>
-              <button onClick={() => removeDocument(d.id)} style={{ ...iconBtn, background: T.surface }} title="Remover documento"><Trash2 size={20} /></button>
+              {VISUALIZAVEL.test(d.fileName) ? (
+                <a href={d.url} target="_blank" rel="noopener noreferrer" style={{ ...iconBtn, textDecoration: "none" }} title="Visualizar documento"><Eye size={20} /></a>
+              ) : (
+                <button disabled style={{ ...iconBtn, opacity: 0.4, cursor: "not-allowed" }} title="Este tipo de arquivo não pode ser visualizado no navegador. Use o botão de baixar."><Eye size={20} /></button>
+              )}
+              <a href={`${d.url}?baixar=1`} style={{ ...iconBtn, textDecoration: "none" }} title="Baixar documento"><Download size={20} /></a>
+              <button onClick={() => remover(d)} style={{ ...iconBtn, background: T.surface }} title="Remover documento"><Trash2 size={20} /></button>
             </div>
           ))
         )}

@@ -20,7 +20,7 @@ class Paciente extends Model
     protected $fillable = [
         'nome', 'cpf', 'telefone', 'email', 'data_nascimento', 'sexo', 'endereco',
         'endereco_cidade', 'endereco_uf', 'contato_emergencia_nome',
-        'contato_emergencia_telefone', 'observacoes', 'status_paciente', 'foto',
+        'contato_emergencia_telefone', 'observacoes', 'status_paciente', 'foto', 'dia_vencimento',
     ];
 
     protected function casts(): array
@@ -132,6 +132,7 @@ class Paciente extends Model
             'endereco' => $this->endereco,
             'cidade' => $this->endereco_cidade,
             'uf' => $this->endereco_uf,
+            'diaVencimento' => (int) ($this->dia_vencimento ?: 10),
             'emergenciaNome' => $this->contato_emergencia_nome,
             'emergenciaTelefone' => Tela::telefone($this->contato_emergencia_telefone),
             'observacoes' => $this->observacoes,

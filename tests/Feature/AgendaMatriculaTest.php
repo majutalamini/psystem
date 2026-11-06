@@ -9,17 +9,18 @@ use Illuminate\Support\Carbon;
 
 class AgendaMatriculaTest extends ConsultorioTestCase
 {
-    public function test_salvar_matricula_gera_as_consultas_das_proximas_oito_semanas(): void
+    public function test_salvar_matricula_gera_as_consultas_dos_proximos_dois_meses(): void
     {
         $paciente = $this->paciente();
 
         $this->matricular($paciente, weekday: 2)->assertRedirect()->assertSessionHasNoErrors();
 
-        // Quartas-feiras até hoje + 8 semanas (23/11).
+        // Quartas-feiras até hoje + 2 meses (28/11).
         $this->assertSame(
             [
                 '2026-09-30 08:50', '2026-10-07 08:50', '2026-10-14 08:50', '2026-10-21 08:50',
                 '2026-10-28 08:50', '2026-11-04 08:50', '2026-11-11 08:50', '2026-11-18 08:50',
+                '2026-11-25 08:50',
             ],
             $this->horarios($paciente),
         );
@@ -64,6 +65,7 @@ class AgendaMatriculaTest extends ConsultorioTestCase
             [
                 '2026-09-30 08:50', '2026-10-14 08:50', '2026-10-21 08:50',
                 '2026-10-28 08:50', '2026-11-04 08:50', '2026-11-11 08:50', '2026-11-18 08:50',
+                '2026-11-25 08:50',
             ],
             $this->horarios($paciente),
         );
@@ -82,7 +84,7 @@ class AgendaMatriculaTest extends ConsultorioTestCase
             [
                 '2026-09-30 08:50',
                 '2026-10-01 13:50', '2026-10-08 13:50', '2026-10-15 13:50', '2026-10-22 13:50',
-                '2026-10-29 13:50', '2026-11-05 13:50', '2026-11-12 13:50', '2026-11-19 13:50',
+                '2026-10-29 13:50', '2026-11-05 13:50', '2026-11-12 13:50', '2026-11-19 13:50', '2026-11-26 13:50',
             ],
             $this->horarios($paciente),
         );
@@ -140,7 +142,7 @@ class AgendaMatriculaTest extends ConsultorioTestCase
 
         $this->matricular($paciente, weekday: 2)->assertSessionHasNoErrors();
         $this->assertSame('ativo', $paciente->fresh()->status_paciente);
-        $this->assertCount(8, $this->horarios($paciente));
+        $this->assertCount(9, $this->horarios($paciente));
     }
 
     public function test_comando_diario_completa_a_janela_sem_duplicar(): void
@@ -149,7 +151,7 @@ class AgendaMatriculaTest extends ConsultorioTestCase
         $this->matricular($paciente, weekday: 2);
 
         $this->artisan('agenda:gerar')->assertSuccessful();
-        $this->assertCount(8, $this->horarios($paciente));
+        $this->assertCount(9, $this->horarios($paciente));
 
         // Uma semana depois, a janela anda e entra mais uma quarta.
         $this->travelTo(Carbon::parse('2026-10-05 10:00:00'));
@@ -158,7 +160,7 @@ class AgendaMatriculaTest extends ConsultorioTestCase
             [
                 '2026-09-30 08:50', '2026-10-07 08:50', '2026-10-14 08:50', '2026-10-21 08:50',
                 '2026-10-28 08:50', '2026-11-04 08:50', '2026-11-11 08:50', '2026-11-18 08:50',
-                '2026-11-25 08:50',
+                '2026-11-25 08:50', '2026-12-02 08:50',
             ],
             $this->horarios($paciente),
         );
@@ -173,7 +175,7 @@ class AgendaMatriculaTest extends ConsultorioTestCase
         $this->patch("/agenda/{$primeira->id}/status", ['status' => 'cancelado'])->assertSessionHasNoErrors();
         $this->artisan('agenda:gerar');
 
-        $this->assertCount(7, $this->horarios($paciente, 'agendado'));
+        $this->assertCount(8, $this->horarios($paciente, 'agendado'));
         $this->assertCount(1, $this->horarios($paciente, 'cancelado'));
     }
 
@@ -185,6 +187,7 @@ class AgendaMatriculaTest extends ConsultorioTestCase
             'hora' => $hora,
             'tipo' => 'Consulta presencial',
             'status' => 'Agendado',
+            'valor' => 0,
         ]);
 
         // Agora é segunda, 28/09/2026 às 10:00.
@@ -208,6 +211,7 @@ class AgendaMatriculaTest extends ConsultorioTestCase
             'hora' => '08:50',
             'tipo' => 'Consulta online',
             'status' => 'Matriculado',
+            'valor' => 0,
         ])->assertRedirect('/agenda')->assertSessionHasErrors('hora');
 
         $this->assertSame(1, Consulta::where('data_hora_consulta', Carbon::parse('2026-09-30 08:50'))->count());
@@ -232,6 +236,7 @@ class AgendaMatriculaTest extends ConsultorioTestCase
             'hora' => '08:50',
             'tipo' => 'Consulta presencial',
             'status' => 'Agendado',
+            'valor' => 0,
         ])->assertSessionHasErrors(['date' => 'Não há atendimento nesse dia da semana.']);
 
         $this->from('/agenda')->post('/agenda', [
@@ -240,6 +245,7 @@ class AgendaMatriculaTest extends ConsultorioTestCase
             'hora' => '09:00',
             'tipo' => 'Consulta presencial',
             'status' => 'Agendado',
+            'valor' => 0,
         ])->assertSessionHasErrors(['hora' => 'Esse horário está fora do expediente.']);
     }
 
@@ -273,25 +279,27 @@ class AgendaMatriculaTest extends ConsultorioTestCase
         $this->assertCount(2, $eventos('/agenda?data=2026-10-01&visao=mes'));
     }
 
-    public function test_transicoes_de_status_permitidas_e_bloqueadas(): void
+    public function test_agenda_so_oferece_falta_e_cancelado_e_falta_vale_para_quem_tem_matricula(): void
     {
         $paciente = $this->paciente();
         $this->matricular($paciente, weekday: 2);
         $consulta = Consulta::where('paciente_id', $paciente->id)->orderBy('data_hora_consulta')->first();
 
-        // Matriculado (agendado) não pode virar Falta direto.
-        $this->patchJson("/agenda/{$consulta->id}/status", ['status' => 'falta'])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('status');
+        // Outros status não existem mais na agenda.
+        foreach (['confirmado', 'realizado'] as $status) {
+            $this->patchJson("/agenda/{$consulta->id}/status", ['status' => $status])
+                ->assertStatus(422)
+                ->assertJsonValidationErrors('status');
+        }
         $this->assertSame('agendado', $consulta->fresh()->status);
 
-        // Matriculado pode virar Realizado direto.
-        $this->patch("/agenda/{$consulta->id}/status", ['status' => 'realizado'])->assertSessionHasNoErrors();
-        $this->assertSame('realizado', $consulta->fresh()->status);
+        // Matriculado pode virar Falta direto.
+        $this->patch("/agenda/{$consulta->id}/status", ['status' => 'falta'])->assertSessionHasNoErrors();
+        $this->assertSame('falta', $consulta->fresh()->status);
 
         // Depois de cancelado, não pode mudar para mais nada.
         $this->patch("/agenda/{$consulta->id}/status", ['status' => 'cancelado'])->assertSessionHasNoErrors();
-        $this->patchJson("/agenda/{$consulta->id}/status", ['status' => 'realizado'])
+        $this->patchJson("/agenda/{$consulta->id}/status", ['status' => 'falta'])
             ->assertStatus(422)
             ->assertJsonValidationErrors('status');
         $this->assertSame('cancelado', $consulta->fresh()->status);

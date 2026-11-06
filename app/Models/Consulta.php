@@ -26,17 +26,20 @@ class Consulta extends Model
         'cancelado' => 'Cancelado',
     ];
 
-    /** Transições de status permitidas na agenda. */
+    /**
+     * Transições de status permitidas na agenda: a matrícula já garante o horário, então só existem "Falta" e "Cancelado"
+     * (a falta também vale para quem tem matrícula, direto de "Matriculado"). Os demais status só existem em registros antigos.
+     */
     public const TRANSICOES = [
-        'agendado' => ['confirmado', 'realizado', 'cancelado'],
-        'confirmado' => ['realizado', 'falta', 'cancelado'],
-        'realizado' => ['confirmado', 'falta', 'cancelado'],
-        'falta' => ['realizado', 'cancelado'],
+        'agendado' => ['falta', 'cancelado'],
+        'confirmado' => ['falta', 'cancelado'],
+        'realizado' => ['falta', 'cancelado'],
+        'falta' => ['cancelado'],
         'cancelado' => [],
     ];
 
     protected $fillable = [
-        'paciente_id', 'matricula_id', 'data_hora_consulta', 'duracao_minutos', 'modalidade', 'status', 'aviso_enviado_em',
+        'paciente_id', 'matricula_id', 'data_hora_consulta', 'duracao_minutos', 'modalidade', 'status', 'valor', 'aviso_enviado_em',
     ];
 
     protected function casts(): array
@@ -83,9 +86,8 @@ class Consulta extends Model
     }
 
     /**
-     * Muda o status e mantém a cobrança da sessão em dia:
-     * virou "realizado" → cobrança pendente com o valor da matrícula da própria consulta, vencendo no dia da sessão;
-     * saiu de "realizado" → a cobrança pendente é cancelada (uma paga, mesmo que em parte, não é mexida).
+     * Muda o status. Cancelar a consulta cancela também a cobrança dela (a da consulta avulsa) se ainda estiver em aberto
+     * e sem nenhum pagamento; falta não cancela: a sessão continua cobrada. As mensalidades da matrícula não dependem da agenda.
      */
     public function alterarStatus(string $status): void
     {
@@ -99,36 +101,13 @@ class Consulta extends Model
         }
 
         DB::transaction(function () use ($status) {
-            $anterior = $this->status;
             $this->update(['status' => $status]);
 
-            $cobranca = $this->cobranca()->first();
-
-            if ($status === 'realizado' && $anterior !== 'realizado') {
-                if ($cobranca) {
-                    if ($cobranca->situacao === 'cancelado') {
-                        $cobranca->update(['situacao' => 'pendente']);
-                    }
-
-                    return;
+            if ($status === 'cancelado') {
+                $cobranca = $this->cobranca()->first();
+                if ($cobranca?->situacao === 'pendente' && ! $cobranca->pagamentos()->exists()) {
+                    $cobranca->update(['situacao' => 'cancelado']);
                 }
-
-                $valor = $this->matricula?->valor_sessao;
-                if ($valor === null) {
-                    return; // consulta avulsa não tem valor de sessão definido
-                }
-
-                $this->cobranca()->create([
-                    'paciente_id' => $this->paciente_id,
-                    'titulo' => 'Sessão — '.$this->data_hora_consulta->format('d/m/Y'),
-                    'valor' => $valor,
-                    'vencimento' => $this->data_hora_consulta->toDateString(),
-                ]);
-            }
-
-            if ($anterior === 'realizado' && $status !== 'realizado'
-                && $cobranca?->situacao === 'pendente' && ! $cobranca->pagamentos()->exists()) {
-                $cobranca->update(['situacao' => 'cancelado']);
             }
         });
     }

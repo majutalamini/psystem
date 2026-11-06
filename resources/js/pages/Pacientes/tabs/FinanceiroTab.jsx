@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Banknote, Clock, Plus, SlidersHorizontal, TrendingUp, Undo2, X } from "lucide-react";
+import { Ban, Banknote, CalendarClock, Clock, Plus, SlidersHorizontal, TrendingUp, Undo2, X } from "lucide-react";
+import EditDueDateModal from "../../../components/financeiro/EditDueDateModal";
 import NewReceivableModal from "../../../components/financeiro/NewReceivableModal";
 import ReceivePaymentModal from "../../../components/financeiro/ReceivePaymentModal";
 import { Card, Pill, PrimaryButton, RowMenu, StatCard } from "../../../components/ui";
@@ -8,13 +9,26 @@ import { useAppData } from "../../../hooks/useAppData";
 import { filterInputStyle } from "../../../styles/formStyles";
 import { T } from "../../../styles/theme";
 import DateInput from "../../../components/ui/DateInput";
+import { confirmar } from "../../../utils/alertas";
 import { parseBrDate } from "../../../utils/date";
+import { inputStyle } from "../../../styles/formStyles";
 import { maskDate, formatMoney } from "../../../utils/format";
 
 export default function FinanceiroTab({ patient, receivables }) {
-  const { addReceivable, receiveReceivable, reopenReceivable } = useAppData();
+  const { addReceivable, receiveReceivable, reopenReceivable, updateReceivable, cancelReceivable, setDiaVencimento } = useAppData();
   const [showModal, setShowModal] = useState(false);
   const [receiving, setReceiving] = useState(null);   // lançamento em baixa
+  const [editingDue, setEditingDue] = useState(null); // título com vencimento em ajuste
+
+  async function cancelarTitulo(r) {
+    const ok = await confirmar({
+      titulo: "Cancelar este título?",
+      texto: `"${r.referencia}" (R$ ${formatMoney(r.valor)}) sai do financeiro${r.paciente ? ` de ${r.paciente}` : ""}. Essa ação não pode ser desfeita.`,
+      confirmar: "Cancelar título",
+      perigo: true,
+    });
+    if (ok) cancelReceivable(r.id);
+  }
   const mine = receivables;
   const totalPago = mine.reduce((s, r) => s + (r.recebido || 0), 0);
   const totalAberto = mine.reduce((s, r) => s + r.saldo, 0);
@@ -49,7 +63,19 @@ export default function FinanceiroTab({ patient, receivables }) {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <label htmlFor="dia-mensalidade" style={{ fontSize: 13.5, fontWeight: 600, color: T.muted }}>A mensalidade da matrícula vence todo</label>
+          <select
+            id="dia-mensalidade"
+            value={patient.diaVencimento || 10}
+            onChange={(e) => setDiaVencimento(patient.id, Number(e.target.value))}
+            style={{ ...inputStyle, width: 110, marginBottom: 0 }}
+          >
+            {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>Dia {d}</option>)}
+          </select>
+          <span style={{ fontSize: 12.5, color: T.muted }}>Vale para o título em aberto e para os próximos.</span>
+        </div>
         <PrimaryButton icon={Plus} style={{ padding: "15px 26px", fontSize: 16, borderRadius: 12 }} onClick={() => setShowModal(true)}>Novo lançamento</PrimaryButton>
       </div>
 
@@ -148,7 +174,13 @@ export default function FinanceiroTab({ patient, receivables }) {
                           ...(r.status !== "Pago" ? [
                             { label: "Registrar recebimento", icon: Banknote, onClick: () => setReceiving(r) },
                           ] : []),
-                          ...(r.recebido != null ? [
+                          ...(r.status !== "Pago" ? [
+                              { label: "Alterar vencimento", icon: CalendarClock, onClick: () => setEditingDue(r) },
+                            ] : []),
+                            ...(r.status !== "Pago" && r.recebido == null ? [
+                              { label: "Cancelar título", icon: Ban, tone: "danger", onClick: () => cancelarTitulo(r) },
+                            ] : []),
+                            ...(r.recebido != null ? [
                             { label: "Estornar último recebimento", icon: Undo2, tone: "danger", onClick: () => reopenReceivable(r.id) },
                           ] : []),
                         ]}
@@ -167,6 +199,16 @@ export default function FinanceiroTab({ patient, receivables }) {
           patientId={patient.id}
           onClose={() => setShowModal(false)}
           onSave={(entry) => addReceivable(entry, { onSuccess: () => setShowModal(false) })}
+        />
+      )}
+
+      {editingDue && (
+        <EditDueDateModal
+          titulo={editingDue.referencia}
+          subtitulo={editingDue.paciente}
+          vencimento={editingDue.vencimento}
+          onClose={() => setEditingDue(null)}
+          onSave={(vencimento) => updateReceivable(editingDue.id, { vencimento }, { onSuccess: () => setEditingDue(null) })}
         />
       )}
 

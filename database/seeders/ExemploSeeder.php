@@ -2,20 +2,22 @@
 
 namespace Database\Seeders;
 
+use App\Models\Cobranca;
 use App\Models\Despesa;
 use App\Models\Paciente;
 use App\Services\AgendaMatricula;
+use App\Services\Mensalidades;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
 /**
  * Dados de exemplo para testar as telas: os pacientes do protótipo, com matrícula,
- * quatro semanas de sessões realizadas (e cobradas) e algumas despesas.
+ * quatro semanas de sessões realizadas, mensalidades (as dos meses anteriores pagas) e algumas despesas.
  * Uso: php artisan db:seed --class=ExemploSeeder
  */
 class ExemploSeeder extends Seeder
 {
-    public function run(AgendaMatricula $agenda): void
+    public function run(AgendaMatricula $agenda, Mensalidades $mensalidades): void
     {
         foreach (require __DIR__.'/dados/pacientes_exemplo.php' as $dados) {
             $matricula = $dados['matricula'] ?? null;
@@ -34,27 +36,37 @@ class ExemploSeeder extends Seeder
                 'valor_sessao' => $matricula['valor'],
             ]);
 
-            // Últimas quatro semanas: sessões realizadas; as duas mais antigas já pagas.
+            // Últimas quatro semanas: sessões já realizadas.
             for ($semana = 4; $semana >= 1; $semana--) {
                 $dia = today()->subWeeks($semana)->startOfWeek(Carbon::MONDAY)->addDays($matricula->diaIso() - 1);
-                $consulta = $matricula->consultas()->create([
+                $matricula->consultas()->create([
                     'paciente_id' => $paciente->id,
                     'data_hora_consulta' => $dia->setTimeFromTimeString($matricula->horario_da_matricula),
                     'modalidade' => $matricula->tipo_da_consulta,
-                    'status' => 'confirmado',
+                    'status' => 'realizado',
                 ]);
-                $consulta->alterarStatus('realizado');
-
-                if ($semana >= 3) {
-                    $cobranca = $consulta->cobranca()->first();
-                    $cobranca->pagamentos()->create([
-                        'valor_pago' => $cobranca->valor,
-                        'metodo_pagamento' => 'pix',
-                        'data_pagamento' => $cobranca->vencimento,
-                    ]);
-                    $cobranca->update(['situacao' => 'pago']);
-                }
             }
+
+            // Mensalidades: as dos dois meses anteriores já pagas; a próxima fica em aberto.
+            foreach ([2, 1] as $atras) {
+                $mes = today()->startOfMonth()->subMonthsNoOverflow($atras);
+                $vencimento = Mensalidades::vencimento($mes, (int) $paciente->dia_vencimento);
+                $cobranca = Cobranca::create([
+                    'paciente_id' => $paciente->id,
+                    'matricula_id' => $matricula->id,
+                    'competencia' => $mes->toDateString(),
+                    'titulo' => 'Mensalidade — '.$mes->format('m/Y'),
+                    'valor' => $matricula->valor_sessao,
+                    'vencimento' => $vencimento->toDateString(),
+                    'situacao' => 'pago',
+                ]);
+                $cobranca->pagamentos()->create([
+                    'valor_pago' => $cobranca->valor,
+                    'metodo_pagamento' => 'pix',
+                    'data_pagamento' => $vencimento,
+                ]);
+            }
+            $mensalidades->gerar($matricula->setRelation('paciente', $paciente->fresh()));
 
             $agenda->gerar($matricula);
         }

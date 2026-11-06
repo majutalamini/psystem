@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ErrorText, Modal, PrimaryButton } from "../../../components/ui";
+import { ErrorText, Modal, MoneyInput, PrimaryButton } from "../../../components/ui";
 import { useAppData } from "../../../hooks/useAppData";
 import { inputStyle } from "../../../styles/formStyles";
 import { T } from "../../../styles/theme";
@@ -14,6 +14,7 @@ export default function NewAppointmentModal({ date, dateLabel, defaultHour, occu
     hora: livres.includes(defaultHour) ? defaultHour : livres[0] || "",
     tipo: "Consulta presencial",
     status: "Pendente",
+    valor: "",
   });
 
   function handleSave() {
@@ -55,9 +56,19 @@ export default function NewAppointmentModal({ date, dateLabel, defaultHour, occu
         <option>Confirmado</option>
       </select>
 
+      <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Valor da consulta</label>
+      <MoneyInput
+        value={form.valor} onChange={(v) => setForm({ ...form, valor: v })}
+        style={errors.valor ? { ...inputStyle, borderColor: T.danger, marginBottom: 4 } : inputStyle}
+      />
+      <ErrorText>{errors.valor}</ErrorText>
+      <div style={{ fontSize: 12.5, color: T.muted, marginTop: -6, marginBottom: 12 }}>
+        Fica em aberto no financeiro do paciente, uma única vez (não se repete). Use 0 se não houver cobrança.
+      </div>
+
       <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
         <button onClick={onClose} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
-        <PrimaryButton style={{ flex: 1, justifyContent: "center" }} onClick={handleSave} disabled={!form.hora}>Agendar</PrimaryButton>
+        <PrimaryButton style={{ flex: 1, justifyContent: "center" }} onClick={handleSave} disabled={!form.hora || form.valor === ""}>Agendar</PrimaryButton>
       </div>
     </Modal>
   );

@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/pacientes/{paciente}', [PacienteController::class, 'update']);
     Route::delete('/pacientes/{paciente}', [PacienteController::class, 'destroy']);
     Route::post('/pacientes/{paciente}/foto', [PacienteController::class, 'foto']);
+    Route::patch('/pacientes/{paciente}/vencimento', [PacienteController::class, 'vencimento']);
 
     Route::post('/pacientes/{paciente}/matriculas', [MatriculaController::class, 'store']);
     Route::put('/matriculas/{matricula}', [MatriculaController::class, 'update']);
@@ -63,9 +64,14 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/financeiro', [FinanceiroController::class, 'index'])->name('financeiro');
     Route::post('/cobrancas', [FinanceiroController::class, 'storeCobranca']);
+    Route::patch('/cobrancas/{cobranca}', [FinanceiroController::class, 'atualizarCobranca']);
+    Route::delete('/cobrancas/{cobranca}', [FinanceiroController::class, 'cancelarCobranca']);
     Route::post('/cobrancas/{cobranca}/pagamento', [FinanceiroController::class, 'receber']);
     Route::delete('/cobrancas/{cobranca}/pagamento', [FinanceiroController::class, 'estornar']);
     Route::post('/despesas', [FinanceiroController::class, 'storeDespesa']);
+    Route::put('/despesas/{despesa}', [FinanceiroController::class, 'atualizarDespesa']);
+    Route::delete('/despesas/{despesa}', [FinanceiroController::class, 'cancelarDespesa']);
+    Route::delete('/despesas/{despesa}/recorrencia', [FinanceiroController::class, 'encerrarRecorrencia']);
     Route::post('/despesas/{despesa}/pagamento', [FinanceiroController::class, 'pagarDespesa']);
     Route::delete('/despesas/{despesa}/pagamento', [FinanceiroController::class, 'estornarDespesa']);
 

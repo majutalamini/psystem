@@ -85,6 +85,15 @@ export function imprimirAnamnese(patient, anamnese, secoes, user) {
   imprimirDocumento(`Anamnese — ${patient.name}`, corpo);
 }
 
+/* Declaração: título, texto, data e assinatura em uma só folha A4. */
+export function imprimirDeclaracao(template, paragraphs, user) {
+  const corpo = `<h1 style="margin-bottom:6px">${escapar(template.title)}</h1>
+    <div style="width:60px;height:2px;background:#1C2233;margin:8px auto 26px"></div>
+    ${paragraphs.map((p) => `<p style="text-align:justify;line-height:1.9;margin:0 0 14px">${escapar(p)}</p>`).join("")}
+    ${rodape(user)}`;
+  imprimirDocumento(template.title, corpo);
+}
+
 /* Tabela dos relatórios: colunas e linhas já em texto. */
 export function imprimirTabela(titulo, colunas, linhas, user, resumo) {
   const corpo = `${topo(user)}<h1>${escapar(titulo)}</h1>
