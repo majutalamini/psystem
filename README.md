@@ -1,185 +1,238 @@
 # Psystem
 
-Sistema de agendamento e gestão para consultório de psicologia: pacientes, matrículas (dia e horário fixos), agenda, prontuários, anamnese, documentos, financeiro, relatórios, declarações e avisos por e-mail.
+Sistema para gestão de um consultório de psicologia, com agenda, pacientes, matrículas, prontuários, anamneses, documentos e financeiro. A interface e as validações estão em português brasileiro.
 
-Um único projeto Laravel que entrega as telas em React pelo Inertia. Não existe API separada: o controller devolve os dados como props e a tela React os recebe.
+## Funcionalidades
 
-## Stack
+- Cadastro de pacientes com CPF validado, UF, contatos, foto e histórico.
+- Várias matrículas por paciente, cada uma com dia, horário, modalidade e valor mensal.
+- Agenda diária, semanal e mensal, com uma janela móvel de **dois meses**.
+- Consultas simultâneas com limite opcional; o mesmo paciente não pode ocupar duas vezes o mesmo horário.
+- Mensalidades por matrícula e competência, com dia de vencimento definido no perfil do paciente.
+- Consultas avulsas com valor próprio e cobrança independente da mensalidade.
+- Contas a receber, pagamentos parciais, alteração de vencimento e estornos individuais com motivo.
+- Contas a pagar avulsas ou recorrentes, edição, cancelamento e encerramento da recorrência.
+- Prontuários e anamneses com controle de versão para evitar sobrescrita entre abas.
+- Importação de arquivos Word (.docx), conferência antes de gravar e histórico das importações.
+- Documentos privados, visualização dos formatos compatíveis, download e confirmação de remoção.
+- Declarações, relatórios, monitoramento e rotinas de backup.
 
-| Camada | Tecnologia |
+## Tecnologias
+
+| Área | Tecnologias |
 |---|---|
-| Back | Laravel 13, PHP 8.3+ (a imagem Docker usa 8.4) |
-| Front | React 19, Inertia.js 3, Vite 8, lucide-react, recharts, SweetAlert2 |
+| Backend | PHP 8.4 na imagem Docker, Laravel 13 e Eloquent |
+| Interface | React 19, Inertia.js 3 e Vite 8 |
+| Componentes | Lucide, Recharts, SweetAlert2 e react-currency-input-field |
 | Banco | PostgreSQL 17 |
-| Infra de dev | Docker Compose |
-| Testes | PHPUnit 12, SQLite em memória |
+| Servidor | Nginx e PHP-FPM |
+| HTTPS | Caddy no Compose de servidor |
+| Processamento | Laravel Queue e Scheduler |
+| Monitoramento | Laravel Pulse, prontidão e logs com identificador de requisição |
+| Testes | PHPUnit, Playwright e k6 |
+| Ambiente | Docker Compose; desenvolvimento no filesystem Linux do WSL2 |
 
-## Como iniciar
+## Instalação local
 
-Pré-requisitos: Docker com Docker Compose e Node.js instalado na máquina para o Vite. O Node não roda em container.
+### Requisitos
+
+- Git e Docker com Docker Compose.
+- No Windows, WSL2 com a integração do Docker Desktop habilitada.
+- Node.js 24 para HMR, preparação dos bancos de teste e roteiros de navegador. O build de produção instala as dependências dentro do Docker.
+
+Mantenha o projeto no filesystem Linux do WSL. Nesta instalação, a cópia mantida está em `/home/aam/projetos/psystem`, na distribuição `Psystem`. Execute os comandos abaixo na raiz dessa cópia.
 
 ```bash
 cp .env.example .env
-docker compose build
-docker compose run --rm app composer install
-docker compose up -d --remove-orphans
-npm ci
-npm run build
-
-docker compose exec app php artisan key:generate
-docker compose exec app php artisan migrate
-docker compose exec app php artisan db:seed
 ```
 
-Depois de subir:
+Edite o `.env` antes de iniciar:
 
-| O quê | Endereço |
+- Defina uma senha em `DB_PASSWORD`.
+- Preencha `LOCAL_UID` e `LOCAL_GID` com os valores de `id -u` e `id -g`.
+- Defina `BACKUP_SENHA` para os backups criptografados e guarde essa chave fora do servidor.
+- Use um nome fixo em `COMPOSE_PROJECT_NAME` para manter o mesmo conjunto de containers e volumes. Nesta instalação, ele é `psystem-etapa-1`.
+
+```bash
+# Constrói as imagens da aplicação e da ferramenta de verificação.
+docker compose --profile tools build
+
+# Gera APP_KEY no .env local.
+docker compose --profile tools run --rm --no-deps -T verificar php artisan key:generate
+
+# Prepara o banco antes de iniciar os processos em segundo plano.
+docker compose up -d --wait db
+docker compose run --rm --no-deps app php artisan migrate --force
+docker compose run --rm --no-deps app php artisan db:seed --force
+
+# Inicia os serviços normais do sistema.
+docker compose up -d
+```
+
+Acesse **http://localhost:8000**. A seed inicial cria a conta de desenvolvimento da psicóloga, as configurações e o modelo de anamnese; confira `database/seeders/DatabaseSeeder.php`. Altere as credenciais antes de disponibilizar uma instalação publicamente. Pacientes e massas de exemplo não fazem parte da instalação.
+
+O PostgreSQL não publica sua porta no Compose principal. O override `docker-compose.dev.yml` disponibiliza a porta 5433 somente em `127.0.0.1`.
+
+## Containers e perfis
+
+Um `docker compose up -d` inicia os sete serviços principais:
+
+| Serviço | Responsabilidade |
 |---|---|
-| Sistema | http://localhost:8000 |
-| Vite (hot reload) | http://localhost:5173 |
-| E-mails de teste (Mailpit) | http://localhost:8025 |
-| Postgres no host | `localhost:5433` (usuário, senha e banco: `psystem`) |
+| `app` | Executa o Laravel pelo PHP-FPM |
+| `web` | Nginx e acesso HTTP na porta 8000 |
+| `db` | PostgreSQL |
+| `scheduler` | Completa a agenda, gera mensalidades e contas recorrentes e dispara avisos |
+| `fila` | Processa os e-mails enfileirados |
+| `backup` | Agenda o backup criptografado diário |
+| `pulse` | Coleta as métricas de monitoramento |
 
-A pasta `vendor/` fica num volume do Docker. O `app` instala as dependências se elas ainda não existirem, e o `scheduler` aguarda a instalação antes de iniciar.
+Os ambientes auxiliares são opcionais:
 
-O `db:seed` cria o login de desenvolvimento `isadora.talamini@psystem.com` / `psystem123`, as configurações padrão e o modelo de anamnese.
+| Perfil | Serviços | Uso |
+|---|---|---|
+| `tools` | `verificar` | Verificação local e testes PHP |
+| `mailpit` | `mailpit` | Caixa de e-mails de desenvolvimento, porta 8025 |
+| `diagnostico` | `diagnostic`, `diagnostic-web` | Laboratório isolado, porta 8001 |
+| `e2e` | `e2e`, `e2e-web` | Testes de navegador, porta 8002 |
 
-Para ter dados de exemplo (pacientes com matrícula, quatro semanas de sessões e cobranças):
+Os perfis de diagnóstico e E2E dependem dos respectivos arquivos Compose. Mesmo incluindo esses arquivos, eles não entram na inicialização padrão.
 
 ```bash
-docker compose exec app php artisan db:seed --class=ExemploSeeder
+# E-mail local de teste, somente quando necessário.
+docker compose --profile mailpit up -d mailpit
+
+# Laboratório de diagnóstico; a preparação da massa sintética é local.
+docker compose -f docker-compose.yml -f docker-compose.diagnostic.yml --profile diagnostico up -d diagnostic diagnostic-web
+
+# Ambiente isolado dos testes de navegador.
+docker compose -f docker-compose.yml -f docker-compose.e2e.yml --profile e2e up -d e2e e2e-web
 ```
 
-### Serviços do `docker-compose.yml`
+Por padrão local, `MAIL_MAILER=log`: os e-mails são registrados nos logs. Para o Mailpit, configure `MAIL_MAILER=smtp`, `MAIL_HOST=mailpit` e `MAIL_PORT=1025`, depois recrie os serviços que enviam e-mails. Para envio real, configure o SMTP do provedor.
 
-- `app`: `php artisan serve` com 4 workers.
-- `scheduler`: `php artisan schedule:work`, que roda as tarefas agendadas.
-- `db`: Postgres.
-- `mailpit`: caixa de entrada de teste.
+## Regras importantes
 
-### Frontend local
+### Agenda e matrículas
 
-Os containers executam PHP, PostgreSQL e Mailpit. As dependências e o build do frontend ficam na máquina:
+A matrícula gera consultas até a data atual mais dois meses. O Scheduler completa essa janela periodicamente; abrir a agenda só consulta os dados. A navegação respeita o limite disponível e a grade mensal é carregada em uma resposta.
+
+A matrícula permanece no histórico ao ser encerrada. Quando a última matrícula ativa é encerrada, o paciente é inativado e as consultas futuras saem da agenda. Registros passados são preservados. Se houver mensalidades a vencer sem recebimento, a tela pergunta se também devem ser canceladas.
+
+### Financeiro
+
+A mensalidade é única por matrícula e mês. Ao criar a matrícula, se o vencimento daquele mês já passou, o primeiro título é do mês seguinte. O dia é ajustado ao último dia dos meses mais curtos. Alterações de valor e vencimento respeitam os títulos já recebidos.
+
+A consulta avulsa recebe seu próprio valor e título. Cancelar uma consulta pode cancelar seu título ainda em aberto e sem recebimentos; registrar falta mantém a cobrança.
+
+Pagamentos podem ser parciais. O estorno é feito por pagamento, exige motivo e preserva o histórico. Reenvios identificados não duplicam pagamentos. Cancelar uma conta recorrente preserva seu registro; encerrar a recorrência impede os próximos lançamentos.
+
+### Dados clínicos e arquivos
+
+Cadastros com histórico clínico ou financeiro são preservados; use a inativação para retirar o paciente da rotina. Prontuários e anamneses recusam alterações sobre versões antigas. Fotos e documentos são privados e exigem autenticação. Contas podem ter seu acesso revogado imediatamente.
+
+## Atualização do sistema
+
+O código e os assets são copiados para as imagens. Para aplicar mudanças em uma instalação existente:
+
+```bash
+docker compose build
+docker compose run --rm --no-deps app php artisan migrate --force
+docker compose up -d
+```
+
+Ao atualizar uma instalação antiga que usava fotos públicas, execute uma vez:
+
+```bash
+docker compose exec -u www-data app php artisan fotos:tornar-privadas
+```
+
+Banco, documentos, fotos e backups ficam em volumes. Preserve esses volumes durante atualizações; `docker compose down -v` remove os dados.
+
+## Desenvolvimento e testes
+
+Para desenvolvimento com código montado e HMR:
 
 ```bash
 npm ci
-npm run build
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d app web scheduler
+npm run dev
 ```
 
-Para desenvolver com atualização automática, rode `npm run dev` em outro terminal e mantenha-o aberto. Acesse o sistema pela porta 8000; a porta 5173 serve os arquivos do Vite. Para voltar ao build estático, pare o Vite, remova `public/hot` se existir e execute `npm run build`.
+A interface continua na porta 8000 e o Vite utiliza a 5173. Pare o Vite e remova um eventual `public/hot` residual antes de voltar às imagens de produção.
 
-Ao atualizar uma instalação existente, execute `docker compose exec app php artisan migrate`. A migration de remoção da integração antiga apaga apenas seus registros de mensagens, consentimento e configurações; pacientes, agenda e financeiro são preservados. O rollback recria a estrutura, sem recuperar as mensagens apagadas. `docker compose up -d --remove-orphans` remove os containers que deixaram de ser usados, preservando os volumes.
-
-## Comandos úteis
+Prepare o banco isolado e execute a verificação:
 
 ```bash
-docker compose exec app php artisan test
-docker compose exec app php artisan migrate
-docker compose exec app php artisan agenda:gerar
-docker compose exec app php artisan pacientes:sincronizar-status
-npm run build
+npm run test:prepare
+sh scripts/verificar-local.sh
 ```
 
-Tarefas agendadas (`routes/console.php`):
-
-| Comando | Quando | O que faz |
-|---|---|---|
-| `agenda:gerar` | todo dia 01:00 | Completa a agenda dos próximos 2 meses a partir das matrículas ativas |
-| `mensalidades:gerar` | todo dia 01:10 | Lança a mensalidade do mês (título em aberto no financeiro) das matrículas ativas com valor, sem duplicar |
-| `despesas:gerar` | todo dia 01:20 | Lança a conta a pagar do mês de cada recorrência ativa, sem duplicar |
-| `avisos:consultas` | a cada minuto | E-mail para a psicóloga cerca de 1 hora antes de cada consulta |
-| `avisos:vencimentos` | todo dia 07:00 | E-mail das contas que vencem nos próximos 3 dias |
-
-`pacientes:sincronizar-status` não é agendado: serve para acertar de uma vez o status dos pacientes já cadastrados.
-
-## Como o sistema foi feito
-
-### Origem
-
-O front nasceu como um protótipo React com dados fixos e navegação por `useState`. Ele foi migrado para o Laravel: a navegação virou rotas, os dados fixos saíram, e o `DataProvider` agora lê as props do Inertia e expõe as ações (`router.post`, `router.put` etc.) pelo hook `useAppData()`. As decisões de modelagem estão em [docs/decisoes.md](docs/decisoes.md). Esse arquivo ainda descreve "uma matrícula por paciente", o que mudou (veja abaixo).
-
-### Estrutura
-
-```
-app/
-  Http/Controllers/   um por área (Paciente, Matricula, Agenda, Financeiro...)
-  Http/Middleware/HandleInertiaRequests.php   dados compartilhados em toda tela
-  Models/             Paciente, Matricula, Consulta (tabela agenda), Cobranca...
-  Rules/Cpf.php       validação de CPF com dígitos verificadores
-  Services/           AgendaMatricula, Avisos
-  Support/Tela.php    formatação de datas, CPF e rótulos para o front
-database/
-  migrations/
-  seeders/            DatabaseSeeder (mínimo) e ExemploSeeder
-resources/js/
-  pages/              uma pasta por tela (Pacientes, Agenda, Financeiro...)
-  components/         peças compartilhadas (ui, layout, financeiro...)
-  context/DataProvider.jsx   ações que viram requisições ao Laravel
-  utils/              format.js, matricula.js, alertas.js...
-routes/web.php        todas as rotas
-routes/console.php    comandos e agendamentos
-tests/Feature/
-```
-
-### Padrões do projeto
-
-- **Dados para a tela:** cada model tem `paraTela()`, que devolve o formato que o React espera (por exemplo `patient.matriculas`). O `HandleInertiaRequests` compartilha a lista de pacientes, os horários e o `flash` em toda página.
-- **Validação:** os controllers validam e devolvem os erros por campo. As telas mostram o erro abaixo do campo.
-- **Banco:** nomes de tabela e colunas em português. Timestamps são `criado_em` e `atualizado_em`.
-- **Login:** pela tabela `psicologos` (não existe `users`).
-
-### Regras de negócio principais
-
-**Matrículas (P13)**
-- Um paciente pode ter várias matrículas. Cada uma é um dia e horário fixos por semana, com modalidade e `valor_sessao`.
-- Ao criar ou alterar, o sistema gera as consultas dos próximos 2 meses (a agenda não abre além disso) na tabela `agenda` (`AgendaMatricula`). Ao alterar, as consultas futuras ainda "agendadas" são apagadas e geradas de novo.
-- Encerrar (`DELETE /matriculas/{id}`) não apaga a linha: marca `status_matricula = encerrada` e `fim_da_matricula`, e tira as consultas futuras não confirmadas. O histórico e as cobranças continuam.
-- Não pode haver duas matrículas ativas no mesmo dia e horário, nem de pacientes diferentes nem do mesmo.
-- Rotas: `POST /pacientes/{id}/matriculas`, `PUT /matriculas/{id}`, `DELETE /matriculas/{id}`.
-
-**Mensalidade e cobranças**
-- O valor da matrícula (`valor_sessao`) é a mensalidade. Com valor maior que zero, ao lançar a matrícula o sistema cria um título em aberto no financeiro do paciente (`Mensalidades`), vencendo no dia configurado no perfil (`pacientes.dia_vencimento`, padrão 10; dia 31 vira o último dia dos meses curtos). Se o vencimento do mês já passou, o primeiro título é o do mês seguinte.
-- Depois disso, `mensalidades:gerar` lança um título por matrícula e mês (sem duplicar, índice único `matricula_id` + `competencia`).
-- Alterar o valor atualiza só os títulos em aberto sem pagamento; mudar o dia de vencimento (`PATCH /pacientes/{id}/vencimento`) reagenda os títulos em aberto; encerrar a matrícula cancela os que ainda vão vencer e não receberam nada.
-- Consulta avulsa tem o campo `valor` (obrigatório; 0 = sem cobrança). Com valor, cria uma única cobrança em aberto no paciente, ligada à consulta; cancelar a consulta cancela essa cobrança (falta não).
-- Status da agenda: só **Falta** e **Cancelado**. Falta vale também direto de "Matriculado".
-
-**Financeiro: ajustes**
-- Título a receber em aberto: dá para alterar o vencimento (`PATCH /cobrancas/{id}`) e cancelar (`DELETE /cobrancas/{id}`; com recebimento registrado é preciso estornar antes). Título cancelado sai das telas e uma mensalidade cancelada não é recriada pelo comando.
-- Conta a pagar: editar (`PUT /despesas/{id}`) e cancelar (`DELETE /despesas/{id}`, grava `cancelada_em`; some das telas e dos relatórios). Conta paga precisa do pagamento estornado antes.
-- Conta a pagar recorrente: ao criar com "Repetir todo mês", a data informada define o dia; a primeira conta é criada na hora e `despesas:gerar` lança uma por mês, no começo do mês, vencendo no mesmo dia (31 vira o último dia dos meses curtos). Ao editar, "Aplicar também aos próximos meses" muda o modelo; `DELETE /despesas/{id}/recorrencia` encerra a recorrência.
-- Documentos do paciente: `GET /documentos/{id}` só exibe (inline); `?baixar=1` faz o download. Tipos que o navegador não exibe (ex.: Word) só têm o botão de baixar.
-
-**Status do paciente (P14)**
-- O paciente é `ativo` se tiver ao menos uma matrícula ativa, e `inativo` se não tiver. Isso é calculado em `Paciente::sincronizarStatus()`, chamado ao criar e ao encerrar matrícula.
-- Não há mais troca manual de status no cadastro. Paciente novo nasce inativo até ter matrícula.
-
-**Cadastro (P03)**
-- CPF validado pela regra `App\Rules\Cpf`, data de nascimento não pode ser futura.
-- `sexo` saiu do formulário, mas a coluna continua (o relatório de gênero usa).
-
-**Financeiro**
-- Quando uma consulta vira `realizado`, nasce uma cobrança `pendente` com o valor da matrícula **da própria consulta** (`agenda.matricula_id`) e vencimento na data da sessão. Consulta avulsa, sem matrícula, não gera cobrança.
-- A cobrança pode ser recebida em partes. O estorno desfaz o último pagamento.
-- Mais detalhes em [docs/decisoes.md](docs/decisoes.md).
-
-### Alertas (SweetAlert2)
-
-- `resources/js/utils/alertas.js` expõe `sucesso()` (toast), `erro()`, `errosDeCampo()` e `confirmar()`.
-- `DataProvider.jsx` mostra um toast quando a ação dá certo e um resumo quando a validação falha. O servidor pode mandar `flash.sucesso` ou `flash.erro` para trocar a mensagem padrão.
-- Erros HTTP (403, 404, 419, 429, 500) e queda de rede viram mensagens amigáveis em vez da página padrão do Laravel.
-- Excluir paciente, encerrar matrícula e excluir anamnese pedem confirmação por `confirmar()`.
-
-## Testes
+Para executar diretamente pelo serviço de ferramentas:
 
 ```bash
-docker compose exec app php artisan test
+docker compose --profile tools run --rm -T verificar composer verificar
 ```
 
-Rodam em SQLite em memória, com o relógio parado em 28/09/2026 às 10:00 (`ConsultorioTestCase`). Os testes cobrem agenda e matrícula, cobrança por sessão, financeiro, e-mails de aviso, recuperação de senha, cadastro de paciente e as telas com os dados de exemplo.
+O wrapper `scripts/verificar-local.sh` é usado pelo hook de pre-commit e verifica formatação PHP, testes, schema, build e auditorias de dependências npm/Composer. A suíte PHP usa exclusivamente PostgreSQL no banco `psystem_test`; os testes recusam o banco principal.
 
-Os testes não passam pelo Postgres. Mudanças em migration devem ser conferidas também com `php artisan migrate` no Docker.
+Para os testes de navegador, após preparar os bancos:
 
-## Produção
+```bash
+sh scripts/e2e.sh
+```
 
-Ainda não há configuração de produção no repositório. O `app` roda `php artisan serve`, que é servidor de desenvolvimento. Antes de publicar é preciso um Compose de produção (PHP-FPM com Nginx ou FrankenPHP), `npm run build` no ambiente de build, `.env` com `APP_ENV=production`, `APP_DEBUG=false` e senhas fortes, o banco e o Mailpit fora de portas públicas, HTTPS, volumes persistentes e backup do Postgres e de `storage/app`. Os dados são sensíveis (saúde), então o servidor deve ficar no Brasil.
+Os testes E2E usam `psystem_e2e`. Os roteiros de carga usam k6 e um laboratório sintético isolado; `scripts/carga.sh` depende dessa preparação local.
+
+## Operação e backup
+
+- `/pulse`: painel de monitoramento autenticado.
+- `/prontidao`: resposta resumida para monitoramento externo.
+- `php artisan operacao:status`: diagnóstico operacional detalhado.
+- `php artisan agenda:gerar`: completa a agenda.
+- `php artisan mensalidades:gerar`: gera as mensalidades.
+- `php artisan despesas:gerar`: gera as contas recorrentes.
+- `php artisan psicologo:revogar EMAIL`: revoga o acesso de uma conta.
+- `php artisan psicologo:reativar EMAIL`: reativa uma conta.
+
+Execute os comandos Artisan pelo serviço `app`, por exemplo:
+
+```bash
+docker compose exec -u www-data app php artisan operacao:status
+```
+
+O serviço `backup` usa `pg_dump`, inclui os arquivos privados e criptografa o pacote com `BACKUP_SENHA`. A retenção é de 30 diários e 12 mensais; o horário padrão é 02:30. Para cópia externa, configure `BACKUP_EXTERNO_DIR` e crie um arquivo `.destino-externo` no destino real.
+
+A restauração usa o script `docker/backup/restaurar.sh` e, por padrão, restaura em `psystem_restauracao`, sem substituir o banco principal. Guarde e teste a chave do backup fora do servidor.
+
+## HTTPS no servidor
+
+O arquivo `docker-compose.servidor.yml` acrescenta o Caddy. Configure `DOMINIO`, `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://SEU_DOMINIO`, `SESSION_SECURE_COOKIE=true` e os proxies confiáveis conforme o ambiente.
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.servidor.yml up -d --build
+```
+
+O domínio precisa apontar para o servidor e as portas 80 e 443 devem estar disponíveis.
+
+## Organização do código
+
+```text
+app/Actions/          Casos de uso, estados iniciais e operações com concorrência
+app/Http/             Controllers e middlewares
+app/Models/           Modelos e relacionamentos
+app/Queries/          Consultas e projeções de leitura
+app/Services/         Agenda, mensalidades, recorrências e avisos
+app/Support/          Formatação, métricas, prontidão e verificação do schema
+database/migrations/  Evolução do banco
+database/seeders/     Instalação mínima
+resources/js/         Interface React
+routes/               Rotas HTTP e comandos agendados
+docker/               PHP, Nginx, Caddy e rotinas de backup
+scripts/              Verificações e testes mantidos no projeto
+tests/                Testes PHP, navegador e carga
+```
+
+O manifesto versionado em `database/schema-permitido.json` classifica o schema e os hashes das migrations. Estados de negócio são definidos no PHP; alterações de persistência precisam atualizar essa classificação.
+
+O `README.md` é versionado. Os demais documentos locais, relatórios, massas sintéticas, scripts temporários, backups gerados, segredos e artefatos de build permanecem no `.gitignore`.
