@@ -1,16 +1,18 @@
-import { useState } from "react";
-import { ErrorText, Modal, MoneyInput, PrimaryButton } from "../../../components/ui";
+import { useId, useState } from "react";
+import { ErrorText, Modal, MoneyInput, PrimaryButton, PatientSelect, TimeInput, normalizeTime, isTimeAllowed } from "../../../components/ui";
 import { useAppData } from "../../../hooks/useAppData";
 import { inputStyle } from "../../../styles/formStyles";
 import { T } from "../../../styles/theme";
 import { isPastSlot } from "../../../utils/date";
 
-/* Só aparecem os horários livres: sem os que já têm consulta (occupied) e sem os que já passaram. */
+/* Só aparecem horários que ainda aceitam consulta: sem os lotados pelo limite de Configurações (occupied)
+   e sem os que já passaram. Paciente repetido no mesmo horário é recusado pelo servidor. */
 export default function NewAppointmentModal({ date, dateLabel, defaultHour, occupied = [], onClose }) {
-  const { patients, hours, addAppointment, errors = {} } = useAppData();
+  const id = useId();
+  const { hours, addAppointment, errors = {} } = useAppData();
   const livres = hours.filter((h) => !occupied.includes(h) && !isPastSlot(date, h));
   const [form, setForm] = useState({
-    patientId: patients[0] ? patients[0].id : "",
+    patientId: "",
     hora: livres.includes(defaultHour) ? defaultHour : livres[0] || "",
     tipo: "Consulta presencial",
     status: "Pendente",
@@ -18,28 +20,17 @@ export default function NewAppointmentModal({ date, dateLabel, defaultHour, occu
   });
 
   function handleSave() {
-    addAppointment({ ...form, date }, { onSuccess: onClose });
+    if (isTimeAllowed(form.hora, livres)) addAppointment({ ...form, hora: normalizeTime(form.hora), date }, { onSuccess: onClose });
   }
 
   return (
     <Modal title="Novo agendamento" onClose={onClose} width={380}>
       <div style={{ fontSize: 13, color: T.muted, marginBottom: 14, textTransform: "capitalize" }}>{dateLabel}</div>
 
-      <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Paciente</label>
-      <select value={form.patientId} onChange={(e) => setForm({ ...form, patientId: Number(e.target.value) })} style={inputStyle}>
-        {patients.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-      </select>
-      <ErrorText>{errors.patientId}</ErrorText>
+      <PatientSelect value={form.patientId} onChange={id => setForm(current => ({ ...current, patientId: id }))} error={errors.patientId} />
 
-      <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Horário</label>
-      <select
-        value={form.hora}
-        onChange={(e) => setForm({ ...form, hora: e.target.value })}
-        style={errors.hora ? { ...inputStyle, borderColor: T.danger, marginBottom: 4 } : inputStyle}
-      >
-        {livres.map((h) => <option key={h}>{h}</option>)}
-      </select>
-      <ErrorText>{errors.hora}</ErrorText>
+      <TimeInput label="Horário" value={form.hora} required options={livres} onChange={hora => setForm(current => ({ ...current, hora }))}
+        error={errors.hora || (normalizeTime(form.hora) && !livres.includes(normalizeTime(form.hora)) ? "Este horário não está mais disponível. Escolha outro horário." : undefined)} />
       {livres.length === 0 && (
         <div style={{ fontSize: 12.5, color: T.danger, marginTop: -8, marginBottom: 12 }}>Não há horário livre para agendar neste dia.</div>
       )}
@@ -56,8 +47,8 @@ export default function NewAppointmentModal({ date, dateLabel, defaultHour, occu
         <option>Confirmado</option>
       </select>
 
-      <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Valor da consulta</label>
-      <MoneyInput
+      <label htmlFor={`${id}-valor`} style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Valor da consulta</label>
+      <MoneyInput id={`${id}-valor`}
         value={form.valor} onChange={(v) => setForm({ ...form, valor: v })}
         style={errors.valor ? { ...inputStyle, borderColor: T.danger, marginBottom: 4 } : inputStyle}
       />
@@ -68,7 +59,7 @@ export default function NewAppointmentModal({ date, dateLabel, defaultHour, occu
 
       <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
         <button onClick={onClose} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
-        <PrimaryButton style={{ flex: 1, justifyContent: "center" }} onClick={handleSave} disabled={!form.hora || form.valor === ""}>Agendar</PrimaryButton>
+        <PrimaryButton style={{ flex: 1, justifyContent: "center" }} onClick={handleSave} disabled={!isTimeAllowed(form.hora, livres) || !form.patientId || form.valor === ""}>Agendar</PrimaryButton>
       </div>
     </Modal>
   );

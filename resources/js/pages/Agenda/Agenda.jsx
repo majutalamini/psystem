@@ -23,9 +23,13 @@ const primeiroDoMes = (iso) => { const d = parseIsoDate(iso); return toIsoDate(n
 const somaMes = (iso, n) => { const d = parseIsoDate(iso); return toIsoDate(new Date(d.getFullYear(), d.getMonth() + n, 1)); };
 const porExtenso = (iso) => parseIsoDate(iso).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
 
-/* A semana vem do servidor (consultas geradas pelas matrículas e agendamentos avulsos, sem as canceladas).
-   Dia, semana e mês são formas de ver os mesmos dados; o mês busca as outras semanas por conta própria. */
-export default function Agenda({ selectedDate, today, limite, weekStart, events }) {
+const dataBr = (iso) => parseIsoDate(iso).toLocaleDateString("pt-BR");
+const ultimoDoMes = (iso) => { const d = parseIsoDate(iso); return toIsoDate(new Date(d.getFullYear(), d.getMonth() + 1, 0)); };
+
+/* A semana vem nas props. O mês usa uma única resposta com toda a grade visível.
+   Vários pacientes podem ter consulta no mesmo horário; fullSlots traz os horários que já atingiram
+   o limite de Configurações (vazio quando não há limite). O servidor sempre revalida ao gravar. */
+export default function Agenda({ selectedDate, today, limite, weekStart, events, fullSlots = {}, agendaWindow }) {
   const { hours } = useAppData();
   const [visao, setVisao] = useState("dia");
   const [mesIso, setMesIso] = useState(() => primeiroDoMes(selectedDate));
@@ -36,14 +40,12 @@ export default function Agenda({ selectedDate, today, limite, weekStart, events 
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   const diasMes = useMemo(() => diasDoMes(mesIso), [mesIso]);
-  const semanasMes = useMemo(() => diasMes.filter((_, i) => i % 7 === 0), [diasMes]);
-  // A agenda só abre até `limite` (hoje + 2 meses): semanas além disso não são buscadas.
-  const semanasVisiveis = useMemo(() => semanasMes.filter((w) => w <= limite), [semanasMes, limite]);
-  const eventosMes = useEventosDoMes(visao === "mes", semanasVisiveis, weekStart, events);
+  const { events: eventosMes, loading: carregandoMes, error: erroMes, retry: repetirMes } = useEventosDoMes(visao === "mes", mesIso, events);
 
   const label = porExtenso(selectedDate);
   const schedule = useMemo(() => events.filter((e) => e.isoDate === selectedDate), [events, selectedDate]);
-  const byTime = Object.fromEntries(schedule.map((e) => [e.time, e]));
+  const byTime = schedule.reduce((acc, e) => ({ ...acc, [e.time]: [...(acc[e.time] || []), e] }), {});
+  const lotado = (iso, h) => (fullSlots[iso] || []).includes(h);
   // Consultas fora do expediente atual (ex.: expediente alterado depois) continuam aparecendo.
   const rows = [...new Set([...hours, ...schedule.map((e) => e.time)])].sort();
   const q = query.trim().toLowerCase();
@@ -107,6 +109,8 @@ export default function Agenda({ selectedDate, today, limite, weekStart, events 
     confirmados: doPeriodo.filter((e) => e.statusKey === "confirmado").length,
     pendentes: doPeriodo.filter((e) => e.statusKey === "agendado").length,
   };
+  const fimDoPeriodo = visao === "dia" ? selectedDate : visao === "semana" ? addDaysIso(weekStart, 6) : ultimoDoMes(mesIso);
+  const alemDaJanela = agendaWindow && fimDoPeriodo > agendaWindow.ate;
   const livres = visao === "dia"
     ? hours.filter((h) => !byTime[h] && !isPastSlot(selectedDate, h)).length
     : visao === "semana"
@@ -176,6 +180,20 @@ export default function Agenda({ selectedDate, today, limite, weekStart, events 
         </div>
       </Card>
 
+      {agendaWindow?.atrasada && (
+        <div role="alert" style={{ fontSize: 13, color: T.warnText, background: T.warnTint, borderRadius: 10, padding: "10px 14px", marginBottom: 12 }}>
+          A geração automática das consultas das matrículas está atrasada
+          {agendaWindow.geradaEm ? ` (última execução: ${new Date(agendaWindow.geradaEm).toLocaleString("pt-BR")})` : " (ainda não executou)"}.
+          Confira se o agendador do sistema está rodando.
+        </div>
+      )}
+      {alemDaJanela && (
+        <div role="note" style={{ fontSize: 13, color: T.muted, background: T.mutedBg, borderRadius: 10, padding: "10px 14px", marginBottom: 12 }}>
+          As consultas das matrículas são geradas até {dataBr(agendaWindow.ate)} ({agendaWindow.dias} dias). Depois dessa data aparecem só as consultas já marcadas:
+          um horário vazio aqui não garante que ele estará livre.
+        </div>
+      )}
+
       {q && (
         <div style={{ fontSize: 12.5, color: T.muted, marginBottom: 10 }}>
           {doPeriodo.filter((e) => e.name.toLowerCase().includes(q)).length} resultado(s) para “{query}” {escopo}
@@ -184,13 +202,17 @@ export default function Agenda({ selectedDate, today, limite, weekStart, events 
 
       {visao === "semana" && (
         <AgendaSemana
-          weekStart={weekStart} today={today} events={events} hours={hours} query={query}
+          weekStart={weekStart} today={today} events={events} hours={hours} query={query} isFull={lotado}
           onOpenEvent={setSelectedEvent} onNewAt={novoAgendamento} onOpenDay={abrirDia}
         />
       )}
 
       {visao === "mes" && (
-        <AgendaMes dias={diasMes} mesIso={mesIso} today={today} events={eventosMes} query={query} onOpenDay={abrirDia} />
+        <div aria-busy={carregandoMes}>
+          {carregandoMes && <div role="status" style={{ color: T.muted, marginBottom: 8 }}>Carregando mês…</div>}
+          {erroMes && <div role="alert" style={{ color: T.danger, marginBottom: 8 }}>{erroMes} <button onClick={repetirMes}>Tentar novamente</button></div>}
+          <AgendaMes dias={diasMes} mesIso={mesIso} today={today} events={eventosMes} query={query} onOpenDay={abrirDia} />
+        </div>
       )}
 
       {visao === "dia" && (
@@ -203,17 +225,20 @@ export default function Agenda({ selectedDate, today, limite, weekStart, events 
               </div>
             )}
             {rows.map((h, i) => {
-              const ev = byTime[h];
-              const matches = !q || (ev && ev.name.toLowerCase().includes(q));
-              const style = ev ? EVENT_STYLES[ev.color] : null;
+              const evs = byTime[h] || [];
+              const podeAgendar = !isPastSlot(selectedDate, h) && !lotado(selectedDate, h);
               return (
                 <div key={h} style={{ display: "flex", alignItems: "stretch", minHeight: 64, borderBottom: i < rows.length - 1 ? `1px solid ${T.border}` : "none" }}>
                   <div style={{ width: 84, flexShrink: 0, display: "flex", alignItems: "flex-start", paddingTop: 14, paddingLeft: 20, fontSize: 14, color: T.muted, fontWeight: 700 }}>
                     {h}
                   </div>
-                  <div style={{ flex: 1, padding: "8px 20px 8px 0", display: "flex", alignItems: "center" }}>
-                    {ev ? (
+                  <div style={{ flex: 1, padding: "8px 20px 8px 0", display: "flex", flexDirection: "column", justifyContent: "center", gap: 6 }}>
+                    {evs.map((ev) => {
+                      const matches = !q || ev.name.toLowerCase().includes(q);
+                      const style = EVENT_STYLES[ev.color];
+                      return (
                       <button
+                        key={ev.id}
                         onClick={() => setSelectedEvent(ev)}
                         style={{
                           width: "100%", background: style.bg, borderLeft: `5px solid ${style.text}`,
@@ -235,17 +260,19 @@ export default function Agenda({ selectedDate, today, limite, weekStart, events 
                         </div>
                         <MoreVertical size={19} color={style.text} style={{ opacity: 0.6, flexShrink: 0 }} />
                       </button>
-                    ) : isPastSlot(selectedDate, h) ? (
-                      <span style={{ padding: "10px 4px", fontSize: 13, color: T.faint }}>—</span>
-                    ) : (
+                      );
+                    })}
+                    {podeAgendar ? (
                       <button
                         onClick={() => novoAgendamento(selectedDate, h)}
-                        style={{ width: "100%", padding: "12px 10px", fontSize: 13.5, color: T.faint, background: "none", border: "1px dashed transparent", borderRadius: 10, textAlign: "left", cursor: "pointer" }}
+                        style={{ width: "100%", padding: evs.length ? "6px 10px" : "12px 10px", fontSize: 13.5, color: T.faint, background: "none", border: "1px dashed transparent", borderRadius: 10, textAlign: "left", cursor: "pointer" }}
                         onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; }}
                         onMouseLeave={(e) => { e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.color = T.faint; }}
                       >
-                        + Horário livre — clique para agendar
+                        {evs.length ? "+ Agendar outra consulta neste horário" : "+ Horário livre — clique para agendar"}
                       </button>
+                    ) : evs.length === 0 && (
+                      <span style={{ padding: "10px 4px", fontSize: 13, color: T.faint }}>—</span>
                     )}
                   </div>
                 </div>
@@ -260,7 +287,7 @@ export default function Agenda({ selectedDate, today, limite, weekStart, events 
           date={modalDate}
           dateLabel={porExtenso(modalDate)}
           defaultHour={defaultHour}
-          occupied={events.filter((e) => e.isoDate === modalDate).map((e) => e.time)}
+          occupied={fullSlots[modalDate] || []}
           onClose={() => setShowModal(false)}
         />
       )}

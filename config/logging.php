@@ -1,5 +1,6 @@
 <?php
 
+use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -71,6 +72,17 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'max_files' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
+        ],
+
+        // Uma linha JSON por requisição (etapa 4): identificador, rota (padrão, sem IDs nem parâmetros),
+        // status, duração, nº de consultas e memória. Nunca conteúdo clínico, URL completa ou corpo.
+        'requisicoes' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/requisicoes.log'),
+            'level' => 'info',
+            'days' => env('LOG_DAILY_DAYS', 14),
+            'formatter' => JsonFormatter::class,
+            'replace_placeholders' => false,
         ],
 
         'monthly' => [

@@ -1,0 +1,46 @@
+.git
+.env
+.env.*
+!.env.example
+node_modules
+vendor
+artifacts
+.codex
+storage
+public/build
+public/hot
+public/storage
+test-results
+playwright-report
+
+# Arquivos locais excluídos do versionamento
+docs
+*.md
+*.pdf
+*.doc
+*.docx
+database/seeders/*
+!database/seeders/DatabaseSeeder.php
+!database/seeders/dados/
+database/seeders/dados/*
+!database/seeders/dados/anamnese_infantil.php
+
+# Relatórios e backups gerados (os scripts de docker/backup continuam necessários)
+/backup/
+/reports/
+/relatorios/
+/relatórios/
+*.dump
+*.dump.gz
+*.sql.gz
+*.tar.enc
+*.backup.enc
+
+# Ferramentas temporárias de diagnóstico ficam apenas na máquina
+/scripts/*
+!/scripts/verificar.php
+!/scripts/verificar-schema.php
+!/scripts/verificar-local.sh
+!/scripts/prepare-databases.mjs
+!/scripts/e2e.sh
+!/scripts/carga.sh

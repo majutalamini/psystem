@@ -22,7 +22,8 @@ class SenhaController extends Controller
         $request->validate(['email' => 'required|email'], [], ['email' => 'e-mail']);
 
         // A resposta é a mesma exista ou não a conta, para não revelar quais e-mails estão cadastrados.
-        Password::sendResetLink($request->only('email'));
+        // Conta revogada não recebe link: a recuperação de senha não reativa o acesso.
+        Password::sendResetLink([...$request->only('email'), fn ($query) => $query->whereNull('revogada_em')]);
 
         return back()->with('aviso', 'Se o e-mail estiver cadastrado, você vai receber um link para criar uma nova senha.');
     }
@@ -44,7 +45,7 @@ class SenhaController extends Controller
         ], [], ['email' => 'e-mail', 'password' => 'nova senha']);
 
         $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
+            [...$request->only('email', 'password', 'password_confirmation', 'token'), fn ($query) => $query->whereNull('revogada_em')],
             function (Psicologo $psicologo, string $senha) {
                 $psicologo->forceFill(['senha_hash' => $senha, 'remember_token' => Str::random(60)])->save();
             },

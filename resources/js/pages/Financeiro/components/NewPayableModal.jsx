@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { ErrorText, Modal, MoneyInput, PrimaryButton } from "../../../components/ui";
 import { PAYABLE_CATEGORIES } from "../../../data/finance";
 import { useAppData } from "../../../hooks/useAppData";
@@ -7,12 +7,14 @@ import { T } from "../../../styles/theme";
 import { todayLabel } from "../../../utils/date";
 import DateInput from "../../../components/ui/DateInput";
 
+const labelStyle = { fontSize: 12.5, fontWeight: 600, color: T.muted };
 const checkStyle = { display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13.5, color: T.text, cursor: "pointer", margin: "2px 0 14px", lineHeight: 1.4 };
 
 /* Nova conta ou edição (`payable` preenchido). A conta nasce em aberto; a baixa é feita pelo botão Pagar.
    "Repetir todo mês" cria a conta recorrente: a data informada define o dia do mês das próximas. */
 export default function NewPayableModal({ onClose, onSave, payable }) {
   const { errors = {} } = useAppData();
+  const id = useId();
   const editando = Boolean(payable);
   const [form, setForm] = useState(() => (editando
     ? { descricao: payable.descricao, categoria: payable.categoria, valor: payable.valor, vencimento: payable.vencimento, aplicarFuturos: false }
@@ -22,21 +24,21 @@ export default function NewPayableModal({ onClose, onSave, payable }) {
 
   return (
     <Modal title={editando ? "Editar conta a pagar" : "Nova conta a pagar"} onClose={onClose} width={400}>
-      <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Descrição</label>
-      <input value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} placeholder="Ex: Internet do consultório" style={errorStyle("descricao")} />
+      <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }} htmlFor={`${id}-descricao`}>Descrição</label>
+      <input id={`${id}-descricao`} value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} placeholder="Ex: Internet do consultório" style={errorStyle("descricao")} />
       <ErrorText>{errors.descricao}</ErrorText>
 
-      <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Categoria</label>
-      <select value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} style={inputStyle}>
+      <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }} htmlFor={`${id}-categoria`}>Categoria</label>
+      <select id={`${id}-categoria`} value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} style={inputStyle}>
         {[...new Set([form.categoria, ...PAYABLE_CATEGORIES])].map((c) => <option key={c}>{c}</option>)}
       </select>
 
-      <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Valor (R$)</label>
-      <MoneyInput value={form.valor} onChange={(v) => setForm({ ...form, valor: v })} style={errorStyle("valor")} />
+      <label htmlFor={`${id}-valor`} style={labelStyle}>Valor (R$)</label>
+      <MoneyInput id={`${id}-valor`} value={form.valor} onChange={(v) => setForm({ ...form, valor: v })} style={errorStyle("valor")} />
       <ErrorText>{errors.valor}</ErrorText>
 
-      <label style={{ fontSize: 12.5, fontWeight: 600, color: T.muted }}>Vencimento</label>
-      <DateInput value={form.vencimento} onChange={(v) => setForm({ ...form, vencimento: v })} style={errorStyle("vencimento")} />
+      <label htmlFor={`${id}-vencimento`} style={labelStyle}>Vencimento</label>
+      <DateInput id={`${id}-vencimento`} value={form.vencimento} onChange={(v) => setForm({ ...form, vencimento: v })} style={errorStyle("vencimento")} />
       <ErrorText>{errors.vencimento}</ErrorText>
 
       {!editando && (

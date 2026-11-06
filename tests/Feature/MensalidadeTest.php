@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Actions\CriarCobranca;
 use App\Models\Cobranca;
 use App\Models\Consulta;
+use App\Models\Paciente;
 use Illuminate\Support\Carbon;
 
 /** Hoje, nos testes, é segunda 28/09/2026 às 10:00; o vencimento padrão é dia 10. */
@@ -16,7 +18,7 @@ class MensalidadeTest extends ConsultorioTestCase
             'date' => $date,
             'hora' => $hora,
             'tipo' => 'Consulta presencial',
-            'status' => 'Agendado',
+            'status' => 'Agendado', 'valor' => 0,
             'valor' => $valor,
         ]);
     }
@@ -109,16 +111,37 @@ class MensalidadeTest extends ConsultorioTestCase
         $this->assertEquals(260, $cobranca->fresh()->valor);
     }
 
-    public function test_encerrar_a_matricula_cancela_as_mensalidades_futuras_em_aberto(): void
+    public function test_perfil_lista_as_mensalidades_a_vencer_para_a_pergunta_ao_encerrar(): void
+    {
+        $paciente = $this->paciente();
+        $this->matricular($paciente, weekday: 2);
+
+        $tela = Paciente::comResumo()->find($paciente->id)->paraTela();
+
+        $this->assertSame([['competencia' => '10/2026', 'valor' => 200.0]], $tela['matriculas'][0]['mensalidadesAVencer']);
+    }
+
+    public function test_encerrar_confirmando_cancela_as_mensalidades_futuras_em_aberto(): void
+    {
+        $paciente = $this->paciente();
+        $this->matricular($paciente, weekday: 2);
+
+        $this->delete('/matriculas/'.$paciente->matriculas()->first()->id, ['cancelarMensalidades' => true]);
+
+        $this->assertSame('cancelado', Cobranca::sole()->situacao);
+        $recebiveis = $this->get("/pacientes/{$paciente->id}")->viewData('page')['props']['receivables'];
+        $this->assertSame([], $recebiveis);
+    }
+
+    public function test_encerrar_sem_confirmar_mantem_as_mensalidades(): void
     {
         $paciente = $this->paciente();
         $this->matricular($paciente, weekday: 2);
 
         $this->delete('/matriculas/'.$paciente->matriculas()->first()->id);
 
-        $this->assertSame('cancelado', Cobranca::sole()->situacao);
-        $recebiveis = $this->get("/pacientes/{$paciente->id}")->viewData('page')['props']['receivables'];
-        $this->assertSame([], $recebiveis);
+        $this->assertSame('pendente', Cobranca::sole()->situacao);
+        $this->assertSame('encerrada', $paciente->matriculas()->first()->status_matricula);
     }
 
     public function test_mensalidade_ja_recebida_continua_ao_encerrar_a_matricula(): void
@@ -212,7 +235,7 @@ class MensalidadeTest extends ConsultorioTestCase
 
     public function test_cobranca_pendente_vencida_aparece_como_atrasada(): void
     {
-        $cobranca = Cobranca::create([
+        $cobranca = CriarCobranca::executar([
             'paciente_id' => $this->paciente()->id,
             'titulo' => 'Sessão avulsa',
             'valor' => 100,

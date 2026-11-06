@@ -1,8 +1,8 @@
 *.log
 .DS_Store
 .env
-.env.backup
-.env.production
+.env.*
+!.env.example
 .phpactor.json
 .phpunit.result.cache
 /.codex
@@ -26,3 +26,69 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 /dist
+/artifacts/
+/test-results
+/playwright-report
+
+# Documentação, relatórios e documentos locais
+/docs/
+*.md
+*.mdx
+*.rst
+*.pdf
+*.doc
+*.docx
+*.odt
+*.xls
+*.xlsx
+*.ods
+*.ppt
+*.pptx
+*.odp
+
+# Exportações, backups e arquivos temporários
+/backups/
+/dumps/
+/exports/
+/tmp/
+/temp/
+/coverage/
+*.bak
+*.backup
+*.tmp
+*.temp
+*.orig
+*.rej
+*.swp
+*.swo
+*.sqlite*
+
+# Mantém apenas a seed inicial e o modelo exigido por ela
+/database/seeders/*
+!/database/seeders/DatabaseSeeder.php
+!/database/seeders/dados/
+/database/seeders/dados/*
+!/database/seeders/dados/anamnese_infantil.php
+
+# Relatórios e backups gerados (os scripts de docker/backup continuam necessários)
+/backup/
+/reports/
+/relatorios/
+/relatórios/
+*.dump
+*.dump.gz
+*.sql.gz
+*.tar.enc
+*.backup.enc
+
+# Ferramentas temporárias de diagnóstico ficam apenas na máquina
+/scripts/*
+!/scripts/verificar.php
+!/scripts/verificar-schema.php
+!/scripts/verificar-local.sh
+!/scripts/prepare-databases.mjs
+!/scripts/e2e.sh
+!/scripts/carga.sh
+
+# Guia principal do projeto permanece versionado
+!/README.md

@@ -13,7 +13,7 @@ export const DECLARATION_TEMPLATES = [
     icon: FileCheck2, badgeIcon: Check,
     accent: T.primary, accentTint: T.primaryTint,
     fields: [
-      { key: "horario", label: "Horário da sessão", type: "text", default: "09:00" },
+      { key: "horario", label: "Horário da sessão", type: "time", default: "09:00" },
       { key: "duracao", label: "Duração", type: "text", default: "50 minutos" },
     ],
     build: (p, v, date) => [

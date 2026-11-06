@@ -2,8 +2,9 @@ import { WEEKDAY_LABELS } from "../../../data/agenda";
 import { EVENT_STYLES, T } from "../../../styles/theme";
 import { addDaysIso, isPastSlot, parseIsoDate } from "../../../utils/date";
 
-/* Grade da semana: horários nas linhas e os 7 dias nas colunas. */
-export default function AgendaSemana({ weekStart, today, events, hours, query, onOpenEvent, onNewAt, onOpenDay }) {
+/* Grade da semana: horários nas linhas e os 7 dias nas colunas. Uma célula pode ter várias consultas;
+   o "+" some quando o horário passou ou atingiu o limite de consultas simultâneas (isFull). */
+export default function AgendaSemana({ weekStart, today, events, hours, query, isFull = () => false, onOpenEvent, onNewAt, onOpenDay }) {
   const dias = WEEKDAY_LABELS.map((label, i) => ({ label, iso: addDaysIso(weekStart, i) }));
   const rows = [...new Set([...hours, ...events.map((e) => e.time)])].sort();
   const q = query.trim().toLowerCase();
@@ -42,29 +43,33 @@ export default function AgendaSemana({ weekStart, today, events, hours, query, o
           <div key={h} style={{ display: "grid", gridTemplateColumns: cols, minHeight: 62, borderBottom: i < rows.length - 1 ? `1px solid ${T.border}` : "none" }}>
             <div style={{ padding: "10px 0 0 14px", fontSize: 12.5, fontWeight: 600, color: T.muted }}>{h}</div>
             {dias.map((d) => {
-              const ev = events.find((e) => e.isoDate === d.iso && e.time === h);
-              const passado = isPastSlot(d.iso, h);
-              const style = ev ? EVENT_STYLES[ev.color] : null;
-              const match = !q || (ev && ev.name.toLowerCase().includes(q));
+              const evs = events.filter((e) => e.isoDate === d.iso && e.time === h);
+              const podeAgendar = !isPastSlot(d.iso, h) && !isFull(d.iso, h);
               return (
-                <div key={d.iso} style={{ borderLeft: `1px solid ${T.border}`, padding: 4 }}>
-                  {ev ? (
-                    <button
-                      onClick={() => onOpenEvent(ev)}
-                      title={`${ev.name} · ${ev.status}`}
-                      style={{
-                        width: "100%", height: "100%", minHeight: 52, textAlign: "left", cursor: "pointer", border: "none", borderRadius: 9, padding: "7px 9px",
-                        background: style.bg, borderLeft: `4px solid ${style.text}`, opacity: match ? 1 : 0.35,
-                      }}
-                    >
-                      <div style={{ fontSize: 13, fontWeight: 700, color: style.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.name}</div>
-                      <div style={{ fontSize: 11.5, color: style.text, opacity: 0.85, marginTop: 2 }}>{ev.status}</div>
-                    </button>
-                  ) : !passado ? (
+                <div key={d.iso} style={{ borderLeft: `1px solid ${T.border}`, padding: 4, display: "flex", flexDirection: "column", gap: 4 }}>
+                  {evs.map((ev) => {
+                    const style = EVENT_STYLES[ev.color];
+                    const match = !q || ev.name.toLowerCase().includes(q);
+                    return (
+                      <button
+                        key={ev.id}
+                        onClick={() => onOpenEvent(ev)}
+                        title={`${ev.name} · ${ev.status}`}
+                        style={{
+                          width: "100%", flex: 1, minHeight: evs.length > 1 ? 40 : 52, textAlign: "left", cursor: "pointer", border: "none", borderRadius: 9, padding: "7px 9px",
+                          background: style.bg, borderLeft: `4px solid ${style.text}`, opacity: match ? 1 : 0.35,
+                        }}
+                      >
+                        <div style={{ fontSize: 13, fontWeight: 700, color: style.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.name}</div>
+                        <div style={{ fontSize: 11.5, color: style.text, opacity: 0.85, marginTop: 2 }}>{ev.status}</div>
+                      </button>
+                    );
+                  })}
+                  {podeAgendar ? (
                     <button
                       onClick={() => onNewAt(d.iso, h)}
-                      title="Agendar neste horário"
-                      style={{ width: "100%", height: "100%", minHeight: 52, border: "1px dashed transparent", borderRadius: 9, background: "none", color: "transparent", cursor: "pointer", fontSize: 18 }}
+                      title={evs.length ? "Agendar outra consulta neste horário" : "Agendar neste horário"}
+                      style={{ width: "100%", flex: 1, minHeight: evs.length ? 22 : 52, border: "1px dashed transparent", borderRadius: 9, background: "none", color: "transparent", cursor: "pointer", fontSize: 18 }}
                       onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.muted; }}
                       onMouseLeave={(e) => { e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.color = "transparent"; }}
                     >

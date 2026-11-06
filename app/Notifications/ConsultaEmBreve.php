@@ -4,12 +4,22 @@ namespace App\Notifications;
 
 use App\Models\Consulta;
 use App\Support\Tela;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /** Aviso para a psicóloga cerca de 1 hora antes de cada consulta. */
-class ConsultaEmBreve extends Notification
+class ConsultaEmBreve extends Notification implements ShouldQueue
 {
+    use Queueable;
+
+    // Etapa 4: e-mail na fila do PostgreSQL, com tentativas limitadas; falha de SMTP não trava quem disparou.
+    public int $tries = 3;
+
+    /** @var list<int> */
+    public array $backoff = [60, 300];
+
     public function __construct(public Consulta $consulta) {}
 
     public function via(object $notifiable): array

@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use App\Http\Controllers\FotoController;
 use App\Notifications\RedefinirSenha;
 use App\Support\Tela;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Storage;
 
 class Psicologo extends Authenticatable
 {
@@ -26,7 +26,7 @@ class Psicologo extends Authenticatable
 
     protected function casts(): array
     {
-        return ['senha_hash' => 'hashed'];
+        return ['senha_hash' => 'hashed', 'revogada_em' => 'datetime'];
     }
 
     public function sendPasswordResetNotification($token): void
@@ -42,7 +42,7 @@ class Psicologo extends Authenticatable
             'email' => $this->email,
             'telefone' => Tela::telefone($this->telefone),
             'initials' => Tela::iniciais($this->nome),
-            'photo' => $this->foto ? Storage::url($this->foto) : null,
+            'photo' => FotoController::url('psicologos', $this->id, $this->foto),
         ];
     }
 }

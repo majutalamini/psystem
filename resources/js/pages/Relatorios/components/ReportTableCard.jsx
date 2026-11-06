@@ -1,6 +1,7 @@
-import { createContext, useContext, useRef } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Download, Printer } from "lucide-react";
-import { Card } from "../../../components/ui";
+import { Card, Pagination } from "../../../components/ui";
 import { useAppData } from "../../../hooks/useAppData";
 import { iconBtn } from "../../../styles/formStyles";
 import { T } from "../../../styles/theme";
@@ -14,13 +15,24 @@ export default function ReportTableCard({ countLabel, columns, rows, emptyText, 
   const titulo = useContext(ReportTitleContext);
   const tabelaRef = useRef(null);
   const resumoRef = useRef(null);
+  const [page, setPage] = useState(1);
+  const [exporting, setExporting] = useState(false);
+  const signature = rows.map((row, index) => row.id ?? row.name ?? row.label ?? index).join("\u001f");
+  useEffect(() => setPage(1), [signature]);
+  const lastPage = Math.max(1, Math.ceil(rows.length / 50)), currentPage = Math.min(page, lastPage);
+  const visibleRows = exporting ? rows : rows.slice((currentPage - 1) * 50, currentPage * 50);
 
   /* Lê o que está na tela (já filtrado e formatado), então impressão e arquivo saem iguais ao que se vê. */
   function lerTabela() {
-    const linhas = [...tabelaRef.current.querySelectorAll("tbody tr")]
-      .map((tr) => [...tr.children].map((td) => td.innerText.replace(/\s+/g, " ").trim()))
-      .filter((l) => l.length === columns.length);
-    return { linhas, resumo: resumoRef.current?.innerText.replace(/\s+/g, " ").trim() };
+    // Só a ação explícita de imprimir/exportar materializa todas as linhas
+    // formatadas. O arquivo nunca é limitado à página visível.
+    flushSync(() => setExporting(true));
+    try {
+      const linhas = [...tabelaRef.current.querySelectorAll("tbody tr")]
+        .map((tr) => [...tr.children].map((td) => td.innerText.replace(/\s+/g, " ").trim()))
+        .filter((l) => l.length === columns.length);
+      return { linhas, resumo: resumoRef.current?.innerText.replace(/\s+/g, " ").trim() };
+    } finally { flushSync(() => setExporting(false)); }
   }
 
   const imprimir = () => {
@@ -49,9 +61,11 @@ export default function ReportTableCard({ countLabel, columns, rows, emptyText, 
         <tbody>
           {rows.length === 0 ? (
             <tr><td colSpan={columns.length} style={{ padding: 24, fontSize: 13.5, color: T.muted }}>{emptyText}</td></tr>
-          ) : rows.map(renderRow)}
+          ) : visibleRows.map(renderRow)}
         </tbody>
       </table>
+      <Pagination label="linhas do relatório" onPage={setPage} pagination={{ page: currentPage, lastPage, total: rows.length,
+        from: rows.length ? (currentPage - 1) * 50 + 1 : null, to: Math.min(currentPage * 50, rows.length), perPage: 50 }} />
     </Card>
   );
 }

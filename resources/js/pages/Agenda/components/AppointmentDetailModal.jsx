@@ -14,8 +14,7 @@ const ACTIONS = [
 ];
 
 export default function AppointmentDetailModal({ event, dateLabel, onClose }) {
-  const { patients, setAppointmentStatus } = useAppData();
-  const patient = patients.find((p) => p.id === event.patientId);
+  const { setAppointmentStatus } = useAppData();
 
   function changeStatus(status) {
     setAppointmentStatus(event.id, status, { onSuccess: onClose });
@@ -24,7 +23,7 @@ export default function AppointmentDetailModal({ event, dateLabel, onClose }) {
   return (
     <Modal title="Detalhes do agendamento" onClose={onClose} width={420}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-        <Avatar initials={patient ? patient.initials : initialsFromName(event.name)} color={event.color} src={patient && patient.photo} size={46} />
+        <Avatar initials={event.patientInitials || initialsFromName(event.name)} color={event.color} src={event.patientPhoto} size={46} />
         <div>
           <div style={{ fontWeight: 700, fontSize: 16, color: T.text }}>{event.name}</div>
           <div style={{ fontSize: 12.5, color: T.muted, textTransform: "capitalize" }}>{dateLabel} às {event.time}</div>

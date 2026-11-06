@@ -40,6 +40,8 @@ function mascaraDe(label) {
 export default function AnamneseForm({ patient, secoes, initial, editando, onCancel, onSave }) {
   const { errors = {} } = useAppData();
   const [titulo, setTitulo] = useState(initial.titulo || "");
+  // Versão aberta, guardada no início da edição: se outra pessoa salvar antes, o servidor recusa sem sobrescrever.
+  const [versao] = useState(initial.versao);
   // Anamnese nova já vem com o que está no cadastro do paciente; o que ela já tem preenchido não é sobrescrito.
   const [respostas, setRespostas] = useState(() => {
     const base = { ...initial.respostas };
@@ -90,7 +92,7 @@ export default function AnamneseForm({ patient, secoes, initial, editando, onCan
       <ErrorText>{errors.respostas}</ErrorText>
       <div style={{ display: "flex", gap: 10, marginTop: 8, position: "sticky", bottom: 0, background: T.surface, paddingTop: 10 }}>
         <button onClick={onCancel} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, color: T.text, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
-        <PrimaryButton style={{ flex: 1, justifyContent: "center" }} icon={Check} onClick={() => onSave({ titulo, respostas })}>
+        <PrimaryButton style={{ flex: 1, justifyContent: "center" }} icon={Check} onClick={() => onSave(editando ? { titulo, respostas, versao } : { titulo, respostas })}>
           {editando ? "Salvar alterações" : "Salvar anamnese"}
         </PrimaryButton>
       </div>

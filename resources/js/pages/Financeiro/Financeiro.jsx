@@ -1,22 +1,37 @@
 import { useState } from "react";
-import { ArrowDownCircle, ArrowUpCircle, Ban, Banknote, CalendarClock, Check, Edit3, Repeat, CircleDollarSign, Clock, Plus, TrendingDown, TrendingUp, Undo2, Wallet } from "lucide-react";
+import { router } from "@inertiajs/react";
+import { ArrowDownCircle, ArrowUpCircle, Banknote, Check, CircleDollarSign, Clock, History, Plus, TrendingDown, TrendingUp, Wallet, XCircle, Ban, CalendarClock, Edit3, Repeat } from "lucide-react";
 import EditDueDateModal from "../../components/financeiro/EditDueDateModal";
 import NewReceivableModal from "../../components/financeiro/NewReceivableModal";
+import PaymentsModal from "../../components/financeiro/PaymentsModal";
 import ReceivePaymentModal from "../../components/financeiro/ReceivePaymentModal";
-import { Card, PageHeader, Pill, PrimaryButton, RowMenu, StatCard } from "../../components/ui";
+import { Card, PageHeader, Pill, PrimaryButton, RowMenu, StatCard, Pagination } from "../../components/ui";
 import { useAppData } from "../../hooks/useAppData";
 import { T } from "../../styles/theme";
 import { confirmar } from "../../utils/alertas";
 import { statusTone, formatMoney } from "../../utils/format";
 import NewPayableModal from "./components/NewPayableModal";
 
-export default function Financeiro({ receivables, payables }) {
-  const { addReceivable, receiveReceivable, reopenReceivable, updateReceivable, cancelReceivable, addPayable, payPayable, reopenPayable, updatePayable, cancelPayable, stopRecurrence } = useAppData();
+export default function Financeiro({ receivables, payables, financeSummary, receivablePagination, payablePagination }) {
+  const { addReceivable, receiveReceivable, reverseReceivablePayment, addPayable, payPayable, reversePayablePayment, cancelReceivable, updateReceivable, updatePayable, cancelPayable, stopRecurrence } = useAppData();
+  async function cancelar(r) {
+    const ok = await confirmar({
+      titulo: "Cancelar este lançamento?",
+      texto: `"${r.referencia}" (R$ ${formatMoney(r.valor)}, vence ${r.vencimento}) sai do financeiro. Essa ação não pode ser desfeita.`,
+      confirmar: "Cancelar lançamento",
+      perigo: true,
+    });
+    if (ok) cancelReceivable(r.id);
+  }
+
   const [tab, setTab] = useState("receber"); // 'receber' | 'pagar'
   const [showReceivableModal, setShowReceivableModal] = useState(false);
   const [showPayableModal, setShowPayableModal] = useState(false);
   const [receiving, setReceiving] = useState(null);   // conta a receber em baixa
   const [paying, setPaying] = useState(null);         // conta a pagar em baixa
+  const [historico, setHistorico] = useState(null);   // { kind, id }: pagamentos de uma conta
+  // Lido da lista atual: depois de um estorno, o modal mostra os dados recarregados.
+  const contaHistorico = historico && (historico.kind === "receber" ? receivables : payables).find((c) => c.id === historico.id);
   const [editingDue, setEditingDue] = useState(null); // título a receber com vencimento em ajuste
   const [editingPayable, setEditingPayable] = useState(null); // conta a pagar em edição
 
@@ -50,16 +65,11 @@ export default function Financeiro({ receivables, payables }) {
     if (ok) stopRecurrence(p.id);
   }
 
-  const totalReceber = receivables.reduce((s, r) => s + r.valor, 0);
-  // Cobranças podem ser recebidas em partes: somam o que entrou (recebido) e o que falta (saldo).
-  const recebido = receivables.reduce((s, r) => s + (r.recebido || 0), 0);
-  const pendenteReceber = receivables.filter((r) => r.status === "Pendente").reduce((s, r) => s + r.saldo, 0);
-  const atrasadoReceber = receivables.filter((r) => r.status === "Atrasado").reduce((s, r) => s + r.saldo, 0);
-
-  const totalPagar = payables.reduce((s, p) => s + p.valor, 0);
-  const pago = payables.filter((p) => p.status === "Pago").reduce((s, p) => s + p.valor, 0);
-  const pendentePagar = payables.filter((p) => p.status === "Pendente").reduce((s, p) => s + p.valor, 0);
-
+  const { totalReceber, recebido, pendenteReceber, atrasadoReceber, totalPagar, pago, pendentePagar } = financeSummary;
+  function pageFor(kind, number) {
+    router.get('/financeiro', { receber_page: kind === 'receber' ? number : receivablePagination.page,
+      pagar_page: kind === 'pagar' ? number : payablePagination.page }, { preserveState: true, preserveScroll: true });
+  }
   return (
     <div>
       <PageHeader
@@ -99,7 +109,7 @@ export default function Financeiro({ receivables, payables }) {
       {tab === "receber" ? (
         <div>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
-            <StatCard label="Total a receber" value={`R$ ${formatMoney(totalReceber)}`} delta={`${receivables.length} lançamentos`} icon={CircleDollarSign} />
+            <StatCard label="Total a receber" value={`R$ ${formatMoney(totalReceber)}`} delta={`${financeSummary.receivableCount} lançamentos`} icon={CircleDollarSign} />
             <StatCard label="Recebido no mês" value={`R$ ${formatMoney(recebido)}`} delta="Pago" icon={TrendingUp} />
             <StatCard label="Pendente" value={`R$ ${formatMoney(pendenteReceber)}`} delta="A vencer" deltaTone="danger" icon={Clock} />
             <StatCard label="Atrasado" value={`R$ ${formatMoney(atrasadoReceber)}`} delta="Requer cobrança" deltaTone="danger" icon={TrendingDown} />
@@ -154,14 +164,13 @@ export default function Financeiro({ receivables, payables }) {
                             ...(r.status !== "Pago" ? [
                               { label: "Registrar recebimento", icon: Banknote, onClick: () => setReceiving(r) },
                             ] : []),
-                            ...(r.status !== "Pago" ? [
-                              { label: "Alterar vencimento", icon: CalendarClock, onClick: () => setEditingDue(r) },
+                            ...(r.pagamentos?.length ? [
+                              { label: "Pagamentos e estornos", icon: History, onClick: () => setHistorico({ kind: "receber", id: r.id }) },
                             ] : []),
-                            ...(r.status !== "Pago" && r.recebido == null ? [
-                              { label: "Cancelar título", icon: Ban, tone: "danger", onClick: () => cancelarTitulo(r) },
-                            ] : []),
-                            ...(r.recebido != null ? [
-                              { label: "Estornar último recebimento", icon: Undo2, tone: "danger", onClick: () => reopenReceivable(r.id) },
+                            ...(r.status !== "Pago" ? [{ label: "Alterar vencimento", icon: CalendarClock, onClick: () => setEditingDue(r) }] : []),
+                            ...(r.recebido == null && r.status !== "Pago" ? [
+                              { label: "Cancelar lançamento", icon: XCircle, tone: "danger", onClick: () => cancelar(r) },
+
                             ] : []),
                           ]}
                         />
@@ -171,12 +180,13 @@ export default function Financeiro({ receivables, payables }) {
                 ))}
               </tbody>
             </table>
+            <Pagination pagination={receivablePagination} onPage={number => pageFor("receber", number)} label="contas a receber" />
           </Card>
         </div>
       ) : (
         <div>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
-            <StatCard label="Total a pagar" value={`R$ ${formatMoney(totalPagar)}`} delta={`${payables.length} lançamentos`} icon={CircleDollarSign} />
+            <StatCard label="Total a pagar" value={`R$ ${formatMoney(totalPagar)}`} delta={`${financeSummary.payableCount} lançamentos`} icon={CircleDollarSign} />
             <StatCard label="Pago no mês" value={`R$ ${formatMoney(pago)}`} delta="Quitado" icon={TrendingUp} />
             <StatCard label="Pendente" value={`R$ ${formatMoney(pendentePagar)}`} delta="A vencer" deltaTone="danger" icon={Clock} />
             <StatCard label="Saldo do mês" value={`R$ ${formatMoney(recebido - pago)}`} delta="Receber − Pagar" icon={Wallet} />
@@ -210,8 +220,13 @@ export default function Financeiro({ receivables, payables }) {
                     <td style={{ padding: "13px 20px", fontSize: 13, color: T.text }}>{p.vencimento}</td>
                     <td style={{ padding: "13px 20px", fontSize: 13, color: p.pagamento ? T.text : T.muted }}>
                       {p.pagamento ? `${p.pagamento}${p.forma ? ` · ${p.forma}` : ""}` : "—"}
+                      {p.status !== "Pago" && p.pago != null && (
+                        <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
+                          R$ {formatMoney(p.pago)} pago · falta R$ {formatMoney(p.saldo)}
+                        </div>
+                      )}
                     </td>
-                    <td style={{ padding: "13px 20px" }}><Pill tone={statusTone(p.status)}>{p.status}</Pill></td>
+                    <td style={{ padding: "13px 20px" }}><Pill tone={statusTone(p.status)}>{p.status}{p.status !== "Pago" && p.pago != null ? " · em parte" : ""}</Pill></td>
                     <td style={{ padding: "13px 20px", textAlign: "right" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 12 }}>
                         {p.status !== "Pago" ? (
@@ -227,14 +242,12 @@ export default function Financeiro({ receivables, payables }) {
                           </span>
                         )}
                         <RowMenu
-                          items={p.status === "Pago"
-                            ? [{ label: "Estornar pagamento", icon: Undo2, tone: "danger", onClick: () => reopenPayable(p.id) }]
-                            : [
-                              { label: "Registrar pagamento", icon: Banknote, onClick: () => setPaying(p) },
-                              { label: "Editar conta", icon: Edit3, onClick: () => setEditingPayable(p) },
-                              ...(p.recorrenciaAtiva ? [{ label: "Encerrar recorrência", icon: Repeat, onClick: () => encerrarRecorrencia(p) }] : []),
-                              { label: "Cancelar conta", icon: Ban, tone: "danger", onClick: () => cancelarConta(p) },
-                            ]}
+                          items={[
+                            ...(p.status !== "Pago" ? [{ label: "Registrar pagamento", icon: Banknote, onClick: () => setPaying(p) }] : []),
+                            ...(p.pagamentos?.length ? [{ label: "Pagamentos e estornos", icon: History, onClick: () => setHistorico({ kind: "pagar", id: p.id }) }] : []),
+                            ...(p.status !== "Pago" ? [{ label: "Editar conta", icon: Edit3, onClick: () => setEditingPayable(p) }, { label: "Cancelar conta", icon: Ban, tone: "danger", onClick: () => cancelarConta(p) }] : []),
+                            ...(p.recorrenciaAtiva ? [{ label: "Encerrar recorrência", icon: Repeat, onClick: () => encerrarRecorrencia(p) }] : []),
+                          ]}
                         />
                       </div>
                     </td>
@@ -242,6 +255,7 @@ export default function Financeiro({ receivables, payables }) {
                 ))}
               </tbody>
             </table>
+            <Pagination pagination={payablePagination} onPage={number => pageFor("pagar", number)} label="contas a pagar" />
           </Card>
         </div>
       )}
@@ -294,9 +308,22 @@ export default function Financeiro({ receivables, payables }) {
           title={paying.descricao}
           subtitle={paying.categoria}
           valor={paying.valor}
+          saldo={paying.saldo}
           vencimento={paying.vencimento}
           onClose={() => setPaying(null)}
           onConfirm={(payment) => payPayable(paying.id, payment, { onSuccess: () => setPaying(null) })}
+        />
+      )}
+
+      {contaHistorico && (
+        <PaymentsModal
+          title={historico.kind === "receber" ? contaHistorico.referencia : contaHistorico.descricao}
+          subtitle={historico.kind === "receber" ? contaHistorico.paciente : contaHistorico.categoria}
+          pagamentos={contaHistorico.pagamentos}
+          onClose={() => setHistorico(null)}
+          onReverse={(pagamentoId, motivo) => (historico.kind === "receber"
+            ? reverseReceivablePayment(contaHistorico.id, pagamentoId, motivo)
+            : reversePayablePayment(contaHistorico.id, pagamentoId, motivo))}
         />
       )}
 

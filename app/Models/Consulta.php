@@ -26,15 +26,12 @@ class Consulta extends Model
         'cancelado' => 'Cancelado',
     ];
 
-    /**
-     * Transições de status permitidas na agenda: a matrícula já garante o horário, então só existem "Falta" e "Cancelado"
-     * (a falta também vale para quem tem matrícula, direto de "Matriculado"). Os demais status só existem em registros antigos.
-     */
+    /** Transições de status permitidas na agenda. */
     public const TRANSICOES = [
-        'agendado' => ['falta', 'cancelado'],
-        'confirmado' => ['falta', 'cancelado'],
-        'realizado' => ['falta', 'cancelado'],
-        'falta' => ['cancelado'],
+        'agendado' => ['confirmado', 'realizado', 'falta', 'cancelado'],
+        'confirmado' => ['realizado', 'falta', 'cancelado'],
+        'realizado' => ['confirmado', 'falta', 'cancelado'],
+        'falta' => ['realizado', 'cancelado'],
         'cancelado' => [],
     ];
 
@@ -44,7 +41,7 @@ class Consulta extends Model
 
     protected function casts(): array
     {
-        return ['data_hora_consulta' => 'datetime', 'aviso_enviado_em' => 'datetime'];
+        return ['data_hora_consulta' => 'datetime', 'aviso_enviado_em' => 'datetime', 'valor' => 'decimal:2'];
     }
 
     public function paciente(): BelongsTo
@@ -62,15 +59,6 @@ class Consulta extends Model
         return $this->hasOne(Cobranca::class, 'agenda_id');
     }
 
-    /** Já existe consulta ativa (não cancelada) nesse horário? */
-    public static function horarioOcupado($dataHora, ?int $ignorarId = null): bool
-    {
-        return static::where('data_hora_consulta', $dataHora)
-            ->where('status', '!=', 'cancelado')
-            ->when($ignorarId, fn ($q) => $q->where('id', '!=', $ignorarId))
-            ->exists();
-    }
-
     public function rotuloStatus(): string
     {
         if ($this->status === 'agendado' && $this->matricula_id === null) {
@@ -86,8 +74,11 @@ class Consulta extends Model
     }
 
     /**
-     * Muda o status. Cancelar a consulta cancela também a cobrança dela (a da consulta avulsa) se ainda estiver em aberto
-     * e sem nenhum pagamento; falta não cancela: a sessão continua cobrada. As mensalidades da matrícula não dependem da agenda.
+     * Muda o status e mantém a cobrança da sessão em dia:
+     * virou "realizado" → cobrança pendente com o valor da matrícula da própria consulta, vencendo no dia da sessão;
+     * saiu de "realizado" → a cobrança pendente é cancelada (uma paga, mesmo que em parte, não é mexida).
+     * A linha da consulta fica bloqueada durante a mudança: dois cliques/usuários ao mesmo tempo não geram duas cobranças.
+     * Nenhuma transição volta de "cancelado", então a ocupação do horário não muda aqui.
      */
     public function alterarStatus(string $status): void
     {
@@ -101,6 +92,11 @@ class Consulta extends Model
         }
 
         DB::transaction(function () use ($status) {
+            $atual = static::whereKey($this->id)->lockForUpdate()->firstOrFail();
+            $this->setRawAttributes($atual->getAttributes(), true);
+            if (! $this->transicaoPermitida($status)) {
+                throw ValidationException::withMessages(['status' => 'Não é permitido alterar o status desta consulta.']);
+            }
             $this->update(['status' => $status]);
 
             if ($status === 'cancelado') {
@@ -125,6 +121,7 @@ class Consulta extends Model
             'status' => $this->rotuloStatus(),
             'statusKey' => $this->status,
             'recurring' => $this->matricula_id !== null,
+            'valor' => $this->valor !== null ? (float) $this->valor : null,
         ];
     }
 }

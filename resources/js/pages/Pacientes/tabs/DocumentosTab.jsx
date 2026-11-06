@@ -37,6 +37,16 @@ export default function DocumentosTab({ patient, documents }) {
     });
   }
 
+  async function excluir(d) {
+    const ok = await confirmar({
+      titulo: "Remover este documento?",
+      texto: `O arquivo "${d.title}" será apagado. Essa ação não pode ser desfeita.`,
+      confirmar: "Remover documento",
+      perigo: true,
+    });
+    if (ok) removeDocument(d.id);
+  }
+
   return (
     <div>
       <Card style={{ padding: 22, marginBottom: 20 }}>
@@ -47,7 +57,7 @@ export default function DocumentosTab({ patient, documents }) {
           <FormField label="Título do documento" value={title} onChange={setTitle} placeholder="Ex: Laudo médico" error={errors.title} />
           <div>
             <label style={{ fontSize: 13.5, fontWeight: 600, color: T.muted }}>Arquivo</label>
-            <input ref={fileRef} type="file" onChange={(e) => setPendingFile(e.target.files[0] || null)} style={{ display: "none" }} />
+            <input ref={fileRef} type="file" accept=".pdf,.docx,.jpg,.jpeg,.png,.webp" onChange={(e) => setPendingFile(e.target.files[0] || null)} style={{ display: "none" }} />
             <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "7px 0 16px", ...(errors.file ? { marginBottom: 4 } : {}) }}>
               <button
                 type="button"

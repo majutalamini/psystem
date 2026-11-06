@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Actions\InstalarConfiguracao;
 use App\Models\AnamneseModelo;
-use App\Models\Configuracao;
 use App\Models\Psicologo;
 use Illuminate\Database\Seeder;
 
@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
             'senha_hash' => 'psystem123',
         ]);
 
-        Configuracao::firstOrCreate([], [
+        InstalarConfiguracao::obter([
             'meta_faturamento_mensal' => 10000,
             'meta_horas_semanais' => 20,
             'meta_sessoes_semanais' => 35,

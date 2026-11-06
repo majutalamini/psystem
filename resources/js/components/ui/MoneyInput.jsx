@@ -15,7 +15,7 @@ const toNumber = (t) => {
  * Campo em reais com máscara automática (react-currency-input-field): "10000" vira "R$ 10.000,00" ao digitar.
  * value/onChange trabalham com número (150.5); campo vazio devolve "".
  */
-export default function MoneyInput({ value, onChange, style, placeholder = "R$ 0,00" }) {
+export default function MoneyInput({ value, onChange, style, placeholder = "R$ 0,00", id }) {
   const [text, setText] = useState(() => toText(value));
 
   // Valor trocado por fora (ex.: outro paciente escolhido): mostra o novo.
@@ -31,6 +31,7 @@ export default function MoneyInput({ value, onChange, style, placeholder = "R$ 0
       groupSeparator="."
       decimalScale={2}
       allowNegativeValue={false}
+      id={id}
       inputMode="decimal"
       placeholder={placeholder}
       value={text}

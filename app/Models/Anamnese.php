@@ -16,7 +16,10 @@ class Anamnese extends Model
 
     const UPDATED_AT = 'atualizado_em';
 
-    protected $fillable = ['paciente_id', 'psicologo_id', 'titulo'];
+    protected $fillable = ['paciente_id', 'psicologo_id', 'titulo', 'versao'];
+
+    /** Toda anamnese nasce na versão 1; cada edição soma 1 (ver EdicaoClinica). */
+    protected $attributes = ['versao' => 1];
 
     public function paciente(): BelongsTo
     {
@@ -55,6 +58,7 @@ class Anamnese extends Model
             'titulo' => $this->titulo,
             'criadoEm' => Tela::data($this->criado_em),
             'atualizadoEm' => Tela::data($this->atualizado_em),
+            'versao' => $this->versao,
             'respostas' => $this->respostas->pluck('valor_resposta', 'pergunta_id'),
         ];
     }

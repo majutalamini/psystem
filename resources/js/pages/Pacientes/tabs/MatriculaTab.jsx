@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CalendarClock, CalendarX, Check, Edit3, Plus, Trash2, Video, MapPin } from "lucide-react";
-import { Card, ErrorText, MoneyInput, PrimaryButton } from "../../../components/ui";
+import { Card, ErrorText, MoneyInput, PrimaryButton, TimeInput, normalizeTime, isTimeAllowed } from "../../../components/ui";
 import { WEEKDAY_FULL } from "../../../data/agenda";
 import { useAppData } from "../../../hooks/useAppData";
 import { inputStyle } from "../../../styles/formStyles";
@@ -15,41 +15,60 @@ const labelStyle = { fontSize: 13.5, fontWeight: 600, color: T.muted };
 const ghostBtn = { padding: "9px 16px", borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, fontWeight: 600, cursor: "pointer", fontSize: 13.5 };
 
 export default function MatriculaTab({ patient }) {
-  const { patients, hours, setDiaVencimento, saveMatricula, removeMatricula, addMatricula, updateMatricula, deleteMatricula, errors = {} } = useAppData();
+  const { enrollmentReservations, simultaneousLimit = null, hours, setDiaVencimento, saveMatricula, removeMatricula, addMatricula, updateMatricula, deleteMatricula, errors = {} } = useAppData();
   const lista = matriculasDe(patient);
   const varias = suportaVariasMatriculas(patient);
 
   const [editingKey, setEditingKey] = useState(null); // null | "new" | id da matrícula
 
-  // Horários livres no dia: sem os de matrículas de outros pacientes ativos nem as outras matrículas deste paciente.
+  // Horários livres no dia: sem as outras matrículas deste paciente e, havendo limite de consultas
+  // simultâneas, sem os horários em que as matrículas de outros pacientes ativos já chegaram ao limite.
   const livresNo = (dia, ignorarKey) => {
     const ocupados = new Set();
-    patients.filter((p) => p.id !== patient.id && p.status === "Ativo").forEach((p) => {
-      matriculasAtivas(p).filter((m) => m.weekday === dia).forEach((m) => ocupados.add(m.time));
-    });
-    lista.filter((m) => keyOf(m) !== ignorarKey && m.weekday === dia).forEach((m) => ocupados.add(m.time));
+    if (simultaneousLimit) {
+      const porHora = {};
+      enrollmentReservations.filter((m) => m.patientId !== patient.id && m.patientActive && m.weekday === dia)
+        .forEach((m) => { porHora[m.time] = (porHora[m.time] || 0) + 1; });
+      Object.entries(porHora).filter(([, total]) => total >= simultaneousLimit).forEach(([hora]) => ocupados.add(hora));
+    }
+    lista.filter((m) => keyOf(m) !== ignorarKey && m.status !== "encerrada" && m.weekday === dia).forEach((m) => ocupados.add(m.time));
     return hours.filter((h) => !ocupados.has(h));
   };
 
-  function salvar(m, form) {
+  async function salvar(m, form) {
     const opts = { onSuccess: () => setEditingKey(null) };
     if (!varias) saveMatricula(patient.id, form, opts);
     else if (m) updateMatricula(m.id, form, opts);
     else addMatricula(patient.id, form, opts);
   }
 
-  /* Encerrar apaga as consultas futuras da matrícula; sem matrícula ativa o paciente fica inativo (no servidor). */
+  /* Encerrar apaga as consultas futuras da matrícula; a última matrícula ativa inativa o paciente (no servidor). */
   async function excluir(m) {
     const ultima = matriculasAtivas(patient).length <= 1;
     const ok = await confirmar({
       titulo: "Encerrar esta matrícula?",
-      texto: `As próximas consultas ainda não confirmadas saem da agenda. ${ultima ? "Como é a última matrícula ativa, o paciente ficará inativo. " : ""}O histórico de sessões e cobranças continua.`,
+      texto: ultima
+        ? "É a última matrícula ativa: o paciente ficará inativo e todas as consultas futuras dele saem da agenda, inclusive as confirmadas e as avulsas. O histórico de sessões, prontuários e cobranças continua."
+        : "As próximas consultas desta matrícula ainda não confirmadas saem da agenda. O histórico de sessões e cobranças continua.",
       confirmar: "Encerrar matrícula",
       perigo: true,
     });
     if (!ok) return;
+
+    const aVencer = m?.mensalidadesAVencer ?? [];
+    let cancelarMensalidades = false;
+    if (aVencer.length) {
+      const lista = aVencer.map((c) => `${c.competencia} (R$ ${Number(c.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })})`).join(", ");
+      cancelarMensalidades = await confirmar({
+        titulo: aVencer.length === 1 ? "Cancelar também a mensalidade em aberto?" : "Cancelar também as mensalidades em aberto?",
+        texto: `Ainda não recebida${aVencer.length === 1 ? "" : "s"}: ${lista}. Cancele se o paciente não deve; mantenha se ele deve.`,
+        confirmar: aVencer.length === 1 ? "Cancelar mensalidade" : "Cancelar mensalidades",
+        perigo: true,
+      });
+    }
+
     if (!varias) removeMatricula(patient.id);
-    else deleteMatricula(m.id);
+    else deleteMatricula(m.id, undefined, { cancelarMensalidades });
   }
 
   const podeAdicionar = varias || lista.length === 0;
@@ -177,14 +196,10 @@ function MatriculaForm({ matricula: m, patient, errors, livresNo, onCancel, onSa
           </select>
         </div>
         <div>
-          <label style={labelStyle}>Horário</label>
-          <select value={time} onChange={(e) => setTime(e.target.value)} style={inputStyle}>
-            {horarios.map((h) => <option key={h}>{h}</option>)}
-          </select>
+          <TimeInput label="Horário" value={time} onChange={setTime} options={horarios} required error={errors.time} />
           {horarios.length === 0 && (
             <div style={{ fontSize: 12.5, color: T.danger, marginTop: -8, marginBottom: 12 }}>Nenhum horário livre neste dia da semana.</div>
           )}
-          <ErrorText>{errors.time}</ErrorText>
         </div>
         <div>
           <label style={labelStyle}>Tipo de consulta</label>
@@ -205,7 +220,7 @@ function MatriculaForm({ matricula: m, patient, errors, livresNo, onCancel, onSa
 
       <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
         <button onClick={onCancel} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, fontWeight: 600, cursor: "pointer" }}>Cancelar</button>
-        <PrimaryButton style={{ flex: 1, justifyContent: "center" }} icon={Check} onClick={() => onSave({ weekday, time, tipo, valor })} disabled={!time}>
+        <PrimaryButton style={{ flex: 1, justifyContent: "center" }} icon={Check} onClick={() => onSave({ weekday, time: normalizeTime(time), tipo, valor })} disabled={!isTimeAllowed(time, horarios)}>
           Salvar matrícula
         </PrimaryButton>
       </div>

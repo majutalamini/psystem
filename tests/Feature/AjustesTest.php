@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
-use App\Models\Cobranca;
+use App\Actions\CriarCobranca;
 use App\Models\Configuracao;
 use App\Models\Consulta;
 use App\Models\Paciente;
 use App\Models\Prontuario;
 use App\Support\Tela;
+use Illuminate\Database\QueryException;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 class AjustesTest extends ConsultorioTestCase
 {
@@ -20,19 +22,81 @@ class AjustesTest extends ConsultorioTestCase
         ];
     }
 
-    public function test_excluir_cadastro_apaga_o_paciente_e_tudo_o_que_era_dele(): void
+    public function test_cadastro_sem_historico_pode_ser_excluido(): void
     {
         $paciente = $this->paciente();
-        $this->matricular($paciente, weekday: 2);
-        $paciente->prontuarios()->create(['psicologo_id' => $this->psicologa->id, 'data_atendimento' => '2026-09-01', 'observacoes_consulta' => 'x']);
-        $paciente->cobrancas()->create(['titulo' => 'Sessão', 'valor' => 200, 'vencimento' => '2026-10-10']);
-
-        $this->delete("/pacientes/{$paciente->id}")->assertRedirect('/pacientes');
+        $this->delete("/pacientes/{$paciente->id}")->assertRedirect('/pacientes')->assertSessionHasNoErrors();
 
         $this->assertSame(0, Paciente::count());
         $this->assertSame(0, Consulta::count());
-        $this->assertSame(0, Prontuario::count());
-        $this->assertSame(0, Cobranca::count());
+        $this->assertDatabaseHas('registros_acao', ['acao' => 'paciente.excluir', 'alvo_id' => $paciente->id, 'psicologo_id' => $this->psicologa->id]);
+    }
+
+    /** @return array<string, array{callable}> */
+    public static function historicos(): array
+    {
+        return [
+            'atendimento realizado' => [fn ($t, $p) => Consulta::create(['paciente_id' => $p->id, 'data_hora_consulta' => '2026-09-21 08:50', 'duracao_minutos' => 50, 'modalidade' => 'presencial', 'status' => 'realizado'])],
+            'prontuário' => [fn ($t, $p) => $p->prontuarios()->create(['psicologo_id' => $t->psicologa->id, 'data_atendimento' => '2026-09-01', 'observacoes_consulta' => 'x'])],
+            'anamnese' => [fn ($t, $p) => $p->anamneses()->create(['psicologo_id' => $t->psicologa->id, 'titulo' => 'A'])],
+            'documento' => [fn ($t, $p) => $p->documentos()->create(['titulo' => 'Doc', 'nome_arquivo' => 'a.pdf', 'caminho' => 'documentos/a.pdf', 'tamanho' => 1])],
+            'cobrança' => [fn ($t, $p) => CriarCobranca::executar(['paciente_id' => $p->id, 'titulo' => 'Sessão', 'valor' => 200, 'vencimento' => '2026-10-10'])],
+        ];
+    }
+
+    #[DataProvider('historicos')]
+    public function test_cadastro_com_historico_nao_pode_ser_excluido(callable $criar): void
+    {
+        $paciente = $this->paciente();
+        $criar($this, $paciente);
+
+        $this->from('/pacientes')->delete("/pacientes/{$paciente->id}")->assertSessionHasErrors('paciente');
+
+        $this->assertSame(1, Paciente::count());
+    }
+
+    public function test_banco_recusa_apagar_paciente_com_documento_por_outro_caminho(): void
+    {
+        $paciente = $this->paciente();
+        $paciente->documentos()->create(['titulo' => 'Doc', 'nome_arquivo' => 'a.pdf', 'caminho' => 'documentos/a.pdf', 'tamanho' => 1]);
+
+        $this->expectException(QueryException::class);
+        $paciente->delete();
+    }
+
+    public function test_inativar_apaga_as_futuras_preserva_o_passado_e_registra_quem_fez(): void
+    {
+        $paciente = $this->paciente();
+        $this->matricular($paciente, weekday: 2);
+        $this->post('/agenda', ['patientId' => $paciente->id, 'date' => '2026-10-01', 'hora' => '10:30', 'tipo' => 'Consulta online', 'status' => 'Confirmado', 'valor' => 0])->assertSessionHasNoErrors();
+        $passada = Consulta::create(['paciente_id' => $paciente->id, 'data_hora_consulta' => '2026-09-21 08:50', 'duracao_minutos' => 50, 'modalidade' => 'presencial', 'status' => 'realizado']);
+        $paciente->prontuarios()->create(['psicologo_id' => $this->psicologa->id, 'data_atendimento' => '2026-09-21', 'observacoes_consulta' => 'x', 'agenda_id' => $passada->id]);
+
+        $this->from("/pacientes/{$paciente->id}")->post("/pacientes/{$paciente->id}/inativar")->assertSessionHasNoErrors();
+
+        $this->assertSame(['2026-09-21 08:50'], $this->horarios($paciente));
+        $this->assertSame('inativo', $paciente->fresh()->status_paciente);
+        $this->assertSame(['encerrada'], $paciente->matriculas()->pluck('status_matricula')->all());
+        $this->assertSame(1, Prontuario::count());
+        $this->assertDatabaseHas('registros_acao', ['acao' => 'paciente.inativar', 'alvo_id' => $paciente->id]);
+
+        // Reativar (nova matrícula) não restaura nada: só gera a janela da matrícula nova.
+        $this->matricular($paciente, weekday: 4)->assertSessionHasNoErrors();
+        $this->assertSame(['2026-09-21 08:50', '2026-10-02 08:50', '2026-10-09 08:50', '2026-10-16 08:50', '2026-10-23 08:50', '2026-10-30 08:50', '2026-11-06 08:50', '2026-11-13 08:50', '2026-11-20 08:50', '2026-11-27 08:50'], $this->horarios($paciente));
+    }
+
+    public function test_inativar_e_recusado_se_consulta_futura_tem_cobranca_ou_prontuario(): void
+    {
+        $paciente = $this->paciente();
+        $this->matricular($paciente, weekday: 2);
+        $futura = $paciente->consultas()->orderBy('data_hora_consulta')->first();
+        $paciente->prontuarios()->create(['psicologo_id' => $this->psicologa->id, 'data_atendimento' => '2026-09-30', 'observacoes_consulta' => 'x', 'agenda_id' => $futura->id]);
+
+        $this->from("/pacientes/{$paciente->id}")->post("/pacientes/{$paciente->id}/inativar")
+            ->assertSessionHasErrors(['paciente' => 'Não foi possível inativar: a(s) consulta(s) futura(s) de 30/09/2026 08:50 têm prontuário ou cobrança vinculados. Resolva essas consultas antes de inativar.']);
+
+        $this->assertSame('ativo', $paciente->fresh()->status_paciente);
+        $this->assertCount(9, $this->horarios($paciente));
     }
 
     public function test_excluir_prontuario(): void
@@ -118,45 +182,17 @@ class AjustesTest extends ConsultorioTestCase
             ->assertSessionHasErrors('horario.inicio');
     }
 
-    public function test_visao_mensal_gera_todas_as_semanas_das_matriculas(): void
+    public function test_mes_alem_da_janela_mostra_so_consultas_gravadas_e_informa_o_limite(): void
     {
         $paciente = $this->paciente();
         $this->matricular($paciente, weekday: 2)->assertSessionHasNoErrors();
 
-        // Hoje é 28/09; o mês de novembro está dentro da janela de 2 meses (até 28/11).
-        $eventos = $this->get('/agenda?data=2026-11-15&visao=mes')->assertOk()->viewData('page')['props']['events'];
+        $props = $this->get('/agenda?data=2027-01-05&visao=dia')->assertOk()->viewData('page')['props'];
 
-        $this->assertSame(
-            ['2026-11-04', '2026-11-11', '2026-11-18', '2026-11-25'],
-            collect($eventos)->pluck('isoDate')->all(),
-        );
-    }
-
-    public function test_agenda_nao_abre_alem_de_dois_meses(): void
-    {
-        $paciente = $this->paciente();
-        $this->matricular($paciente, weekday: 2);
-
-        // Além do limite (28/11) nada é gerado, e a tela volta para o último dia visível.
-        $props = $this->get('/agenda?data=2026-12-23&visao=mes')->assertOk()->viewData('page')['props'];
-
-        $this->assertSame('2026-11-28', $props['limite']);
-        $this->assertSame('2026-11-28', $props['selectedDate']);
-        $this->assertNotContains('2026-12-02 08:50', $this->horarios($paciente));
-        $this->assertNotContains('2026-12-23 08:50', $this->horarios($paciente));
-        $this->assertSame([], collect($props['events'])->pluck('isoDate')->filter(fn ($d) => $d > '2026-11-28')->all());
-    }
-
-    public function test_matricula_aparece_em_qualquer_semana_aberta_dentro_da_janela(): void
-    {
-        $paciente = $this->paciente();
-        $this->matricular($paciente, weekday: 2); // quartas
-        $paciente->consultas()->delete();
-
-        // Uma semana ainda dentro dos 2 meses é regerada ao abrir a agenda.
-        $this->get('/agenda?data=2026-11-18')->assertOk();
-
-        $this->assertContains('2026-11-18 08:50', $this->horarios($paciente));
+        // A matrícula não vira consulta só por abrir o mês; a tela informa até quando há consultas geradas.
+        $this->assertSame([], $props['events']);
+        $this->assertSame('2026-11-28', $props['agendaWindow']['ate']);
+        $this->assertSame(62, $props['agendaWindow']['dias']);
     }
 
     public function test_matricula_encerrada_nao_volta_para_a_agenda(): void
@@ -168,5 +204,17 @@ class AjustesTest extends ConsultorioTestCase
         $this->get('/agenda?data=2026-11-18')->assertOk();
 
         $this->assertNotContains('2026-11-18 08:50', $this->horarios($paciente));
+    }
+
+    public function test_horarios_invalidos_tem_mensagens_em_portugues(): void
+    {
+        $this->put('/configuracoes', $this->formularioConfig(['inicio' => '25:00', 'almocoInicio' => '12:', 'almocoFim' => null]))
+            ->assertSessionHasErrors([
+                'horario.inicio' => 'Informe um horário válido no formato HH:MM (entre 00:00 e 23:59).',
+                'horario.almocoFim' => 'Preencha o término da pausa, ou deixe os dois horários da pausa em branco.',
+            ]);
+
+        $this->put('/configuracoes', $this->formularioConfig(['almocoInicio' => '13:00', 'almocoFim' => '12:00']))
+            ->assertSessionHasErrors(['horario.almocoFim' => 'O término da pausa precisa ser depois do início da pausa.']);
     }
 }

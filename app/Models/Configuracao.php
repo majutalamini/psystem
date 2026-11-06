@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Actions\InstalarConfiguracao;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
@@ -15,17 +16,10 @@ class Configuracao extends Model
     /** Abreviações na mesma ordem de Matricula::DIAS (0 = segunda ... 6 = domingo). */
     public const DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
-    protected $attributes = [
-        'expediente_inicio' => '08:00',
-        'expediente_fim' => '18:00',
-        'duracao_sessao' => 50,
-        'intervalo_sessao' => 0,
-    ];
-
     protected $fillable = [
         'meta_faturamento_mensal', 'meta_horas_semanais', 'meta_sessoes_semanais', 'meta_novos_pacientes_mes',
         'dias_atendimento', 'expediente_inicio', 'expediente_fim', 'duracao_sessao',
-        'intervalo_sessao', 'almoco_inicio', 'almoco_fim',
+        'intervalo_sessao', 'almoco_inicio', 'almoco_fim', 'consultas_simultaneas', 'agenda_gerada_em',
     ];
 
     protected function casts(): array
@@ -33,12 +27,14 @@ class Configuracao extends Model
         return [
             'meta_faturamento_mensal' => 'decimal:2',
             'dias_atendimento' => 'array',
+            'consultas_simultaneas' => 'integer',
+            'agenda_gerada_em' => 'datetime',
         ];
     }
 
     public static function atual(): self
     {
-        return static::firstOrCreate([], ['dias_atendimento' => ['Seg', 'Ter', 'Qua', 'Qui', 'Sex']]);
+        return InstalarConfiguracao::obter();
     }
 
     /** Horários do expediente gerados conforme a duração da sessão, o intervalo e a pausa de almoço. */
@@ -120,6 +116,7 @@ class Configuracao extends Model
             'intervalo' => (int) $this->intervalo_sessao,
             'almocoInicio' => $this->almoco_inicio ? substr($this->almoco_inicio, 0, 5) : '',
             'almocoFim' => $this->almoco_fim ? substr($this->almoco_fim, 0, 5) : '',
+            'simultaneas' => $this->consultas_simultaneas,
         ];
     }
 }

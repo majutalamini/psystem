@@ -39,6 +39,11 @@ class Matricula extends Model
         return $this->hasMany(Consulta::class);
     }
 
+    public function cobrancas(): HasMany
+    {
+        return $this->hasMany(Cobranca::class);
+    }
+
     public function scopeAtivas(Builder $query): void
     {
         $query->where('status_matricula', 'ativa');

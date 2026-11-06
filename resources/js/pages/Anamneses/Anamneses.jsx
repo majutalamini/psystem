@@ -1,21 +1,25 @@
 import { useState } from "react";
 import { router } from "@inertiajs/react";
 import { FileUp, HeartPulse } from "lucide-react";
-import { Avatar, Card, PageHeader, Pill, PrimaryButton, SearchInput } from "../../components/ui";
+import { Avatar, Card, PageHeader, Pagination, Pill, PrimaryButton, SearchInput } from "../../components/ui";
 import { useAppData } from "../../hooks/useAppData";
 import { FONT_DISPLAY, T } from "../../styles/theme";
 import AnamneseTab from "../Pacientes/tabs/AnamneseTab";
 
 /* Mesma ideia da tela de Prontuários: pacientes à esquerda e, à direita, a anamnese do escolhido (?paciente=id). */
-export default function Anamneses({ selectedId, anamnese, anamneseCounts }) {
-  const { patients } = useAppData();
-  const [query, setQuery] = useState("");
+export default function Anamneses({ selectedId, selectedPatient, patientDirectory, anamnese, anamneseCounts }) {
+  const [query, setQuery] = useState(patientDirectory.q);
 
-  const active = patients.find((p) => p.id === selectedId);
-  const filtered = patients.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()));
+  const active = selectedPatient;
+  const filtered = patientDirectory.patients;
+
+  function visitDirectory(text, page) {
+    router.get("/anamneses", { paciente: selectedId, q: text, page }, { preserveState: true, preserveScroll: true, replace: true });
+  }
+  function searchPatients(text) { setQuery(text); visitDirectory(text, 1); }
 
   function selectPatient(id) {
-    router.get("/anamneses", { paciente: id }, { preserveState: true, preserveScroll: true });
+    router.get("/anamneses", { paciente: id, q: query, page: patientDirectory.pagination.page }, { preserveState: true, preserveScroll: true });
   }
 
   if (!active) {
@@ -41,7 +45,7 @@ export default function Anamneses({ selectedId, anamnese, anamneseCounts }) {
       <div style={{ display: "grid", gridTemplateColumns: "340px 1fr", gap: 26, alignItems: "start" }}>
         <Card style={{ padding: 16, position: "sticky", top: 0 }}>
           <div style={{ padding: "2px 4px 14px" }}>
-            <SearchInput value={query} onChange={setQuery} placeholder="Buscar paciente..." />
+            <SearchInput value={query} onChange={searchPatients} placeholder="Buscar paciente..." />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: "calc(100vh - 320px)", minHeight: 280, overflowY: "auto" }}>
             {filtered.map((p) => {
@@ -66,6 +70,7 @@ export default function Anamneses({ selectedId, anamnese, anamneseCounts }) {
               );
             })}
           </div>
+          <Pagination pagination={patientDirectory.pagination} onPage={number => visitDirectory(query, number)} label="pacientes" />
         </Card>
 
         <div>

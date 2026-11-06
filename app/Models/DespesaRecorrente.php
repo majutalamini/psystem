@@ -10,6 +10,8 @@ class DespesaRecorrente extends Model
 {
     protected $table = 'despesas_recorrentes';
 
+    protected $attributes = ['ativa' => true];
+
     const CREATED_AT = 'criado_em';
 
     const UPDATED_AT = null;

@@ -29,15 +29,15 @@ class Cobranca extends Model
 
     public function pagamentos(): HasMany
     {
-        return $this->hasMany(Pagamento::class);
+        return $this->hasMany(Pagamento::class)->orderBy('data_pagamento')->orderBy('id');
     }
 
-    /** Soma dos pagamentos: uma cobrança pode ser recebida em partes. */
+    /** Soma dos pagamentos não estornados: uma cobrança pode ser recebida em partes. */
     public function recebido(): float
     {
         $pagamentos = $this->relationLoaded('pagamentos') ? $this->pagamentos : $this->pagamentos()->get();
 
-        return round((float) $pagamentos->sum('valor_pago'), 2);
+        return round((float) $pagamentos->whereNull('estornado_em')->sum('valor_pago'), 2);
     }
 
     /** Quanto ainda falta receber. */
@@ -58,7 +58,7 @@ class Cobranca extends Model
 
     public function paraTela(): array
     {
-        $pagamento = $this->relationLoaded('pagamentos') ? $this->pagamentos->last() : null;
+        $pagamento = $this->relationLoaded('pagamentos') ? $this->pagamentos->whereNull('estornado_em')->last() : null;
 
         return [
             'id' => $this->id,
@@ -72,6 +72,7 @@ class Cobranca extends Model
             'recebido' => $pagamento ? $this->recebido() : null,
             'saldo' => $this->situacao === 'pago' ? 0.0 : $this->saldo(),
             'forma' => Tela::rotuloMetodo($pagamento?->metodo_pagamento),
+            'pagamentos' => $this->relationLoaded('pagamentos') ? $this->pagamentos->map->paraLista()->values()->all() : [],
         ];
     }
 }

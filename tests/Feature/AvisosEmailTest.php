@@ -2,7 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\Cobranca;
+use App\Actions\CriarCobranca;
+use App\Actions\CriarConsulta;
 use App\Models\Consulta;
 use App\Models\Despesa;
 use App\Notifications\ConsultaEmBreve;
@@ -21,7 +22,7 @@ class AvisosEmailTest extends ConsultorioTestCase
 
     private function consulta(string $quando, string $status = 'agendado'): Consulta
     {
-        return Consulta::create([
+        return CriarConsulta::executar([
             'paciente_id' => $this->paciente(['nome' => "Paciente {$quando}"])->id,
             'data_hora_consulta' => Carbon::parse($quando),
             'modalidade' => 'presencial',
@@ -55,9 +56,10 @@ class AvisosEmailTest extends ConsultorioTestCase
     {
         $aluguel = Despesa::create(['descricao' => 'Aluguel', 'categoria' => 'Estrutura', 'valor' => 1200, 'vencimento' => '2026-10-01']);
         Despesa::create(['descricao' => 'Longe', 'categoria' => 'Outros', 'valor' => 10, 'vencimento' => '2026-10-02']);
-        Despesa::create(['descricao' => 'Paga', 'categoria' => 'Outros', 'valor' => 10, 'vencimento' => '2026-09-29', 'pago_em' => '2026-09-27']);
+        $paga = Despesa::create(['descricao' => 'Paga', 'categoria' => 'Outros', 'valor' => 10, 'vencimento' => '2026-09-29']);
+        $paga->pagamentos()->create(['valor_pago' => 10, 'metodo_pagamento' => 'pix', 'data_pagamento' => '2026-09-27']);
         Despesa::create(['descricao' => 'Vencida', 'categoria' => 'Outros', 'valor' => 10, 'vencimento' => '2026-09-27']);
-        $cobranca = Cobranca::create([
+        $cobranca = CriarCobranca::executar([
             'paciente_id' => $this->paciente()->id,
             'titulo' => 'Sessão avulsa',
             'valor' => 200,
@@ -73,7 +75,7 @@ class AvisosEmailTest extends ConsultorioTestCase
 
             return $n->despesas->modelKeys() === [$aluguel->id]
                 && $n->cobrancas->modelKeys() === [$cobranca->id]
-                && str_contains($texto, 'Aluguel — R$ 1.200,00 — vence em 01/10')
+                && str_contains($texto, 'Aluguel — falta R$ 1.200,00 — vence em 01/10')
                 && str_contains($texto, 'falta R$ 200,00 — vence hoje');
         });
     }

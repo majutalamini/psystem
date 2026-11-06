@@ -23,8 +23,8 @@ const PROFILE_TABS = [
   { key: "matricula", label: "Matrículas", icon: CalendarClock },
 ];
 
-export default function PatientProfile({ patientId, records, anamnese, documents, receivables }) {
-  const { patients, updatePatient, updatePatientPhoto } = useAppData();
+export default function PatientProfile({ patientId, patient, records, anamnese, documents, receivables }) {
+  const { updatePatient, updatePatientPhoto } = useAppData();
   const [tab, setTab] = useState(() => {
     const aba = new URLSearchParams(window.location.search).get("aba");
     return PROFILE_TABS.some((t) => t.key === aba) ? aba : "dados";
@@ -32,7 +32,6 @@ export default function PatientProfile({ patientId, records, anamnese, documents
   const [showEdit, setShowEdit] = useState(() => new URLSearchParams(window.location.search).get("editar") === "1");
   const fileRef = useRef(null);
 
-  const patient = patients.find((p) => p.id === patientId);
   if (!patient) return null;
 
   const ativo = patient.status === "Ativo";
@@ -71,7 +70,7 @@ export default function PatientProfile({ patientId, records, anamnese, documents
             >
               <Camera size={16} />
             </button>
-            <input ref={fileRef} type="file" accept="image/*" onChange={handlePhoto} style={{ display: "none" }} />
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhoto} style={{ display: "none" }} />
           </div>
 
           <div style={{ flex: 1, minWidth: 240 }}>

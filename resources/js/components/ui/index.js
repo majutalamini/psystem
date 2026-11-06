@@ -16,3 +16,6 @@ export { default as ErrorText } from "./ErrorText";
 export { default as DateInput } from "./DateInput";
 export { default as MoneyInput } from "./MoneyInput";
 export { default as BackButton } from "./BackButton";
+export { default as Pagination } from "./Pagination";
+export { default as PatientSelect } from "./PatientSelect";
+export { default as TimeInput, normalizeTime, isTimeAllowed } from "./TimeInput";

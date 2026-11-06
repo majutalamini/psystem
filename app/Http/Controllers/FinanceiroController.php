@@ -2,9 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\CriarCobranca;
+use App\Actions\EstornarPagamento;
+use App\Actions\PagarDespesa;
+use App\Actions\ReceberCobranca;
 use App\Models\Cobranca;
 use App\Models\Despesa;
 use App\Models\DespesaRecorrente;
+use App\Queries\FinanceiroDaPagina;
 use App\Services\DespesasRecorrentes;
 use App\Support\Tela;
 use Illuminate\Http\Request;
@@ -16,11 +21,24 @@ use Inertia\Inertia;
 
 class FinanceiroController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $request->validate(['receber_page' => 'nullable|integer|min:1', 'pagar_page' => 'nullable|integer|min:1']);
+        $receber = null;
+        $pagar = null;
+        $carregarReceber = function () use ($request, &$receber) {
+            return $receber ??= FinanceiroDaPagina::receber($request->integer('receber_page', 1));
+        };
+        $carregarPagar = function () use ($request, &$pagar) {
+            return $pagar ??= FinanceiroDaPagina::pagar($request->integer('pagar_page', 1));
+        };
+
         return Inertia::render('Financeiro/Financeiro', [
-            'receivables' => self::cobrancas(),
-            'payables' => Despesa::orderByDesc('vencimento')->get()->map->paraTela(),
+            'receivables' => fn () => $carregarReceber()['items'],
+            'receivablePagination' => fn () => $carregarReceber()['pagination'],
+            'payables' => fn () => $carregarPagar()['items'],
+            'payablePagination' => fn () => $carregarPagar()['pagination'],
+            'financeSummary' => fn () => FinanceiroDaPagina::totais(),
         ]);
     }
 
@@ -44,7 +62,7 @@ class FinanceiroController extends Controller
             'vencimento' => 'required|date_format:d/m/Y',
         ], [], ['referencia' => 'referência']);
 
-        Cobranca::create([
+        CriarCobranca::executar([
             'paciente_id' => $dados['patientId'],
             'titulo' => $dados['referencia'],
             'valor' => $dados['valor'],
@@ -71,15 +89,7 @@ class FinanceiroController extends Controller
     /** Cancela o título (ele sai das telas). Com recebimento registrado, é preciso estornar antes. */
     public function cancelarCobranca(Cobranca $cobranca)
     {
-        if ($cobranca->pagamentos()->exists()) {
-            throw ValidationException::withMessages([
-                'cobranca' => 'Este título já tem recebimento registrado. Estorne o recebimento antes de cancelar.',
-            ]);
-        }
-
-        $cobranca->update(['situacao' => 'cancelado']);
-
-        return back();
+        return $this->cancelar($cobranca);
     }
 
     /**
@@ -90,33 +100,28 @@ class FinanceiroController extends Controller
     {
         $dados = $this->validarBaixa($request);
 
-        $saldo = $cobranca->saldo();
-        if ($dados['valor'] <= 0 || $dados['valor'] > $saldo) {
-            throw ValidationException::withMessages([
-                'valor' => $saldo > 0
-                    ? 'Informe um valor maior que zero e de no máximo R$ '.number_format($saldo, 2, ',', '.').' (o que falta receber).'
-                    : 'Esta cobrança já foi recebida por completo.',
-            ]);
-        }
-
-        DB::transaction(function () use ($cobranca, $dados) {
-            $cobranca->pagamentos()->create([
-                'valor_pago' => $dados['valor'],
-                'metodo_pagamento' => Tela::metodo($dados['forma']),
-                'data_pagamento' => Tela::lerData($dados['data']),
-            ]);
-            $cobranca->update(['situacao' => $cobranca->saldo() <= 0 ? 'pago' : 'pendente']);
-        });
+        ReceberCobranca::executar($cobranca->id, $this->baixa($dados));
 
         return back();
     }
 
-    /** Estorno: apaga o último pagamento e a cobrança volta a ficar em aberto. */
-    public function estornar(Cobranca $cobranca)
+    /** Estorno específico de um recebimento, com motivo; o pagamento continua no histórico. */
+    public function estornar(Request $request, Cobranca $cobranca, int $pagamento)
+    {
+        EstornarPagamento::executar($cobranca, $pagamento, $this->motivo($request), $request->user()->id);
+
+        return back();
+    }
+
+    /** Cancelar tira o lançamento das telas; com recebimento registrado é preciso estornar antes. */
+    public function cancelar(Cobranca $cobranca)
     {
         DB::transaction(function () use ($cobranca) {
-            $cobranca->pagamentos()->orderByDesc('id')->first()?->delete();
-            $cobranca->update(['situacao' => 'pendente']);
+            $cobranca = Cobranca::whereKey($cobranca->id)->lockForUpdate()->firstOrFail();
+            if ($cobranca->pagamentos()->validos()->exists()) {
+                throw ValidationException::withMessages(['cobranca' => 'Estorne os recebimentos antes de cancelar este lançamento.']);
+            }
+            $cobranca->update(['situacao' => 'cancelado']);
         });
 
         return back();
@@ -155,7 +160,7 @@ class FinanceiroController extends Controller
     {
         $dados = $this->validarDespesa($request);
 
-        if ($despesa->pago_em !== null) {
+        if ($despesa->pagamentos()->validos()->exists()) {
             throw ValidationException::withMessages(['descricao' => 'Esta conta já foi paga. Estorne o pagamento para editar.']);
         }
 
@@ -176,7 +181,7 @@ class FinanceiroController extends Controller
     /** Cancela a conta (ela sai das telas e relatórios). Conta paga precisa ter o pagamento estornado antes. */
     public function cancelarDespesa(Despesa $despesa)
     {
-        if ($despesa->pago_em !== null) {
+        if ($despesa->pagamentos()->validos()->exists()) {
             throw ValidationException::withMessages(['despesa' => 'Esta conta já foi paga. Estorne o pagamento antes de cancelar.']);
         }
 
@@ -193,22 +198,17 @@ class FinanceiroController extends Controller
         return back();
     }
 
+    /** Pagamento total ou parcial; não passa do saldo. */
     public function pagarDespesa(Request $request, Despesa $despesa)
     {
-        $dados = $this->validarBaixa($request);
-
-        $despesa->update([
-            'pago_em' => Tela::lerData($dados['data']),
-            'valor_pago' => $dados['valor'],
-            'metodo_pagamento' => Tela::metodo($dados['forma']),
-        ]);
+        PagarDespesa::executar($despesa->id, $this->baixa($this->validarBaixa($request)));
 
         return back();
     }
 
-    public function estornarDespesa(Despesa $despesa)
+    public function estornarDespesa(Request $request, Despesa $despesa, int $pagamento)
     {
-        $despesa->update(['pago_em' => null, 'valor_pago' => null, 'metodo_pagamento' => null]);
+        EstornarPagamento::executar($despesa, $pagamento, $this->motivo($request), $request->user()->id);
 
         return back();
     }
@@ -229,6 +229,22 @@ class FinanceiroController extends Controller
             'data' => 'required|date_format:d/m/Y',
             'valor' => 'required|numeric|min:0',
             'forma' => ['required', Rule::in(Tela::METODOS)],
+            'chave' => 'nullable|string|max:64',
         ]);
+    }
+
+    private function baixa(array $dados): array
+    {
+        return [
+            'valor' => $dados['valor'],
+            'metodo_pagamento' => Tela::metodo($dados['forma']),
+            'data_pagamento' => Tela::lerData($dados['data']),
+            'chave' => $dados['chave'] ?? null,
+        ];
+    }
+
+    private function motivo(Request $request): string
+    {
+        return trim($request->validate(['motivo' => 'required|string|max:200'], [], ['motivo' => 'motivo do estorno'])['motivo']);
     }
 }

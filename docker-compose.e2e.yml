@@ -1,0 +1,41 @@
+# Ambiente isolado dos testes de navegador (Playwright): banco psystem_e2e, arquivos e e-mails próprios.
+# Nunca usa o banco principal. Uso: sh scripts/e2e.sh
+services:
+  e2e:
+    profiles: [e2e]
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: app
+    env_file: .env
+    environment:
+      APP_ENV: local
+      APP_DEBUG: 'false'
+      APP_URL: http://localhost:8002
+      DB_CONNECTION: pgsql
+      DB_URL: ''
+      DB_DATABASE: psystem_e2e
+      DIAGNOSTICS_ENABLED: 'false'
+      MAIL_MAILER: array
+      SESSION_COOKIE: psystem_e2e_session
+    volumes:
+      - e2e-storage:/var/www/storage
+    mem_limit: 768m
+    depends_on:
+      db:
+        condition: service_healthy
+  e2e-web:
+    profiles: [e2e]
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: web
+    environment:
+      FPM_UPSTREAM: e2e:9000
+      FPM_STATUS_UPSTREAM: e2e:9001
+    ports:
+      - '127.0.0.1:8002:80'
+    depends_on:
+      - e2e
+volumes:
+  e2e-storage:

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\CriarMatricula;
 use App\Models\Paciente;
 
 class PacienteTest extends ConsultorioTestCase
@@ -124,7 +125,8 @@ class PacienteTest extends ConsultorioTestCase
     {
         $semMatricula = $this->paciente(['status_paciente' => 'ativo']);
         $comMatricula = $this->paciente(['status_paciente' => 'inativo']);
-        $comMatricula->matriculas()->create([
+        CriarMatricula::executar([
+            'paciente_id' => $comMatricula->id,
             'inicio_da_matricula' => today(), 'dia_da_matricula' => 'quarta-feira', 'horario_da_matricula' => '09:00',
             'tipo_da_consulta' => 'presencial', 'valor_sessao' => 200,
         ]);

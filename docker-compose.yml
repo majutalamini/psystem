@@ -1,50 +1,166 @@
+x-php-build: &php-build
+  context: .
+  dockerfile: docker/php/Dockerfile
+  target: app
+
+# Rotação dos logs dos contêineres (etapa 4): até 5 arquivos de 10 MB por serviço.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '5'
+
 services:
   app:
-    build: docker/php
-    # storage:link publica as fotos (public/storage); sem ele o upload funciona mas a imagem não aparece.
-    command: sh -c "[ -f vendor/autoload.php ] || composer install; php artisan storage:link --force && php artisan serve --host=0.0.0.0 --port=8000"
+    build: *php-build
+    env_file: .env
     environment:
-      # O servidor embutido atende uma requisição por vez; com workers a tela não trava esperando a outra.
-      PHP_CLI_SERVER_WORKERS: 4
+      APP_DEBUG: 'false'
     volumes:
-      - .:/var/www
-      # vendor/ num volume do Docker: pelo bind mount do Windows/OneDrive cada requisição levava dezenas de segundos.
-      - vendor:/var/www/vendor
-    ports:
-      - "8000:8000"
+      - storage:/var/www/storage
+    mem_limit: 768m
+    restart: unless-stopped
+    logging: *logging
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
-  # Roda o comando diário que completa a agenda gerada pelas matrículas.
-  scheduler:
-    build: docker/php
-    command: sh -c "until [ -f vendor/autoload.php ]; do sleep 2; done; php artisan schedule:work"
-    volumes:
-      - .:/var/www
-      - vendor:/var/www/vendor
+  web:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: web
+    ports:
+      - '127.0.0.1:8000:80'
+    # Sem o volume de storage: o Nginx não serve arquivos de pacientes; tudo passa pelo PHP autenticado.
+    restart: unless-stopped
+    logging: *logging
     depends_on:
-      - db
       - app
 
-  db:
-    image: postgres:17
+  scheduler:
+    build: *php-build
+    command: php artisan schedule:work
+    env_file: .env
     environment:
-      POSTGRES_DB: psystem
-      POSTGRES_USER: psystem
-      POSTGRES_PASSWORD: psystem
+      APP_DEBUG: 'false'
+    volumes:
+      - storage:/var/www/storage
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Worker dedicado da fila no PostgreSQL (e-mails): tentativas limitadas, reinício a cada hora.
+  fila:
+    build: *php-build
+    command: php artisan queue:work database --tries=3 --backoff=60 --max-time=3600 --sleep=3
+    env_file: .env
+    environment:
+      APP_DEBUG: 'false'
+    volumes:
+      - storage:/var/www/storage
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Backup diário criptografado (etapa 4): banco + arquivos, 30 diários e 12 mensais, cópia externa opcional.
+  # Destino externo: BACKUP_EXTERNO_DIR=/caminho/real no .env e um arquivo .destino-externo dentro dele.
+  backup:
+    image: postgres:17@sha256:b8faeff7712663c2773a190181e1246e37e364b887611c04658c28b44e2408fe
+    entrypoint: ['sh', '/scripts/agendar.sh']
+    env_file: .env
+    environment:
+      TZ: America/Sao_Paulo
+    volumes:
+      - ./docker/backup:/scripts:ro
+      - storage:/storage
+      - backups:/backups
+      - ${BACKUP_EXTERNO_DIR:-backup-externo-nao-configurado}:/externo
+      - restauracao:/restauracao
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Coletor do Pulse: CPU, memória e disco do servidor para o painel /pulse.
+  pulse:
+    build: *php-build
+    command: php artisan pulse:check
+    env_file: .env
+    environment:
+      APP_DEBUG: 'false'
+    volumes:
+      - storage:/var/www/storage
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      db:
+        condition: service_healthy
+
+  verificar:
+    profiles: [tools]
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: verificar
+    environment:
+      APP_ENV: testing
+      DB_CONNECTION: pgsql
+      DB_DATABASE: psystem_test
+      DB_URL: ''
+      DIAGNOSTICS_ENABLED: 'false'
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      MAIL_MAILER: array
+      QUEUE_CONNECTION: sync
+      LOCAL_UID: ${LOCAL_UID:-1000}
+      LOCAL_GID: ${LOCAL_GID:-1000}
+      COMPOSER_HOME: /tmp/composer
+      npm_config_cache: /tmp/npm-cache
+    volumes:
+      - .:/var/www
+      - verificar-vendor:/var/www/vendor
+      - verificar-node-modules:/var/www/node_modules
+      - verificar-storage:/var/www/storage
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17@sha256:b8faeff7712663c2773a190181e1246e37e364b887611c04658c28b44e2408fe
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-psystem}
+      POSTGRES_USER: ${DB_USERNAME:-psystem}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      # 5433 no host para não brigar com um Postgres instalado na máquina; os containers usam db:5432.
-      - "5433:5432"
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 2s
+      timeout: 3s
+      retries: 30
 
-  # Caixa de entrada de teste: pega todos os e-mails do sistema sem enviar para fora.
-  # Veja os e-mails em http://localhost:8025
+  # Opcional: docker compose --profile mailpit up -d mailpit
   mailpit:
-    image: axllent/mailpit
+    profiles: [mailpit]
+    image: axllent/mailpit@sha256:0790692be935ea4420d085694f7985b1f692ca6a8771ab0e0bd8ba75ac180498
     ports:
-      - "8025:8025"
+      - '127.0.0.1:8025:8025'
 
 volumes:
   pgdata:
-  vendor:
+  storage:
+  verificar-vendor:
+  verificar-node-modules:
+  verificar-storage:
+  backups:
+  restauracao:
+  # Destino padrão quando BACKUP_EXTERNO_DIR não está configurado: NÃO é uma cópia externa (alerta na prontidão).
+  backup-externo-nao-configurado:

@@ -1,0 +1,30 @@
+# Servidor Linux (etapa 5): HTTPS automático na frente do Nginx.
+# Uso no servidor: docker compose -f docker-compose.yml -f docker-compose.servidor.yml up -d --build
+# Requer no .env: DOMINIO (ex.: psystem.seudominio.com.br, com DNS apontando para o servidor),
+# APP_ENV=production, APP_URL=https://DOMINIO, SESSION_SECURE_COOKIE=true e TRUSTED_PROXIES=172.16.0.0/12.
+services:
+  caddy:
+    image: caddy:2.8.4-alpine
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      DOMINIO: ${DOMINIO:?Defina DOMINIO no .env}
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-dados:/data
+      - caddy-config:/config
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: '5' }
+    depends_on:
+      - web
+
+  # No servidor, o Nginx não é publicado direto: só o Caddy (HTTPS) fala com ele.
+  web:
+    ports: !reset []
+
+volumes:
+  caddy-dados:
+  caddy-config:
