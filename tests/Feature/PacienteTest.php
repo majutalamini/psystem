@@ -73,7 +73,7 @@ class PacienteTest extends ConsultorioTestCase
         $this->matricular($paciente, weekday: 4, time: '13:50', valor: 150)->assertSessionHasNoErrors();
 
         $this->assertSame(2, $paciente->matriculas()->ativas()->count());
-        $this->assertCount(16, $this->horarios($paciente));
+        $this->assertCount(18, $this->horarios($paciente));
 
         $tela = Paciente::comResumo()->find($paciente->id)->paraTela();
         $this->assertSame([200.0, 150.0], array_column($tela['matriculas']->all(), 'valor'));
@@ -102,7 +102,7 @@ class PacienteTest extends ConsultorioTestCase
 
         $this->delete("/matriculas/{$primeira->id}");
         $this->assertSame('ativo', $paciente->fresh()->status_paciente);
-        $this->assertCount(8, $this->horarios($paciente));
+        $this->assertCount(9, $this->horarios($paciente));
 
         $this->delete("/matriculas/{$segunda->id}");
         $this->assertSame('inativo', $paciente->fresh()->status_paciente);

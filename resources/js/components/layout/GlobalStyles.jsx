@@ -15,11 +15,6 @@ export default function GlobalStyles() {
       ::-webkit-scrollbar-thumb { background: ${T.track}; border-radius: 8px; }
       .spin { animation: spin 0.8s linear infinite; }
       @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      .print-area { display: none; }
-      @media print {
-        .app-shell { display: none !important; }
-        .print-area { display: block !important; }
-      }
     `}</style>
   );
 }

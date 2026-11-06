@@ -6,18 +6,19 @@ use App\Models\Configuracao;
 use App\Models\Matricula;
 use App\Models\Paciente;
 use App\Services\AgendaMatricula;
+use App\Services\Mensalidades;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class MatriculaController extends Controller
 {
-    /** Cria a matrícula, ativa o paciente e gera as consultas das próximas semanas. */
-    public function store(Request $request, Paciente $paciente, AgendaMatricula $agenda)
+    /** Cria a matrícula, ativa o paciente, gera as consultas dos próximos 2 meses e lança a mensalidade em aberto no financeiro. */
+    public function store(Request $request, Paciente $paciente, AgendaMatricula $agenda, Mensalidades $mensalidades)
     {
         $dados = $this->validar($request, $paciente);
 
-        DB::transaction(function () use ($paciente, $dados, $agenda) {
+        DB::transaction(function () use ($paciente, $dados, $agenda, $mensalidades) {
             $matricula = $paciente->matriculas()->create([
                 ...$this->colunas($dados),
                 'inicio_da_matricula' => today(),
@@ -25,13 +26,14 @@ class MatriculaController extends Controller
 
             $paciente->sincronizarStatus();
             $agenda->gerar($matricula->setRelation('paciente', $paciente));
+            $mensalidades->gerar($matricula);
         });
 
         return back();
     }
 
     /** Altera a matrícula e refaz as consultas futuras ainda não confirmadas. */
-    public function update(Request $request, Matricula $matricula, AgendaMatricula $agenda)
+    public function update(Request $request, Matricula $matricula, AgendaMatricula $agenda, Mensalidades $mensalidades)
     {
         if (! $matricula->ativa()) {
             throw ValidationException::withMessages(['time' => 'Esta matrícula já foi encerrada.']);
@@ -39,21 +41,24 @@ class MatriculaController extends Controller
 
         $dados = $this->validar($request, $matricula->paciente, $matricula);
 
-        DB::transaction(function () use ($matricula, $dados, $agenda) {
+        DB::transaction(function () use ($matricula, $dados, $agenda, $mensalidades) {
             $agenda->limparFuturas($matricula);
             $matricula->update($this->colunas($dados));
             $agenda->gerar($matricula);
+            $mensalidades->atualizarValor($matricula);
+            $mensalidades->garantir($matricula);
         });
 
         return back();
     }
 
     /** Encerrar mantém a matrícula no histórico, tira as consultas futuras da agenda e inativa o paciente se for a última ativa. */
-    public function destroy(Matricula $matricula, AgendaMatricula $agenda)
+    public function destroy(Matricula $matricula, AgendaMatricula $agenda, Mensalidades $mensalidades)
     {
         if ($matricula->ativa()) {
-            DB::transaction(function () use ($matricula, $agenda) {
+            DB::transaction(function () use ($matricula, $agenda, $mensalidades) {
                 $agenda->limparFuturas($matricula);
+                $mensalidades->cancelarFuturas($matricula);
                 $matricula->update(['status_matricula' => 'encerrada', 'fim_da_matricula' => today()]);
                 $matricula->paciente->sincronizarStatus();
             });

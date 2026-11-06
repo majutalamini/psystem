@@ -1,20 +1,54 @@
 import { useState } from "react";
-import { ArrowDownCircle, ArrowUpCircle, Banknote, Check, CircleDollarSign, Clock, Plus, TrendingDown, TrendingUp, Undo2, Wallet } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Ban, Banknote, CalendarClock, Check, Edit3, Repeat, CircleDollarSign, Clock, Plus, TrendingDown, TrendingUp, Undo2, Wallet } from "lucide-react";
+import EditDueDateModal from "../../components/financeiro/EditDueDateModal";
 import NewReceivableModal from "../../components/financeiro/NewReceivableModal";
 import ReceivePaymentModal from "../../components/financeiro/ReceivePaymentModal";
 import { Card, PageHeader, Pill, PrimaryButton, RowMenu, StatCard } from "../../components/ui";
 import { useAppData } from "../../hooks/useAppData";
 import { T } from "../../styles/theme";
+import { confirmar } from "../../utils/alertas";
 import { statusTone, formatMoney } from "../../utils/format";
 import NewPayableModal from "./components/NewPayableModal";
 
 export default function Financeiro({ receivables, payables }) {
-  const { addReceivable, receiveReceivable, reopenReceivable, addPayable, payPayable, reopenPayable } = useAppData();
+  const { addReceivable, receiveReceivable, reopenReceivable, updateReceivable, cancelReceivable, addPayable, payPayable, reopenPayable, updatePayable, cancelPayable, stopRecurrence } = useAppData();
   const [tab, setTab] = useState("receber"); // 'receber' | 'pagar'
   const [showReceivableModal, setShowReceivableModal] = useState(false);
   const [showPayableModal, setShowPayableModal] = useState(false);
   const [receiving, setReceiving] = useState(null);   // conta a receber em baixa
   const [paying, setPaying] = useState(null);         // conta a pagar em baixa
+  const [editingDue, setEditingDue] = useState(null); // título a receber com vencimento em ajuste
+  const [editingPayable, setEditingPayable] = useState(null); // conta a pagar em edição
+
+  async function cancelarTitulo(r) {
+    const ok = await confirmar({
+      titulo: "Cancelar este título?",
+      texto: `"${r.referencia}" (R$ ${formatMoney(r.valor)}) sai do financeiro${r.paciente ? ` de ${r.paciente}` : ""}. Essa ação não pode ser desfeita.`,
+      confirmar: "Cancelar título",
+      perigo: true,
+    });
+    if (ok) cancelReceivable(r.id);
+  }
+
+  async function cancelarConta(p) {
+    const ok = await confirmar({
+      titulo: "Cancelar esta conta a pagar?",
+      texto: `"${p.descricao}" (R$ ${formatMoney(p.valor)}) sai do financeiro e dos relatórios.${p.recorrenciaAtiva ? " As próximas contas da recorrência continuam sendo geradas; para parar, use Encerrar recorrência." : ""}`,
+      confirmar: "Cancelar conta",
+      perigo: true,
+    });
+    if (ok) cancelPayable(p.id);
+  }
+
+  async function encerrarRecorrencia(p) {
+    const ok = await confirmar({
+      titulo: "Encerrar a recorrência?",
+      texto: `"${p.descricao}" não será mais lançada nos próximos meses. As contas já lançadas continuam.`,
+      confirmar: "Encerrar recorrência",
+      perigo: true,
+    });
+    if (ok) stopRecurrence(p.id);
+  }
 
   const totalReceber = receivables.reduce((s, r) => s + r.valor, 0);
   // Cobranças podem ser recebidas em partes: somam o que entrou (recebido) e o que falta (saldo).
@@ -120,6 +154,12 @@ export default function Financeiro({ receivables, payables }) {
                             ...(r.status !== "Pago" ? [
                               { label: "Registrar recebimento", icon: Banknote, onClick: () => setReceiving(r) },
                             ] : []),
+                            ...(r.status !== "Pago" ? [
+                              { label: "Alterar vencimento", icon: CalendarClock, onClick: () => setEditingDue(r) },
+                            ] : []),
+                            ...(r.status !== "Pago" && r.recebido == null ? [
+                              { label: "Cancelar título", icon: Ban, tone: "danger", onClick: () => cancelarTitulo(r) },
+                            ] : []),
                             ...(r.recebido != null ? [
                               { label: "Estornar último recebimento", icon: Undo2, tone: "danger", onClick: () => reopenReceivable(r.id) },
                             ] : []),
@@ -157,7 +197,14 @@ export default function Financeiro({ receivables, payables }) {
               <tbody>
                 {payables.map((p) => (
                   <tr key={p.id} style={{ borderTop: `1px solid ${T.border}` }}>
-                    <td style={{ padding: "13px 20px", fontSize: 13.5, fontWeight: 600, color: T.text }}>{p.descricao}</td>
+                    <td style={{ padding: "13px 20px", fontSize: 13.5, fontWeight: 600, color: T.text }}>
+                      {p.descricao}
+                      {p.recorrente && (
+                        <span title={p.recorrenciaAtiva ? "Conta recorrente: lançada todo mês" : "Recorrência encerrada"} style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 8, fontSize: 11.5, fontWeight: 700, color: p.recorrenciaAtiva ? T.primary : T.muted }}>
+                          <Repeat size={13} /> {p.recorrenciaAtiva ? "Mensal" : "Encerrada"}
+                        </span>
+                      )}
+                    </td>
                     <td style={{ padding: "13px 20px" }}><Pill tone="muted">{p.categoria}</Pill></td>
                     <td style={{ padding: "13px 20px", fontSize: 13.5, fontWeight: 700, color: T.danger }}>R$ {formatMoney(p.valor)}</td>
                     <td style={{ padding: "13px 20px", fontSize: 13, color: T.text }}>{p.vencimento}</td>
@@ -182,7 +229,12 @@ export default function Financeiro({ receivables, payables }) {
                         <RowMenu
                           items={p.status === "Pago"
                             ? [{ label: "Estornar pagamento", icon: Undo2, tone: "danger", onClick: () => reopenPayable(p.id) }]
-                            : [{ label: "Registrar pagamento", icon: Banknote, onClick: () => setPaying(p) }]}
+                            : [
+                              { label: "Registrar pagamento", icon: Banknote, onClick: () => setPaying(p) },
+                              { label: "Editar conta", icon: Edit3, onClick: () => setEditingPayable(p) },
+                              ...(p.recorrenciaAtiva ? [{ label: "Encerrar recorrência", icon: Repeat, onClick: () => encerrarRecorrencia(p) }] : []),
+                              { label: "Cancelar conta", icon: Ban, tone: "danger", onClick: () => cancelarConta(p) },
+                            ]}
                         />
                       </div>
                     </td>
@@ -198,6 +250,23 @@ export default function Financeiro({ receivables, payables }) {
         <NewReceivableModal
           onClose={() => setShowReceivableModal(false)}
           onSave={(entry) => addReceivable(entry, { onSuccess: () => setShowReceivableModal(false) })}
+        />
+      )}
+
+      {editingDue && (
+        <EditDueDateModal
+          titulo={editingDue.referencia}
+          subtitulo={editingDue.paciente}
+          vencimento={editingDue.vencimento}
+          onClose={() => setEditingDue(null)}
+          onSave={(vencimento) => updateReceivable(editingDue.id, { vencimento }, { onSuccess: () => setEditingDue(null) })}
+        />
+      )}
+      {editingPayable && (
+        <NewPayableModal
+          payable={editingPayable}
+          onClose={() => setEditingPayable(null)}
+          onSave={(entry) => updatePayable(editingPayable.id, entry, { onSuccess: () => setEditingPayable(null) })}
         />
       )}
       {showPayableModal && (

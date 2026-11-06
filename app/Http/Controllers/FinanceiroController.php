@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Cobranca;
 use App\Models\Despesa;
+use App\Models\DespesaRecorrente;
+use App\Services\DespesasRecorrentes;
 use App\Support\Tela;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -51,6 +54,34 @@ class FinanceiroController extends Controller
         return back();
     }
 
+    /** Ajusta a data de vencimento de uma cobrança em aberto (inclusive as mensalidades da matrícula). */
+    public function atualizarCobranca(Request $request, Cobranca $cobranca)
+    {
+        $dados = $request->validate(['vencimento' => 'required|date_format:d/m/Y']);
+
+        if ($cobranca->situacao !== 'pendente') {
+            throw ValidationException::withMessages(['vencimento' => 'Só dá para mudar o vencimento de um título em aberto.']);
+        }
+
+        $cobranca->update(['vencimento' => Tela::lerData($dados['vencimento'])]);
+
+        return back();
+    }
+
+    /** Cancela o título (ele sai das telas). Com recebimento registrado, é preciso estornar antes. */
+    public function cancelarCobranca(Cobranca $cobranca)
+    {
+        if ($cobranca->pagamentos()->exists()) {
+            throw ValidationException::withMessages([
+                'cobranca' => 'Este título já tem recebimento registrado. Estorne o recebimento antes de cancelar.',
+            ]);
+        }
+
+        $cobranca->update(['situacao' => 'cancelado']);
+
+        return back();
+    }
+
     /**
      * Recebimento total ou parcial. Parcial: a cobrança continua em aberto com o restante,
      * que pode ser recebido depois em outro pagamento. Só vira "pago" quando o saldo zera.
@@ -91,16 +122,73 @@ class FinanceiroController extends Controller
         return back();
     }
 
-    public function storeDespesa(Request $request)
+    public function storeDespesa(Request $request, DespesasRecorrentes $recorrentes)
     {
-        $dados = $request->validate([
-            'descricao' => 'required|string|max:200',
-            'categoria' => 'required|string|max:40',
-            'valor' => 'required|numeric|min:0',
-            'vencimento' => 'required|date_format:d/m/Y',
-        ], [], ['descricao' => 'descrição']);
+        $dados = $this->validarDespesa($request);
+        $vencimento = Tela::lerData($dados['vencimento']);
 
-        Despesa::create([...$dados, 'vencimento' => Tela::lerData($dados['vencimento'])]);
+        DB::transaction(function () use ($dados, $vencimento, $request) {
+            $campos = ['descricao' => $dados['descricao'], 'categoria' => $dados['categoria'], 'valor' => $dados['valor']];
+
+            if (! $request->boolean('recorrente')) {
+                Despesa::create([...$campos, 'vencimento' => $vencimento]);
+
+                return;
+            }
+
+            // Recorrente: a data informada define o dia do mês; a primeira conta é esta e as outras vêm todo mês.
+            $mes = Carbon::parse($vencimento)->startOfMonth();
+            $recorrencia = DespesaRecorrente::create([...$campos, 'dia' => Carbon::parse($vencimento)->day, 'inicio' => $mes]);
+            Despesa::create([
+                ...$campos,
+                'vencimento' => $vencimento,
+                'recorrente_id' => $recorrencia->id,
+                'competencia' => $mes->toDateString(),
+            ]);
+        });
+
+        return back();
+    }
+
+    /** Edita uma conta a pagar em aberto. Em conta recorrente, "aplicarFuturos" muda também as próximas. */
+    public function atualizarDespesa(Request $request, Despesa $despesa)
+    {
+        $dados = $this->validarDespesa($request);
+
+        if ($despesa->pago_em !== null) {
+            throw ValidationException::withMessages(['descricao' => 'Esta conta já foi paga. Estorne o pagamento para editar.']);
+        }
+
+        $vencimento = Tela::lerData($dados['vencimento']);
+        $campos = ['descricao' => $dados['descricao'], 'categoria' => $dados['categoria'], 'valor' => $dados['valor']];
+
+        DB::transaction(function () use ($despesa, $campos, $vencimento, $request) {
+            $despesa->update([...$campos, 'vencimento' => $vencimento]);
+
+            if ($request->boolean('aplicarFuturos') && $despesa->recorrencia?->ativa) {
+                $despesa->recorrencia->update([...$campos, 'dia' => Carbon::parse($vencimento)->day]);
+            }
+        });
+
+        return back();
+    }
+
+    /** Cancela a conta (ela sai das telas e relatórios). Conta paga precisa ter o pagamento estornado antes. */
+    public function cancelarDespesa(Despesa $despesa)
+    {
+        if ($despesa->pago_em !== null) {
+            throw ValidationException::withMessages(['despesa' => 'Esta conta já foi paga. Estorne o pagamento antes de cancelar.']);
+        }
+
+        $despesa->update(['cancelada_em' => today()]);
+
+        return back();
+    }
+
+    /** Para de gerar as próximas contas; as já lançadas continuam. */
+    public function encerrarRecorrencia(Despesa $despesa)
+    {
+        $despesa->recorrencia?->update(['ativa' => false]);
 
         return back();
     }
@@ -123,6 +211,16 @@ class FinanceiroController extends Controller
         $despesa->update(['pago_em' => null, 'valor_pago' => null, 'metodo_pagamento' => null]);
 
         return back();
+    }
+
+    private function validarDespesa(Request $request): array
+    {
+        return $request->validate([
+            'descricao' => 'required|string|max:200',
+            'categoria' => 'required|string|max:40',
+            'valor' => 'required|numeric|min:0',
+            'vencimento' => 'required|date_format:d/m/Y',
+        ], [], ['descricao' => 'descrição']);
     }
 
     private function validarBaixa(Request $request): array

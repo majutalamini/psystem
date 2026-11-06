@@ -8,12 +8,19 @@ use App\Models\Matricula;
 use Illuminate\Support\Carbon;
 
 /**
- * Mantém a agenda preenchida com as consultas das matrículas pelas próximas SEMANAS semanas.
- * Roda ao salvar a matrícula e todo dia pelo comando agenda:gerar.
+ * Mantém a agenda preenchida com as consultas das matrículas pelos próximos MESES meses.
+ * Roda ao salvar a matrícula e todo dia pelo comando agenda:gerar. Nada é gerado nem exibido além desse limite:
+ * a matrícula é permanente, mas a agenda só enxerga a janela dos próximos meses.
  */
 class AgendaMatricula
 {
-    public const SEMANAS = 8;
+    public const MESES = 2;
+
+    /** Último dia visível/gerado da agenda (hoje + MESES meses). */
+    public static function limite(): Carbon
+    {
+        return today()->addMonthsNoOverflow(self::MESES);
+    }
 
     public function gerar(Matricula $matricula): int
     {
@@ -27,7 +34,7 @@ class AgendaMatricula
         }
 
         $duracao = $config->duracao_sessao;
-        $limite = today()->addWeeks(self::SEMANAS);
+        $limite = self::limite();
         $dia = today()->max($matricula->inicio_da_matricula)->copy();
 
         // Avança até o primeiro dia da semana da matrícula.
@@ -66,12 +73,13 @@ class AgendaMatricula
     }
 
     /**
-     * Garante as consultas das matrículas ativas na semana que começa em $inicioSemana, mesmo além das SEMANAS
-     * geradas de antemão: a matrícula é um horário fixo e precisa aparecer em qualquer mês que se abra na agenda.
+     * Garante as consultas das matrículas ativas na semana que começa em $inicioSemana, desde que ela esteja dentro
+     * da janela de MESES meses da agenda (cobre, por exemplo, uma matrícula criada depois da geração diária).
      */
     public function gerarSemana(Carbon $inicioSemana): int
     {
-        if ($inicioSemana->gt(today()->addYears(2))) {
+        $limite = self::limite();
+        if ($inicioSemana->gt($limite)) {
             return 0;
         }
 
@@ -84,7 +92,7 @@ class AgendaMatricula
             $dia = $inicioSemana->copy()->addDays($matricula->diaIso() - 1);
             $dataHora = Carbon::parse($dia->toDateString().' '.$matricula->horario_da_matricula);
 
-            if ($dataHora->isPast() || $dia->lt($matricula->inicio_da_matricula) || ! $config->atendeNo($dia)) {
+            if ($dataHora->isPast() || $dia->gt($limite) || $dia->lt($matricula->inicio_da_matricula) || ! $config->atendeNo($dia)) {
                 continue;
             }
 

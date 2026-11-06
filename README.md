@@ -84,7 +84,9 @@ Tarefas agendadas (`routes/console.php`):
 
 | Comando | Quando | O que faz |
 |---|---|---|
-| `agenda:gerar` | todo dia 01:00 | Completa a agenda das próximas 8 semanas a partir das matrículas ativas |
+| `agenda:gerar` | todo dia 01:00 | Completa a agenda dos próximos 2 meses a partir das matrículas ativas |
+| `mensalidades:gerar` | todo dia 01:10 | Lança a mensalidade do mês (título em aberto no financeiro) das matrículas ativas com valor, sem duplicar |
+| `despesas:gerar` | todo dia 01:20 | Lança a conta a pagar do mês de cada recorrência ativa, sem duplicar |
 | `avisos:consultas` | a cada minuto | E-mail para a psicóloga cerca de 1 hora antes de cada consulta |
 | `avisos:vencimentos` | todo dia 07:00 | E-mail das contas que vencem nos próximos 3 dias |
 
@@ -130,10 +132,23 @@ tests/Feature/
 
 **Matrículas (P13)**
 - Um paciente pode ter várias matrículas. Cada uma é um dia e horário fixos por semana, com modalidade e `valor_sessao`.
-- Ao criar ou alterar, o sistema gera as consultas das próximas 8 semanas na tabela `agenda` (`AgendaMatricula`). Ao alterar, as consultas futuras ainda "agendadas" são apagadas e geradas de novo.
+- Ao criar ou alterar, o sistema gera as consultas dos próximos 2 meses (a agenda não abre além disso) na tabela `agenda` (`AgendaMatricula`). Ao alterar, as consultas futuras ainda "agendadas" são apagadas e geradas de novo.
 - Encerrar (`DELETE /matriculas/{id}`) não apaga a linha: marca `status_matricula = encerrada` e `fim_da_matricula`, e tira as consultas futuras não confirmadas. O histórico e as cobranças continuam.
 - Não pode haver duas matrículas ativas no mesmo dia e horário, nem de pacientes diferentes nem do mesmo.
 - Rotas: `POST /pacientes/{id}/matriculas`, `PUT /matriculas/{id}`, `DELETE /matriculas/{id}`.
+
+**Mensalidade e cobranças**
+- O valor da matrícula (`valor_sessao`) é a mensalidade. Com valor maior que zero, ao lançar a matrícula o sistema cria um título em aberto no financeiro do paciente (`Mensalidades`), vencendo no dia configurado no perfil (`pacientes.dia_vencimento`, padrão 10; dia 31 vira o último dia dos meses curtos). Se o vencimento do mês já passou, o primeiro título é o do mês seguinte.
+- Depois disso, `mensalidades:gerar` lança um título por matrícula e mês (sem duplicar, índice único `matricula_id` + `competencia`).
+- Alterar o valor atualiza só os títulos em aberto sem pagamento; mudar o dia de vencimento (`PATCH /pacientes/{id}/vencimento`) reagenda os títulos em aberto; encerrar a matrícula cancela os que ainda vão vencer e não receberam nada.
+- Consulta avulsa tem o campo `valor` (obrigatório; 0 = sem cobrança). Com valor, cria uma única cobrança em aberto no paciente, ligada à consulta; cancelar a consulta cancela essa cobrança (falta não).
+- Status da agenda: só **Falta** e **Cancelado**. Falta vale também direto de "Matriculado".
+
+**Financeiro: ajustes**
+- Título a receber em aberto: dá para alterar o vencimento (`PATCH /cobrancas/{id}`) e cancelar (`DELETE /cobrancas/{id}`; com recebimento registrado é preciso estornar antes). Título cancelado sai das telas e uma mensalidade cancelada não é recriada pelo comando.
+- Conta a pagar: editar (`PUT /despesas/{id}`) e cancelar (`DELETE /despesas/{id}`, grava `cancelada_em`; some das telas e dos relatórios). Conta paga precisa do pagamento estornado antes.
+- Conta a pagar recorrente: ao criar com "Repetir todo mês", a data informada define o dia; a primeira conta é criada na hora e `despesas:gerar` lança uma por mês, no começo do mês, vencendo no mesmo dia (31 vira o último dia dos meses curtos). Ao editar, "Aplicar também aos próximos meses" muda o modelo; `DELETE /despesas/{id}/recorrencia` encerra a recorrência.
+- Documentos do paciente: `GET /documentos/{id}` só exibe (inline); `?baixar=1` faz o download. Tipos que o navegador não exibe (ex.: Word) só têm o botão de baixar.
 
 **Status do paciente (P14)**
 - O paciente é `ativo` se tiver ao menos uma matrícula ativa, e `inativo` se não tiver. Isso é calculado em `Paciente::sincronizarStatus()`, chamado ao criar e ao encerrar matrícula.

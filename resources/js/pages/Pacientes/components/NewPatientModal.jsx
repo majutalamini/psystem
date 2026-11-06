@@ -38,7 +38,7 @@ export default function NewPatientModal({ onClose, onSave, editingPatient }) {
       <FormField label="Endereço" {...field("endereco")} placeholder="Rua, número — bairro" />
       <div style={{ display: "grid", gridTemplateColumns: "3fr 1fr", gap: "0 16px" }}>
         <FormField label="Cidade" {...field("cidade")} />
-        <FormField label="UF" {...field("uf")} placeholder="SC" />
+        <FormField label="UF" {...field("uf")} onChange={(v) => set("uf")(v.replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase())} placeholder="SC" maxLength={2} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
         <FormField label="Contato de emergência" {...field("emergenciaNome")} placeholder="Nome (parentesco)" />

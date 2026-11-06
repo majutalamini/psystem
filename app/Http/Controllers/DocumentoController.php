@@ -28,10 +28,17 @@ class DocumentoController extends Controller
         return back();
     }
 
-    /** Arquivos ficam no disco privado; só a psicóloga logada consegue abrir. */
-    public function show(Documento $documento)
+    /**
+     * Arquivos ficam no disco privado; só a psicóloga logada consegue abrir.
+     * Sem parâmetro o arquivo é só exibido no navegador (inline); com ?baixar=1 vira download.
+     */
+    public function show(Request $request, Documento $documento)
     {
-        return Storage::response($documento->caminho, $documento->nome_arquivo);
+        if ($request->boolean('baixar')) {
+            return Storage::download($documento->caminho, $documento->nome_arquivo);
+        }
+
+        return Storage::response($documento->caminho, $documento->nome_arquivo, ['X-Content-Type-Options' => 'nosniff'], 'inline');
     }
 
     public function destroy(Documento $documento)

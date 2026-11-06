@@ -15,7 +15,7 @@ const labelStyle = { fontSize: 13.5, fontWeight: 600, color: T.muted };
 const ghostBtn = { padding: "9px 16px", borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, fontWeight: 600, cursor: "pointer", fontSize: 13.5 };
 
 export default function MatriculaTab({ patient }) {
-  const { patients, hours, saveMatricula, removeMatricula, addMatricula, updateMatricula, deleteMatricula, errors = {} } = useAppData();
+  const { patients, hours, setDiaVencimento, saveMatricula, removeMatricula, addMatricula, updateMatricula, deleteMatricula, errors = {} } = useAppData();
   const lista = matriculasDe(patient);
   const varias = suportaVariasMatriculas(patient);
 
@@ -63,6 +63,17 @@ export default function MatriculaTab({ patient }) {
             Cada matrícula é um dia e horário fixos na agenda, repetidos toda semana. O paciente pode ter mais de uma.
           </div>
         </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <label htmlFor="dia-vencimento" style={{ ...labelStyle, whiteSpace: "nowrap" }}>Vencimento da mensalidade</label>
+          <select
+            id="dia-vencimento"
+            value={patient.diaVencimento || 10}
+            onChange={(e) => setDiaVencimento(patient.id, Number(e.target.value))}
+            style={{ ...inputStyle, width: 110, marginBottom: 0 }}
+          >
+            {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>Dia {d}</option>)}
+          </select>
+        </div>
         {podeAdicionar && editingKey !== "new" && lista.length > 0 && (
           <PrimaryButton icon={Plus} onClick={() => setEditingKey("new")}>Nova matrícula</PrimaryButton>
         )}
@@ -108,7 +119,7 @@ export default function MatriculaTab({ patient }) {
                   </div>
                   <div style={{ fontSize: 13.5, color: T.muted, marginTop: 4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     {m.tipo === "Consulta online" ? <Video size={15} /> : <MapPin size={15} />} {m.tipo}
-                    <span>· R$ {Number(m.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} por sessão</span>
+                    <span>· R$ {Number(m.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} por mês</span>
                   </div>
                 </div>
                 {!encerrada && (
@@ -155,7 +166,7 @@ function MatriculaForm({ matricula: m, patient, errors, livresNo, onCancel, onSa
         {m ? "Editar matrícula" : "Nova matrícula"}
       </div>
       <div style={{ fontSize: 13, color: T.muted, marginBottom: 16 }}>
-        O paciente entra na agenda toda semana nesse dia e horário. Cada sessão realizada gera uma cobrança com o valor abaixo.
+        O paciente entra na agenda toda semana nesse dia e horário. Com um valor informado, o sistema lança todo mês uma mensalidade em aberto no financeiro do paciente, vencendo no dia definido no perfil.
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0 16px" }}>
@@ -183,9 +194,9 @@ function MatriculaForm({ matricula: m, patient, errors, livresNo, onCancel, onSa
           </select>
         </div>
         <div>
-          <label style={labelStyle}>Valor da sessão (R$)</label>
+          <label style={labelStyle}>Valor da mensalidade (R$)</label>
           <MoneyInput
-            value={valor} onChange={setValor} placeholder="Ex: 200,00"
+            value={valor} onChange={setValor} placeholder="Ex: R$ 200,00"
             style={errors.valor ? { ...inputStyle, borderColor: T.danger, marginBottom: 4 } : inputStyle}
           />
           <ErrorText>{errors.valor}</ErrorText>

@@ -25,7 +25,7 @@ const porExtenso = (iso) => parseIsoDate(iso).toLocaleDateString("pt-BR", { week
 
 /* A semana vem do servidor (consultas geradas pelas matrículas e agendamentos avulsos, sem as canceladas).
    Dia, semana e mês são formas de ver os mesmos dados; o mês busca as outras semanas por conta própria. */
-export default function Agenda({ selectedDate, today, weekStart, events }) {
+export default function Agenda({ selectedDate, today, limite, weekStart, events }) {
   const { hours } = useAppData();
   const [visao, setVisao] = useState("dia");
   const [mesIso, setMesIso] = useState(() => primeiroDoMes(selectedDate));
@@ -37,7 +37,9 @@ export default function Agenda({ selectedDate, today, weekStart, events }) {
 
   const diasMes = useMemo(() => diasDoMes(mesIso), [mesIso]);
   const semanasMes = useMemo(() => diasMes.filter((_, i) => i % 7 === 0), [diasMes]);
-  const eventosMes = useEventosDoMes(visao === "mes", semanasMes, weekStart, events);
+  // A agenda só abre até `limite` (hoje + 2 meses): semanas além disso não são buscadas.
+  const semanasVisiveis = useMemo(() => semanasMes.filter((w) => w <= limite), [semanasMes, limite]);
+  const eventosMes = useEventosDoMes(visao === "mes", semanasVisiveis, weekStart, events);
 
   const label = porExtenso(selectedDate);
   const schedule = useMemo(() => events.filter((e) => e.isoDate === selectedDate), [events, selectedDate]);
@@ -60,7 +62,12 @@ export default function Agenda({ selectedDate, today, weekStart, events }) {
     setVisao(v);
   }
 
+  const proximoBloqueado = visao === "dia" ? addDaysIso(selectedDate, 1) > limite
+    : visao === "semana" ? addDaysIso(weekStart, 7) > limite
+      : somaMes(mesIso, 1) > limite;
+
   function irPara(n) {
+    if (n > 0 && proximoBloqueado) return;
     if (visao === "dia") selectDay(addDaysIso(selectedDate, n));
     else if (visao === "semana") selectDay(addDaysIso(selectedDate, 7 * n));
     else setMesIso(somaMes(mesIso, n));
@@ -152,7 +159,14 @@ export default function Agenda({ selectedDate, today, weekStart, events }) {
           >
             Hoje
           </button>
-          <button onClick={() => irPara(1)} style={iconBtn} title="Próximo"><ChevronRight size={19} /></button>
+          <button
+            onClick={() => irPara(1)}
+            disabled={proximoBloqueado}
+            style={{ ...iconBtn, opacity: proximoBloqueado ? 0.4 : 1, cursor: proximoBloqueado ? "not-allowed" : iconBtn.cursor }}
+            title={proximoBloqueado ? "A agenda abre só para os próximos 2 meses" : "Próximo"}
+          >
+            <ChevronRight size={19} />
+          </button>
         </div>
 
         <span style={{ fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: 600, color: T.text, textTransform: "capitalize" }}>{periodo}</span>

@@ -6,10 +6,9 @@ import { navigate } from "../../../utils/nav";
 
 const STATUS_TONE = { agendado: "warn", confirmado: "success", realizado: "primary", falta: "danger" };
 
-/* "Realizado" gera a cobrança da sessão; sair de "Realizado" cancela a cobrança ainda não paga. */
+/* A matrícula já garante o horário: só existem "Falta" (vale também para quem tem matrícula) e "Cancelar".
+   Cancelar uma consulta avulsa também cancela a cobrança dela se ainda estiver em aberto. */
 const ACTIONS = [
-  { key: "confirmado", label: "Confirmar", color: T.success, tint: T.successTint },
-  { key: "realizado", label: "Realizado", color: T.primary, tint: T.primaryTint },
   { key: "falta", label: "Falta", color: T.warnText, tint: T.warnTint },
   { key: "cancelado", label: "Cancelar", color: T.danger, tint: T.dangerTint },
 ];

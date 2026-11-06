@@ -1,35 +1,43 @@
 import { useState } from "react";
-import { parseMoney, sanitizeMoney } from "../../utils/format";
+import CurrencyInput from "react-currency-input-field";
 
 const toText = (v) => {
   if (v === "" || v == null || Number.isNaN(Number(v))) return "";
   return Number(v).toFixed(2).replace(".", ",");
 };
 
+const toNumber = (t) => {
+  const n = parseFloat(String(t ?? "").replace(",", "."));
+  return Number.isNaN(n) ? "" : n;
+};
+
 /*
- * Campo em reais: aceita só dígitos e uma vírgula com até 2 casas ("150,50").
- * value/onChange trabalham com número; enquanto o texto está vazio ou incompleto ("150,") o valor é "".
+ * Campo em reais com máscara automática (react-currency-input-field): "10000" vira "R$ 10.000,00" ao digitar.
+ * value/onChange trabalham com número (150.5); campo vazio devolve "".
  */
-export default function MoneyInput({ value, onChange, style, placeholder = "0,00" }) {
+export default function MoneyInput({ value, onChange, style, placeholder = "R$ 0,00" }) {
   const [text, setText] = useState(() => toText(value));
 
   // Valor trocado por fora (ex.: outro paciente escolhido): mostra o novo.
   const atual = value === undefined || value === null ? "" : value;
-  if ((parseMoney(text) ?? "") !== atual && toText(atual) !== text) {
+  if (toNumber(text) !== atual && toText(atual) !== text) {
     setText(toText(atual));
   }
 
   return (
-    <input
-      type="text"
+    <CurrencyInput
+      prefix="R$ "
+      decimalSeparator=","
+      groupSeparator="."
+      decimalScale={2}
+      allowNegativeValue={false}
       inputMode="decimal"
       placeholder={placeholder}
       value={text}
       style={style}
-      onChange={(e) => {
-        const t = sanitizeMoney(e.target.value);
-        setText(t);
-        onChange(parseMoney(t) ?? "");
+      onValueChange={(v, _nome, valores) => {
+        setText(v ?? "");
+        onChange(valores && valores.float != null ? valores.float : "");
       }}
     />
   );

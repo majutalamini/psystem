@@ -4,12 +4,12 @@ import { settingsInputStyle, settingsLabelStyle } from "./settingsStyles";
 
 /* money: valor em reais (aceita centavos); sem ele, só números inteiros. */
 export default function GoalField({ label, value, onChange, prefix, suffix, error, money }) {
-  const style = { ...settingsInputStyle, paddingLeft: prefix ? 40 : 15, paddingRight: suffix ? 64 : 15, ...(error ? { borderColor: T.danger } : {}) };
+  const style = { ...settingsInputStyle, paddingLeft: prefix && !money ? 40 : 15, paddingRight: suffix ? 64 : 15, ...(error ? { borderColor: T.danger } : {}) };
   return (
     <div style={{ marginBottom: 18 }}>
       <label style={settingsLabelStyle}>{label}</label>
       <div style={{ position: "relative" }}>
-        {prefix && (
+        {prefix && !money && (
           <span style={{ position: "absolute", left: 15, top: "50%", transform: "translateY(-50%)", fontSize: 15.5, fontWeight: 600, color: T.muted }}>{prefix}</span>
         )}
         {money ? (

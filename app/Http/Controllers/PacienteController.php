@@ -7,6 +7,7 @@ use App\Models\AnamneseModelo;
 use App\Models\Paciente;
 use App\Models\Prontuario;
 use App\Rules\Cpf;
+use App\Services\Mensalidades;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -59,6 +60,20 @@ class PacienteController extends Controller
         return back();
     }
 
+    /** Dia do mês em que vence a mensalidade da matrícula; as mensalidades em aberto passam a vencer nele. */
+    public function vencimento(Request $request, Paciente $paciente, Mensalidades $mensalidades)
+    {
+        $dados = $request->validate(['dia' => 'required|integer|between:1,31'], [
+            'dia.required' => 'Informe o dia do vencimento.',
+            'dia.between' => 'O dia do vencimento deve ficar entre 1 e 31.',
+        ]);
+
+        $paciente->update(['dia_vencimento' => $dados['dia']]);
+        $mensalidades->atualizarVencimento($paciente);
+
+        return back();
+    }
+
     /** Apaga o paciente e tudo o que é dele (várias tabelas travam a exclusão, então saem na ordem certa). */
     public function destroy(Paciente $paciente)
     {
@@ -104,13 +119,15 @@ class PacienteController extends Controller
             'email' => 'nullable|email|max:150',
             'endereco' => 'nullable|string|max:255',
             'cidade' => 'nullable|string|max:80',
-            'uf' => 'nullable|string|size:2',
+            'uf' => ['nullable', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
             'emergenciaNome' => 'nullable|string|max:150',
             'emergenciaTelefone' => 'nullable|string|max:20',
             'observacoes' => 'nullable|string',
         ], [
             'nascimento.before_or_equal' => 'A data de nascimento não pode ser futura.',
             'cpf.unique' => 'Já existe um paciente cadastrado com este CPF.',
+            'uf.size' => 'A UF deve ter exatamente 2 letras (ex.: SC).',
+            'uf.regex' => 'A UF deve ter exatamente 2 letras (ex.: SC).',
         ], [
             'name' => 'nome', 'nascimento' => 'data de nascimento', 'phone' => 'telefone',
         ]);

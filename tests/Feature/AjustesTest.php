@@ -53,6 +53,19 @@ class AjustesTest extends ConsultorioTestCase
             ->assertSessionHasErrors(['cpf' => 'Já existe um paciente cadastrado com este CPF.']);
     }
 
+    public function test_uf_aceita_so_duas_letras(): void
+    {
+        $base = ['name' => 'Ana', 'cpf' => '529.982.247-25', 'nascimento' => '01/02/1990', 'phone' => '(48) 98888-0000'];
+
+        foreach (['SCX', 'S', '12', 'S1'] as $uf) {
+            $this->post('/pacientes', [...$base, 'uf' => $uf])->assertSessionHasErrors('uf');
+        }
+        $this->assertSame(0, Paciente::count());
+
+        $this->post('/pacientes', [...$base, 'uf' => 'sc'])->assertSessionHasNoErrors();
+        $this->assertSame('SC', Paciente::sole()->endereco_uf);
+    }
+
     public function test_telefone_chega_formatado_para_a_tela(): void
     {
         $this->assertSame('(48) 98836-4746', Tela::telefone('48988364746'));
@@ -110,23 +123,40 @@ class AjustesTest extends ConsultorioTestCase
         $paciente = $this->paciente();
         $this->matricular($paciente, weekday: 2)->assertSessionHasNoErrors();
 
-        $eventos = $this->get('/agenda?data=2026-12-23&visao=mes')->assertOk()->viewData('page')['props']['events'];
+        // Hoje é 28/09; o mês de novembro está dentro da janela de 2 meses (até 28/11).
+        $eventos = $this->get('/agenda?data=2026-11-15&visao=mes')->assertOk()->viewData('page')['props']['events'];
 
         $this->assertSame(
-            ['2026-12-02', '2026-12-09', '2026-12-16', '2026-12-23', '2026-12-30'],
+            ['2026-11-04', '2026-11-11', '2026-11-18', '2026-11-25'],
             collect($eventos)->pluck('isoDate')->all(),
         );
     }
 
-    public function test_matricula_aparece_em_qualquer_semana_aberta_na_agenda(): void
+    public function test_agenda_nao_abre_alem_de_dois_meses(): void
+    {
+        $paciente = $this->paciente();
+        $this->matricular($paciente, weekday: 2);
+
+        // Além do limite (28/11) nada é gerado, e a tela volta para o último dia visível.
+        $props = $this->get('/agenda?data=2026-12-23&visao=mes')->assertOk()->viewData('page')['props'];
+
+        $this->assertSame('2026-11-28', $props['limite']);
+        $this->assertSame('2026-11-28', $props['selectedDate']);
+        $this->assertNotContains('2026-12-02 08:50', $this->horarios($paciente));
+        $this->assertNotContains('2026-12-23 08:50', $this->horarios($paciente));
+        $this->assertSame([], collect($props['events'])->pluck('isoDate')->filter(fn ($d) => $d > '2026-11-28')->all());
+    }
+
+    public function test_matricula_aparece_em_qualquer_semana_aberta_dentro_da_janela(): void
     {
         $paciente = $this->paciente();
         $this->matricular($paciente, weekday: 2); // quartas
+        $paciente->consultas()->delete();
 
-        // Três meses à frente, além das oito semanas geradas na hora.
-        $this->get('/agenda?data=2026-12-23')->assertOk();
+        // Uma semana ainda dentro dos 2 meses é regerada ao abrir a agenda.
+        $this->get('/agenda?data=2026-11-18')->assertOk();
 
-        $this->assertContains('2026-12-23 08:50', $this->horarios($paciente));
+        $this->assertContains('2026-11-18 08:50', $this->horarios($paciente));
     }
 
     public function test_matricula_encerrada_nao_volta_para_a_agenda(): void
@@ -135,8 +165,8 @@ class AjustesTest extends ConsultorioTestCase
         $this->matricular($paciente, weekday: 2);
         $this->delete('/matriculas/'.$paciente->matriculas()->first()->id);
 
-        $this->get('/agenda?data=2026-12-23')->assertOk();
+        $this->get('/agenda?data=2026-11-18')->assertOk();
 
-        $this->assertNotContains('2026-12-23 08:50', $this->horarios($paciente));
+        $this->assertNotContains('2026-11-18 08:50', $this->horarios($paciente));
     }
 }

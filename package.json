@@ -11,6 +11,7 @@
         "lucide-react": "^0.462.0",
         "mammoth": "^1.13.0",
         "react": "^19.3.0",
+        "react-currency-input-field": "^4.0.14",
         "react-day-picker": "^10.0.2",
         "react-dom": "^19.3.0",
         "recharts": "^2.15.4",

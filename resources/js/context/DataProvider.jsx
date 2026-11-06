@@ -26,6 +26,7 @@ export const actions = {
   addPatient: (form, opts) => router.post("/pacientes", form, feedback("Paciente cadastrado.", opts)),
   updatePatient: (id, form, opts) => router.put(`/pacientes/${id}`, form, { ...keep, ...feedback("Cadastro atualizado.", opts) }),
   deletePatient: (id, opts) => router.delete(`/pacientes/${id}`, { ...keep, ...feedback("Cadastro excluído.", opts) }),
+  setDiaVencimento: (id, dia, opts) => router.patch(`/pacientes/${id}/vencimento`, { dia }, { ...keep, ...feedback("Dia de vencimento atualizado.", opts) }),
   updatePatientPhoto: (id, file) => router.post(`/pacientes/${id}/foto`, { foto: file }, { ...withFiles, ...feedback("Foto atualizada.") }),
 
   saveMatricula: (patientId, form, opts) => router.put(`/pacientes/${patientId}/matricula`, form, { ...keep, ...feedback("Matrícula salva.", opts) }),
@@ -54,10 +55,15 @@ export const actions = {
   removeDocument: (id, opts) => router.delete(`/documentos/${id}`, { ...keep, ...feedback("Documento removido.", opts) }),
 
   addReceivable: (entry, opts) => router.post("/cobrancas", entry, { ...keep, ...feedback("Cobrança criada.", opts) }),
+  updateReceivable: (id, entry, opts) => router.patch(`/cobrancas/${id}`, entry, { ...keep, ...feedback("Vencimento atualizado.", opts) }),
+  cancelReceivable: (id, opts) => router.delete(`/cobrancas/${id}`, { ...keep, ...feedback("Título cancelado.", opts) }),
   receiveReceivable: (id, payment, opts) => router.post(`/cobrancas/${id}/pagamento`, payment, { ...keep, ...feedback("Recebimento registrado.", opts) }),
   reopenReceivable: (id, opts) => router.delete(`/cobrancas/${id}/pagamento`, { ...keep, ...feedback("Recebimento estornado.", opts) }),
 
   addPayable: (entry, opts) => router.post("/despesas", entry, { ...keep, ...feedback("Despesa criada.", opts) }),
+  updatePayable: (id, entry, opts) => router.put(`/despesas/${id}`, entry, { ...keep, ...feedback("Conta atualizada.", opts) }),
+  cancelPayable: (id, opts) => router.delete(`/despesas/${id}`, { ...keep, ...feedback("Conta cancelada.", opts) }),
+  stopRecurrence: (id, opts) => router.delete(`/despesas/${id}/recorrencia`, { ...keep, ...feedback("Recorrência encerrada.", opts) }),
   payPayable: (id, payment, opts) => router.post(`/despesas/${id}/pagamento`, payment, { ...keep, ...feedback("Pagamento registrado.", opts) }),
   reopenPayable: (id, opts) => router.delete(`/despesas/${id}/pagamento`, { ...keep, ...feedback("Pagamento estornado.", opts) }),
 
