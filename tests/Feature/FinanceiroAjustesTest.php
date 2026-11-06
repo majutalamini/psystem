@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\CriarCobranca;
 use App\Models\Cobranca;
 use App\Models\Despesa;
 use App\Models\DespesaRecorrente;
@@ -15,7 +16,7 @@ class FinanceiroAjustesTest extends ConsultorioTestCase
 {
     private function cobranca(array $dados = []): Cobranca
     {
-        return Cobranca::create([
+        return CriarCobranca::executar([
             'paciente_id' => $this->paciente()->id,
             'titulo' => 'Sessão avulsa',
             'valor' => 100,
@@ -74,7 +75,8 @@ class FinanceiroAjustesTest extends ConsultorioTestCase
         $this->delete("/cobrancas/{$cobranca->id}")->assertSessionHasErrors('cobranca');
         $this->assertSame('pendente', $cobranca->fresh()->situacao);
 
-        $this->delete("/cobrancas/{$cobranca->id}/pagamento");
+        $pagamento = $cobranca->pagamentos()->sole();
+        $this->post("/cobrancas/{$cobranca->id}/pagamentos/{$pagamento->id}/estorno", ['motivo' => 'Correção do teste'])->assertSessionHasNoErrors();
         $this->delete("/cobrancas/{$cobranca->id}")->assertSessionHasNoErrors();
         $this->assertSame('cancelado', $cobranca->fresh()->situacao);
     }

@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { router } from "@inertiajs/react";
 import { Check, FileText, FileUp, HeartPulse, Upload } from "lucide-react";
-import { Card, ErrorText, FormField, PageHeader, PrimaryButton } from "../../components/ui";
+import { Card, ErrorText, FormField, PageHeader, PrimaryButton, PatientSelect } from "../../components/ui";
 import { useAppData } from "../../hooks/useAppData";
 import { inputStyle } from "../../styles/formStyles";
 import { FONT_DISPLAY, T } from "../../styles/theme";
@@ -16,11 +16,12 @@ const labelStyle = { fontSize: 13.5, fontWeight: 600, color: T.muted };
 
 /* A leitura do .docx acontece no navegador. Só depois de o usuário conferir o texto é que ele é gravado,
    pelas mesmas rotas de prontuário, anamnese e documentos usadas no restante do sistema. */
-export default function Importacoes({ secoes }) {
-  const { patients, saveRecord, saveAnamnese, addDocument, errors = {} } = useAppData();
+export default function Importacoes({ secoes, historico = [] }) {
+  const { saveRecord, saveAnamnese, addDocument, errors = {} } = useAppData();
   const params = new URLSearchParams(window.location.search);
   const [tipo, setTipo] = useState(params.get("tipo") === "anamnese" ? "anamnese" : "prontuario");
-  const [patientId, setPatientId] = useState(() => Number(params.get("paciente")) || (patients[0] ? patients[0].id : ""));
+  const [patientId, setPatientId] = useState(() => Number(params.get("paciente")) || "");
+  const [paciente, setPaciente] = useState(null);
   const [arquivo, setArquivo] = useState(null);
   const [lendo, setLendo] = useState(false);
   const [erroLeitura, setErroLeitura] = useState("");
@@ -28,10 +29,8 @@ export default function Importacoes({ secoes }) {
   const [leitura, setLeitura] = useState(null);     // anamnese lida: { respostas, sobras }
   const [anexar, setAnexar] = useState(true);
   const [salvando, setSalvando] = useState(false);
-  const [feitas, setFeitas] = useState([]);
   const fileRef = useRef(null);
 
-  const paciente = patients.find((p) => p.id === Number(patientId));
   const perguntas = secoes.flatMap((s) => s.fields.map((f) => ({ ...f, secao: s.title })));
 
   function limpar() {
@@ -64,7 +63,7 @@ export default function Importacoes({ secoes }) {
   }
 
   function concluir(resumo) {
-    setFeitas((f) => [{ ...resumo, paciente, hora: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) }, ...f]);
+    router.post("/importacoes", { patientId: Number(patientId), tipo: resumo.tipo, arquivo: resumo.arquivo, anexado: anexar && !resumo.semAnexo }, { preserveScroll: true, preserveState: true });
     setSalvando(false);
     limpar();
   }
@@ -124,10 +123,7 @@ export default function Importacoes({ secoes }) {
         <div style={{ fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: 600, color: T.text, marginBottom: 16 }}>1. Paciente e arquivo</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "0 20px", alignItems: "start" }}>
           <div>
-            <label style={labelStyle}>De quem é {tipo === "prontuario" ? "o prontuário" : "a anamnese"}?</label>
-            <select value={patientId} onChange={(e) => setPatientId(Number(e.target.value))} style={inputStyle}>
-              {patients.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            <PatientSelect label={`De quem é ${tipo === "prontuario" ? "o prontuário" : "a anamnese"}?`} value={patientId} onChange={(id, patient) => { setPatientId(id); setPaciente(patient); }} />
             {tipo === "anamnese" && (
               <div style={{ fontSize: 13, color: T.muted, marginTop: -6 }}>
                 Vira uma <strong style={{ color: T.text }}>nova</strong> anamnese; as que o paciente já tem não mudam.
@@ -220,33 +216,31 @@ export default function Importacoes({ secoes }) {
         </Card>
       )}
 
-      {/* Importados nesta sessão */}
-      {feitas.length > 0 && (
+      {/* Histórico gravado no servidor */}
+      {historico.length > 0 && (
         <Card style={{ padding: 0, overflow: "hidden" }}>
           <div style={{ padding: "14px 20px", borderBottom: `1px solid ${T.border}`, fontSize: 13, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4 }}>
-            Importado agora
+            Histórico de importações
           </div>
-          {feitas.map((f, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 20px", borderTop: i > 0 ? `1px solid ${T.border}` : "none", flexWrap: "wrap" }}>
+          {historico.map((f, i) => (
+            <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 20px", borderTop: i > 0 ? `1px solid ${T.border}` : "none", flexWrap: "wrap" }}>
               <div style={{ width: 38, height: 38, borderRadius: 10, background: T.successTint, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Check size={19} color={T.success} />
               </div>
               <div style={{ flex: 1, minWidth: 200 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>
-                  {f.tipo === "prontuario" ? "Prontuário" : "Anamnese"} de {f.paciente ? f.paciente.name : "paciente"}
+                  {f.tipo === "prontuario" ? "Prontuário" : "Anamnese"} de {f.paciente}
                 </div>
                 <div style={{ fontSize: 12.5, color: T.muted }}>
-                  {f.arquivo} · {f.hora}{f.semAnexo ? " · o arquivo original não pôde ser anexado" : ""}
+                  {f.arquivo} · {f.quando}{f.anexado ? "" : " · arquivo original não anexado"}
                 </div>
               </div>
-              {f.paciente && (
                 <button
-                  onClick={() => router.visit(`/pacientes/${f.paciente.id}?aba=${f.tipo}`)}
+                  onClick={() => router.visit(`/pacientes/${f.patientId}?aba=${f.tipo}`)}
                   style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 10, border: `1px solid ${T.border}`, background: T.surface, color: T.primary, fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}
                 >
                   <FileUp size={16} /> Ver no perfil
                 </button>
-              )}
             </div>
           ))}
         </Card>

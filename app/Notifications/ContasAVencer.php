@@ -2,16 +2,28 @@
 
 namespace App\Notifications;
 
+use App\Models\Cobranca;
+use App\Models\Despesa;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
 
 /** Resumo das contas a pagar e cobranças que vencem nos próximos dias. */
-class ContasAVencer extends Notification
+class ContasAVencer extends Notification implements ShouldQueue
 {
+    use Queueable;
+
+    // Etapa 4: e-mail na fila do PostgreSQL, com tentativas limitadas; falha de SMTP não trava quem disparou.
+    public int $tries = 3;
+
+    /** @var list<int> */
+    public array $backoff = [60, 300];
+
     /**
-     * @param  Collection<\App\Models\Despesa>  $despesas
-     * @param  Collection<\App\Models\Cobranca>  $cobrancas
+     * @param  Collection<Despesa>  $despesas
+     * @param  Collection<Cobranca>  $cobrancas
      */
     public function __construct(public Collection $despesas, public Collection $cobrancas, public int $dias) {}
 
@@ -33,7 +45,7 @@ class ContasAVencer extends Notification
         if ($this->despesas->isNotEmpty()) {
             $mensagem->line('**Contas a pagar do consultório**');
             foreach ($this->despesas as $d) {
-                $mensagem->line("• {$d->descricao} — {$reais($d->valor)} — {$quando($d->vencimento)}");
+                $mensagem->line("• {$d->descricao} — falta {$reais($d->saldo())} — {$quando($d->vencimento)}");
             }
         }
 

@@ -1,6 +1,5 @@
-import { useMemo } from "react";
+import { lazy, useMemo } from "react";
 import { BarChart3, CalendarClock, ChevronRight, CircleDollarSign, Clock, FileSignature, Plus, Star, TrendingDown, TrendingUp, Users, Users2 } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card, MiniStat, PageHeader, StatCard } from "../../components/ui";
 import { useAppData } from "../../hooks/useAppData";
 import { T } from "../../styles/theme";
@@ -11,7 +10,9 @@ import PendenciasFinanceirasCard from "./components/PendenciasFinanceirasCard";
 import QuickActionButton from "./components/QuickActionButton";
 import WeekOverviewCard from "./components/WeekOverviewCard";
 import { formatMoney } from "../../utils/format";
+import AsyncArea from "../../components/ui/AsyncArea";
 
+const DashboardChart = lazy(() => import("./components/DashboardChart"));
 const STATUS_COLORS = [T.primary, T.track];
 
 const brl = (v) => formatMoney(v);
@@ -22,8 +23,8 @@ function saudacao(nome) {
   return /^dra?\.?$/i.test(partes[0]) ? partes.slice(0, 2).join(" ") : partes[0];
 }
 
-export default function Dashboard({ stats, goals, todayAppointments, weekOverview, weekLabel, revenueData, sessionsPerMonth, pendencias, pendenciasTotal }) {
-  const { patients, auth } = useAppData();
+export default function Dashboard({ stats, goals, patientStats, todayAppointments, weekOverview, weekLabel, revenueData, sessionsPerMonth, pendencias, pendenciasTotal }) {
+  const { auth } = useAppData();
   // revenueData vem em milhares de reais (value: 8.2 = R$ 8.200), um item por mês dos últimos seis.
   const financeStats = useMemo(() => {
     const total = revenueData.reduce((s, d) => s + d.value, 0);
@@ -37,8 +38,8 @@ export default function Dashboard({ stats, goals, todayAppointments, weekOvervie
   const hoje = TODAY.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
 
   const statusData = [
-    { name: "Ativos", value: patients.filter((p) => p.status === "Ativo").length },
-    { name: "Inativos", value: patients.filter((p) => p.status === "Inativo").length },
+    { name: "Ativos", value: patientStats.active },
+    { name: "Inativos", value: patientStats.inactive },
   ];
 
   return (
@@ -125,23 +126,7 @@ export default function Dashboard({ stats, goals, todayAppointments, weekOvervie
             Resumo financeiro do mês
           </div>
           <div style={{ padding: "20px 20px 6px" }}>
-            <ResponsiveContainer width="100%" height={210}>
-              <BarChart data={revenueData} margin={{ top: 10, right: 4, left: -18, bottom: 0 }}>
-                <CartesianGrid vertical={false} stroke={T.border} />
-                <XAxis dataKey="month" tick={{ fontSize: 12, fill: T.muted }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: T.muted }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  cursor={{ fill: "rgba(76,111,255,0.06)" }}
-                  formatter={(v) => [`R$${v.toFixed(1)}k`, "Faturamento"]}
-                  contentStyle={{ borderRadius: 10, border: `1px solid ${T.border}`, fontSize: 13 }}
-                />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                  {revenueData.map((d, i) => (
-                    <Cell key={i} fill={d.current ? T.primary : T.primaryTint} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <AsyncArea height={210}><DashboardChart kind="revenue" revenueData={revenueData} /></AsyncArea>
           </div>
 
           <div style={{ padding: "4px 20px 20px" }}>
@@ -175,27 +160,12 @@ export default function Dashboard({ stats, goals, todayAppointments, weekOvervie
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
         <Card style={{ padding: 20 }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: T.text, marginBottom: 6 }}>Sessões por mês</div>
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={sessionsPerMonth} margin={{ top: 10, right: 10, left: -18, bottom: 0 }}>
-              <CartesianGrid vertical={false} stroke={T.border} />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: T.muted }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: T.muted }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ borderRadius: 10, border: `1px solid ${T.border}`, fontSize: 13 }} />
-              <Line type="monotone" dataKey="sessoes" stroke={T.primary} strokeWidth={3} dot={{ r: 4, fill: T.primary }} />
-            </LineChart>
-          </ResponsiveContainer>
+          <AsyncArea height={220}><DashboardChart kind="sessions" sessionsPerMonth={sessionsPerMonth} /></AsyncArea>
         </Card>
 
         <Card style={{ padding: 20 }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: T.text, marginBottom: 6 }}>Pacientes ativos vs. inativos</div>
-          <ResponsiveContainer width="100%" height={175}>
-            <PieChart>
-              <Pie data={statusData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={80} paddingAngle={3}>
-                {statusData.map((d, i) => <Cell key={i} fill={STATUS_COLORS[i]} />)}
-              </Pie>
-              <Tooltip contentStyle={{ borderRadius: 10, border: `1px solid ${T.border}`, fontSize: 13 }} />
-            </PieChart>
-          </ResponsiveContainer>
+          <AsyncArea height={175}><DashboardChart kind="status" statusData={statusData} /></AsyncArea>
           <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 6 }}>
             {statusData.map((d, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.muted }}>

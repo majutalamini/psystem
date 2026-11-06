@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Configuracao;
 use App\Models\Matricula;
+use App\Queries\PacientesDaPagina;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -19,6 +20,7 @@ class ConfiguracaoController extends Controller
         return Inertia::render('Configuracoes/Configuracoes', [
             'goals' => $config->metas(),
             'horario' => $config->horario(),
+            'enrollmentReservations' => fn () => PacientesDaPagina::reservas(),
         ]);
     }
 
@@ -42,6 +44,7 @@ class ConfiguracaoController extends Controller
             'horario.intervalo' => 'nullable|integer|min:0|max:120',
             'horario.almocoInicio' => 'nullable|required_with:horario.almocoFim|date_format:H:i|after:horario.inicio',
             'horario.almocoFim' => 'nullable|required_with:horario.almocoInicio|date_format:H:i|after:horario.almocoInicio|before:horario.fim',
+            'horario.simultaneas' => 'nullable|integer|min:1|max:50',
             'goals.faturamentoMensal' => 'required|numeric|min:0',
             'goals.horasSemanais' => 'required|integer|min:0',
             'goals.sessoesSemanais' => 'required|integer|min:0',
@@ -49,8 +52,20 @@ class ConfiguracaoController extends Controller
         ], [
             'perfil.crp.unique' => 'Já existe uma psicóloga cadastrada com este CRP.',
             'perfil.email.unique' => 'Já existe uma psicóloga cadastrada com este e-mail.',
+            'horario.*.date_format' => 'Informe um horário válido no formato HH:MM (entre 00:00 e 23:59).',
+            'horario.fim.after' => 'O término do expediente precisa ser depois do início.',
+            'horario.almocoInicio.after' => 'O início da pausa precisa ser depois do início do expediente.',
+            'horario.almocoFim.after' => 'O término da pausa precisa ser depois do início da pausa.',
+            'horario.almocoFim.before' => 'O término da pausa precisa ser antes do término do expediente.',
+            'horario.almocoInicio.required_with' => 'Preencha o início da pausa, ou deixe os dois horários da pausa em branco.',
+            'horario.almocoFim.required_with' => 'Preencha o término da pausa, ou deixe os dois horários da pausa em branco.',
         ], [
-            'senha.atual' => 'senha atual', 'senha.nova' => 'nova senha', 'horario.fim' => 'término do expediente',
+            'senha.atual' => 'senha atual', 'senha.nova' => 'nova senha',
+            'horario.inicio' => 'início do expediente', 'horario.fim' => 'término do expediente',
+            'horario.duracao' => 'duração da sessão', 'horario.intervalo' => 'intervalo entre sessões',
+            'horario.almocoInicio' => 'início da pausa', 'horario.almocoFim' => 'término da pausa',
+            'horario.dias' => 'dias de atendimento',
+            'horario.simultaneas' => 'consultas simultâneas por horário',
         ]);
 
         $this->conferirMatriculas($dados['horario']);
@@ -70,6 +85,8 @@ class ConfiguracaoController extends Controller
             'intervalo_sessao' => (int) ($dados['horario']['intervalo'] ?? 0),
             'almoco_inicio' => ($dados['horario']['almocoInicio'] ?? null) ?: null,
             'almoco_fim' => ($dados['horario']['almocoFim'] ?? null) ?: null,
+            // Vazio = sem limite. Baixar o limite não desfaz consultas que já existem; vale para as próximas.
+            'consultas_simultaneas' => $dados['horario']['simultaneas'] ?? null,
             'meta_faturamento_mensal' => $dados['goals']['faturamentoMensal'],
             'meta_horas_semanais' => $dados['goals']['horasSemanais'],
             'meta_sessoes_semanais' => $dados['goals']['sessoesSemanais'],
@@ -132,13 +149,13 @@ class ConfiguracaoController extends Controller
 
     public function foto(Request $request)
     {
-        $request->validate(['foto' => 'required|image|max:4096']);
+        $request->validate(['foto' => FotoController::REGRA_UPLOAD], [], ['foto' => 'foto']);
         $psicologo = $request->user();
 
         if ($psicologo->foto) {
-            Storage::disk('public')->delete($psicologo->foto);
+            Storage::delete($psicologo->foto);
         }
-        $psicologo->update(['foto' => $request->file('foto')->store('fotos', 'public')]);
+        $psicologo->update(['foto' => $request->file('foto')->store('fotos/psicologos')]);
 
         return back();
     }

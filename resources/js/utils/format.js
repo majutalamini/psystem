@@ -84,6 +84,16 @@ export function isValidCpf(v) {
   return true;
 }
 
+/* Máscara HH:MM enquanto digita (só números). */
+export function maskTime(v) {
+  return onlyDigits(v).slice(0, 4).replace(/^(\d{2})(\d)/, "$1:$2");
+}
+
+/* "HH:MM" entre 00:00 e 23:59. */
+export function isValidTime(v) {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(v || "");
+}
+
 /* Máscara dd/mm/aaaa enquanto digita. */
 export function maskDate(v) {
   const d = onlyDigits(v).slice(0, 8);

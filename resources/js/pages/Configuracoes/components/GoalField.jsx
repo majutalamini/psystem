@@ -1,13 +1,15 @@
+import { useId } from "react";
 import { MoneyInput } from "../../../components/ui";
 import { T } from "../../../styles/theme";
 import { settingsInputStyle, settingsLabelStyle } from "./settingsStyles";
 
 /* money: valor em reais (aceita centavos); sem ele, só números inteiros. */
 export default function GoalField({ label, value, onChange, prefix, suffix, error, money }) {
+  const id = useId();
   const style = { ...settingsInputStyle, paddingLeft: prefix && !money ? 40 : 15, paddingRight: suffix ? 64 : 15, ...(error ? { borderColor: T.danger } : {}) };
   return (
     <div style={{ marginBottom: 18 }}>
-      <label style={settingsLabelStyle}>{label}</label>
+      <label htmlFor={money ? undefined : id} style={settingsLabelStyle}>{label}</label>
       <div style={{ position: "relative" }}>
         {prefix && !money && (
           <span style={{ position: "absolute", left: 15, top: "50%", transform: "translateY(-50%)", fontSize: 15.5, fontWeight: 600, color: T.muted }}>{prefix}</span>
@@ -16,8 +18,10 @@ export default function GoalField({ label, value, onChange, prefix, suffix, erro
           <MoneyInput value={value} onChange={onChange} style={style} />
         ) : (
           <input
+            id={id}
             type="text"
             inputMode="numeric"
+            aria-invalid={error ? true : undefined}
             value={value ?? ""}
             onChange={(e) => {
               const digitos = e.target.value.replace(/\D/g, "");

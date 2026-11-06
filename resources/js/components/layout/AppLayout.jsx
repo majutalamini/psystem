@@ -14,11 +14,11 @@ export default function AppLayout({ children }) {
           <Header />
           <div style={{ flex: 1, minWidth: 0, display: "flex", overflow: "hidden" }}>
             <Sidebar />
-            <div style={{ flex: 1, minWidth: 0, overflowY: "auto" }}>
+            <main style={{ flex: 1, minWidth: 0, overflowY: "auto" }}>
               <div style={{ padding: "20px 32px 48px" }}>
                 {children}
               </div>
-            </div>
+            </main>
           </div>
         </div>
       </div>

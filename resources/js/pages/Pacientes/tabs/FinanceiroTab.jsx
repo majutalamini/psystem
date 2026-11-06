@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Ban, Banknote, CalendarClock, Clock, Plus, SlidersHorizontal, TrendingUp, Undo2, X } from "lucide-react";
+import { Banknote, Clock, History, Plus, SlidersHorizontal, TrendingUp, X, XCircle, Ban, CalendarClock } from "lucide-react";
 import EditDueDateModal from "../../../components/financeiro/EditDueDateModal";
 import NewReceivableModal from "../../../components/financeiro/NewReceivableModal";
+import PaymentsModal from "../../../components/financeiro/PaymentsModal";
 import ReceivePaymentModal from "../../../components/financeiro/ReceivePaymentModal";
 import { Card, Pill, PrimaryButton, RowMenu, StatCard } from "../../../components/ui";
 import { SITUACOES } from "../../../data/finance";
@@ -15,9 +16,20 @@ import { inputStyle } from "../../../styles/formStyles";
 import { maskDate, formatMoney } from "../../../utils/format";
 
 export default function FinanceiroTab({ patient, receivables }) {
-  const { addReceivable, receiveReceivable, reopenReceivable, updateReceivable, cancelReceivable, setDiaVencimento } = useAppData();
+  const { addReceivable, receiveReceivable, reverseReceivablePayment, cancelReceivable, updateReceivable, setDiaVencimento } = useAppData();
+  async function cancelar(r) {
+    const ok = await confirmar({
+      titulo: "Cancelar este lançamento?",
+      texto: `"${r.referencia}" (R$ ${formatMoney(r.valor)}, vence ${r.vencimento}) sai do financeiro. Essa ação não pode ser desfeita.`,
+      confirmar: "Cancelar lançamento",
+      perigo: true,
+    });
+    if (ok) cancelReceivable(r.id);
+  }
+
   const [showModal, setShowModal] = useState(false);
   const [receiving, setReceiving] = useState(null);   // lançamento em baixa
+  const [historicoId, setHistoricoId] = useState(null); // pagamentos de um lançamento
   const [editingDue, setEditingDue] = useState(null); // título com vencimento em ajuste
 
   async function cancelarTitulo(r) {
@@ -30,6 +42,7 @@ export default function FinanceiroTab({ patient, receivables }) {
     if (ok) cancelReceivable(r.id);
   }
   const mine = receivables;
+  const historico = historicoId && mine.find((r) => r.id === historicoId);
   const totalPago = mine.reduce((s, r) => s + (r.recebido || 0), 0);
   const totalAberto = mine.reduce((s, r) => s + r.saldo, 0);
 
@@ -174,14 +187,13 @@ export default function FinanceiroTab({ patient, receivables }) {
                           ...(r.status !== "Pago" ? [
                             { label: "Registrar recebimento", icon: Banknote, onClick: () => setReceiving(r) },
                           ] : []),
-                          ...(r.status !== "Pago" ? [
-                              { label: "Alterar vencimento", icon: CalendarClock, onClick: () => setEditingDue(r) },
-                            ] : []),
-                            ...(r.status !== "Pago" && r.recebido == null ? [
-                              { label: "Cancelar título", icon: Ban, tone: "danger", onClick: () => cancelarTitulo(r) },
-                            ] : []),
-                            ...(r.recebido != null ? [
-                            { label: "Estornar último recebimento", icon: Undo2, tone: "danger", onClick: () => reopenReceivable(r.id) },
+                          ...(r.pagamentos?.length ? [
+                            { label: "Pagamentos e estornos", icon: History, onClick: () => setHistoricoId(r.id) },
+                          ] : []),
+                          ...(r.status !== "Pago" ? [{ label: "Alterar vencimento", icon: CalendarClock, onClick: () => setEditingDue(r) }] : []),
+                          ...(r.recebido == null && r.status !== "Pago" ? [
+                            { label: "Cancelar lançamento", icon: XCircle, tone: "danger", onClick: () => cancelar(r) },
+
                           ] : []),
                         ]}
                       />
@@ -221,6 +233,16 @@ export default function FinanceiroTab({ patient, receivables }) {
           vencimento={receiving.vencimento}
           onClose={() => setReceiving(null)}
           onConfirm={(payment) => receiveReceivable(receiving.id, payment, { onSuccess: () => setReceiving(null) })}
+        />
+      )}
+
+      {historico && (
+        <PaymentsModal
+          title={historico.referencia}
+          subtitle={historico.paciente}
+          pagamentos={historico.pagamentos}
+          onClose={() => setHistoricoId(null)}
+          onReverse={(pagamentoId, motivo) => reverseReceivablePayment(historico.id, pagamentoId, motivo)}
         />
       )}
 

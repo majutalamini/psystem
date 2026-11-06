@@ -16,8 +16,11 @@ class Prontuario extends Model
 
     protected $fillable = [
         'paciente_id', 'psicologo_id', 'agenda_id', 'data_atendimento',
-        'tecnicas', 'objetivo', 'observacoes_consulta',
+        'tecnicas', 'objetivo', 'observacoes_consulta', 'versao',
     ];
+
+    /** Todo registro nasce na versão 1; cada edição soma 1 (ver EdicaoClinica). */
+    protected $attributes = ['versao' => 1];
 
     protected function casts(): array
     {
@@ -39,6 +42,7 @@ class Prontuario extends Model
             'tecnicas' => $this->tecnicas,
             'objetivo' => $this->objetivo,
             'descricao' => $this->observacoes_consulta,
+            'versao' => $this->versao,
         ];
     }
 

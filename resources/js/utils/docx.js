@@ -1,8 +1,8 @@
-import mammoth from "mammoth/mammoth.browser";
 import { todayLabel } from "./date";
 
 /* Texto simples de um arquivo .docx (lido no navegador; nada é enviado antes de o usuário confirmar). */
 export async function lerDocx(file) {
+  const { default: mammoth } = await import("mammoth/mammoth.browser");
   const arrayBuffer = await file.arrayBuffer();
   const { value } = await mammoth.extractRawText({ arrayBuffer });
   return value.replace(/\r/g, "").replace(/\n{3,}/g, "\n\n").trim();

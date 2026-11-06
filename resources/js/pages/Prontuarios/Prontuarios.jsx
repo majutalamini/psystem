@@ -4,26 +4,31 @@ import { ClipboardList, Plus } from "lucide-react";
 import { blankRecordForm } from "../../components/prontuario/blankRecordForm";
 import RecordCard from "../../components/prontuario/RecordCard";
 import RecordForm from "../../components/prontuario/RecordForm";
-import { Avatar, Card, PageHeader, Pill, PrimaryButton, SearchInput } from "../../components/ui";
+import { Avatar, Card, PageHeader, Pagination, Pill, PrimaryButton, SearchInput } from "../../components/ui";
 import { useAppData } from "../../hooks/useAppData";
 import { T } from "../../styles/theme";
 import { confirmar } from "../../utils/alertas";
 import { imprimirProntuario } from "../../utils/imprimir";
 
 /* O servidor manda os registros só do paciente selecionado (?paciente=id) e a contagem de todos. */
-export default function Prontuarios({ selectedId, records, recordCounts }) {
-  const { auth, patients, saveRecord, deleteRecord } = useAppData();
-  const [query, setQuery] = useState("");
+export default function Prontuarios({ selectedId, selectedPatient, patientDirectory, records, recordCounts }) {
+  const { auth, saveRecord, deleteRecord } = useAppData();
+  const [query, setQuery] = useState(patientDirectory.q);
   const [editingId, setEditingId] = useState(null); // null | "new" | entry id
 
   const selected = selectedId;
-  const active = patients.find((p) => p.id === selected);
-  const filtered = patients.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()));
+  const active = selectedPatient;
+  const filtered = patientDirectory.patients;
   const history = records;
+
+  function visitDirectory(text, page) {
+    router.get("/prontuarios", { paciente: selectedId, q: text, page }, { preserveState: true, preserveScroll: true, replace: true });
+  }
+  function searchPatients(text) { setQuery(text); visitDirectory(text, 1); }
 
   function selectPatient(id) {
     setEditingId(null);
-    router.get("/prontuarios", { paciente: id }, { preserveState: true, preserveScroll: true });
+    router.get("/prontuarios", { paciente: id, q: query, page: patientDirectory.pagination.page }, { preserveState: true, preserveScroll: true });
   }
 
   async function excluir(entry) {
@@ -64,7 +69,7 @@ export default function Prontuarios({ selectedId, records, recordCounts }) {
       <div style={{ display: "grid", gridTemplateColumns: "340px 1fr", gap: 26, alignItems: "start" }}>
         <Card style={{ padding: 16, position: "sticky", top: 0 }}>
           <div style={{ padding: "2px 4px 14px" }}>
-            <SearchInput value={query} onChange={setQuery} placeholder="Buscar paciente..." />
+            <SearchInput value={query} onChange={searchPatients} placeholder="Buscar paciente..." />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: "calc(100vh - 320px)", minHeight: 280, overflowY: "auto" }}>
             {filtered.map((p) => (
@@ -86,6 +91,7 @@ export default function Prontuarios({ selectedId, records, recordCounts }) {
               </button>
             ))}
           </div>
+          <Pagination pagination={patientDirectory.pagination} onPage={number => visitDirectory(query, number)} label="pacientes" />
         </Card>
 
         <div>

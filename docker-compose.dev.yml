@@ -1,0 +1,17 @@
+services:
+  app:
+    volumes:
+      - .:/var/www
+      - verificar-vendor:/var/www/vendor
+      - ./docker/php/development.ini:/usr/local/etc/php/conf.d/zz-development.ini:ro
+  web:
+    volumes:
+      - .:/var/www:ro
+  scheduler:
+    volumes:
+      - .:/var/www
+      - verificar-vendor:/var/www/vendor
+      - ./docker/php/development.ini:/usr/local/etc/php/conf.d/zz-development.ini:ro
+  db:
+    ports:
+      - '127.0.0.1:5433:5432'

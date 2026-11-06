@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\CriarPaciente;
 use App\Models\Configuracao;
 use App\Models\Consulta;
 use App\Models\Matricula;
@@ -42,7 +43,7 @@ abstract class ConsultorioTestCase extends TestCase
     {
         static $cpf = 10000000000;
 
-        return Paciente::create([
+        return CriarPaciente::executar([
             'nome' => 'Paciente Teste',
             'cpf' => (string) $cpf++,
             'telefone' => '(48) 99999-0000',
@@ -71,6 +72,12 @@ abstract class ConsultorioTestCase extends TestCase
             'tipo' => 'Consulta presencial',
             'valor' => $valor,
         ]);
+    }
+
+    /** Limite de consultas simultâneas por horário (null = sem limite, o padrão da instalação). */
+    protected function limitar(?int $consultas): void
+    {
+        Configuracao::atual()->update(['consultas_simultaneas' => $consultas]);
     }
 
     /** Datas e horas das consultas do paciente, em ordem, no formato "AAAA-MM-DD HH:MM". */

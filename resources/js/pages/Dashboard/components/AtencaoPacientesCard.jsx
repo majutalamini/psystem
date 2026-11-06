@@ -5,16 +5,17 @@ import { T } from "../../../styles/theme";
 import { navigate } from "../../../utils/nav";
 
 export default function AtencaoPacientesCard() {
-  const { patients } = useAppData();
-  const attention = patients
-    .filter((p) => p.status === "Inativo")
+  const { attentionPatients, attentionTotal } = useAppData();
+  // O servidor manda só os inativos mais recentes; o total vem à parte.
+  const attention = attentionPatients
     .map((p) => ({ ...p, reason: "Inativo — sem sessões recentes" }));
+  const total = attentionTotal ?? attention.length;
 
   return (
     <Card style={{ padding: 0, overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderBottom: `1px solid ${T.border}` }}>
         <span style={{ fontWeight: 700, fontSize: 15, color: T.text }}>Pacientes que precisam de atenção</span>
-        <Pill tone="warn">{attention.length}</Pill>
+        <Pill tone="warn">{total}</Pill>
       </div>
       {attention.length === 0 ? (
         <div style={{ padding: 24, textAlign: "center", fontSize: 13, color: T.muted }}>Nenhum paciente pendente de retorno.</div>
@@ -38,8 +39,8 @@ export default function AtencaoPacientesCard() {
         </div>
       )}
       <div style={{ padding: "12px 20px" }}>
-        <button onClick={() => navigate("pacientes")} style={{ background: "none", border: "none", color: T.primary, fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, padding: 0 }}>
-          Ver todos os pacientes <ChevronRight size={16} />
+        <button onClick={() => navigate("pacientes", total > attention.length ? { situacao: "Inativo" } : undefined)} style={{ background: "none", border: "none", color: T.primary, fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, padding: 0 }}>
+          {total > attention.length ? `Ver os ${total} pacientes inativos` : "Ver todos os pacientes"} <ChevronRight size={16} />
         </button>
       </div>
     </Card>

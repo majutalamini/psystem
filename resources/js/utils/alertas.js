@@ -43,6 +43,26 @@ export async function confirmar({ titulo, texto, confirmar: rotulo = "Confirmar"
   return isConfirmed;
 }
 
+/* Confirmação que exige um texto (ex.: motivo do estorno). Devolve o texto ou null se cancelar. */
+export async function pedirTexto({ titulo, texto, rotulo, confirmar: botao = "Confirmar", maximo = 200 }) {
+  const { isConfirmed, value } = await Swal.fire({
+    ...base,
+    icon: "warning",
+    title: titulo,
+    text: texto,
+    input: "text",
+    inputLabel: rotulo,
+    inputAttributes: { maxlength: String(maximo) },
+    showCancelButton: true,
+    confirmButtonText: botao,
+    cancelButtonText: "Cancelar",
+    confirmButtonColor: T.danger,
+    reverseButtons: true,
+    inputValidator: (v) => (!v || !v.trim() ? `Informe o ${rotulo.toLowerCase()}.` : undefined),
+  });
+  return isConfirmed ? value.trim() : null;
+}
+
 const MENSAGENS_HTTP = {
   403: "Você não tem permissão para fazer isso.",
   404: "Não encontramos o que você procurava.",

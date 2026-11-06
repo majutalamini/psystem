@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\EdicaoClinica;
 use App\Models\Paciente;
 use App\Models\Prontuario;
+use App\Models\RegistroAcao;
+use App\Queries\PacientesDaPagina;
 use App\Support\Tela;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -16,8 +19,10 @@ class ProntuarioController extends Controller
 
         return Inertia::render('Prontuarios/Prontuarios', [
             'selectedId' => $selecionado,
-            'records' => $selecionado ? Prontuario::listaDoPaciente($selecionado) : [],
-            'recordCounts' => Prontuario::selectRaw('paciente_id, count(*) as total')
+            'patientDirectory' => fn () => PacientesDaPagina::indiceClinico($request),
+            'selectedPatient' => fn () => $selecionado ? PacientesDaPagina::perfil($selecionado) : null,
+            'records' => fn () => $selecionado ? Prontuario::listaDoPaciente($selecionado) : [],
+            'recordCounts' => fn () => Prontuario::selectRaw('paciente_id, count(*) as total')
                 ->groupBy('paciente_id')
                 ->pluck('total', 'paciente_id'),
         ]);
@@ -25,23 +30,29 @@ class ProntuarioController extends Controller
 
     public function store(Request $request, Paciente $paciente)
     {
-        $paciente->prontuarios()->create([
+        $prontuario = $paciente->prontuarios()->create([
             ...$this->validar($request),
             'psicologo_id' => $request->user()->id,
         ]);
+        RegistroAcao::registrar('prontuario.criar', $prontuario);
 
         return back();
     }
 
     public function update(Request $request, Prontuario $prontuario)
     {
-        $prontuario->update($this->validar($request));
+        $dados = $this->validar($request);
+        $versao = (int) $request->validate(['versao' => 'required|integer|min:1'])['versao'];
+
+        EdicaoClinica::executar($prontuario, $versao, 'prontuário', fn (Prontuario $atual) => $atual->fill($dados));
+        RegistroAcao::registrar('prontuario.editar', $prontuario);
 
         return back();
     }
 
     public function destroy(Prontuario $prontuario)
     {
+        RegistroAcao::registrar('prontuario.excluir', $prontuario);
         $prontuario->delete();
 
         return back();

@@ -1,0 +1,10 @@
+# Acrescentar somente para o ensaio HMR; as amostras normais usam imagens.
+services:
+  diagnostic:
+    volumes:
+      - .:/var/www
+      - verificar-vendor:/var/www/vendor
+      - ./docker/php/development.ini:/usr/local/etc/php/conf.d/zz-development.ini:ro
+  diagnostic-web:
+    volumes:
+      - .:/var/www:ro

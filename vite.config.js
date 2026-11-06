@@ -21,7 +21,12 @@ const redirectToLaravel = {
     },
 };
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+    // Build separado: o custo do React Profiler nunca entra no baseline normal.
+    resolve: ['profiling', 'component-profiling'].includes(mode) ? { alias: { 'react-dom/client': 'react-dom/profiling' } } : {},
+    define: { __PSYSTEM_PROFILING__: JSON.stringify(['profiling', 'component-profiling'].includes(mode)) },
+    // Nomes legíveis para o coletor de componentes, apenas nesta medição separada.
+    build: mode === 'component-profiling' ? { minify: false, sourcemap: true } : {},
     plugins: [
         redirectToLaravel,
         laravel({
@@ -42,4 +47,4 @@ export default defineConfig({
             ignored: ['**/storage/framework/views/**'],
         },
     },
-});
+}));

@@ -44,11 +44,13 @@ class Avisos
     {
         $ate = today()->addDays(self::DIAS_ANTES_DO_VENCIMENTO);
 
-        $despesas = Despesa::whereNull('pago_em')
+        $despesas = Despesa::with('pagamentos')
             ->whereNull('aviso_vencimento_em')
             ->whereBetween('vencimento', [today(), $ate])
             ->orderBy('vencimento')
-            ->get();
+            ->get()
+            ->filter(fn (Despesa $d) => $d->saldo() > 0)
+            ->values();
 
         $cobrancas = Cobranca::with(['paciente', 'pagamentos'])
             ->where('situacao', 'pendente')

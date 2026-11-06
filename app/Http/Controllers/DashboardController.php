@@ -7,6 +7,7 @@ use App\Models\Configuracao;
 use App\Models\Consulta;
 use App\Models\Paciente;
 use App\Models\Pagamento;
+use App\Queries\PacientesDaPagina;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 
@@ -29,18 +30,27 @@ class DashboardController extends Controller
         $ativasSemana = $consultasSemana->where('status', '!=', 'cancelado');
         $hojeConsultas = $consultasSemana->filter(fn ($c) => $c->data_hora_consulta->isSameDay($hoje));
 
-        $pagamentos = Pagamento::where('data_pagamento', '>=', $inicioSeisMeses)->get();
-        $realizadas = Consulta::where('status', 'realizado')->where('data_hora_consulta', '>=', $inicioSeisMeses)->get();
+        // Somas por mês no banco (no fuso da conexão, America/Sao_Paulo), sem carregar cada registro no PHP.
+        $receitaPorMes = Pagamento::validos()->where('data_pagamento', '>=', $inicioSeisMeses)
+            ->selectRaw("to_char(date_trunc('month', data_pagamento), 'YYYY-MM') AS mes, SUM(valor_pago) AS total")
+            ->groupBy('mes')->pluck('total', 'mes');
+        $sessoesPorMes = Consulta::where('status', 'realizado')->where('data_hora_consulta', '>=', $inicioSeisMeses)
+            ->selectRaw("to_char(date_trunc('month', data_hora_consulta), 'YYYY-MM') AS mes, COUNT(*) AS total")
+            ->groupBy('mes')->pluck('total', 'mes');
 
         $meses = collect(range(5, 0))->map(fn ($n) => $hoje->copy()->startOfMonth()->subMonths($n));
+        $patientStats = PacientesDaPagina::totais();
 
         return Inertia::render('Dashboard/Dashboard', [
+            'patientStats' => $patientStats,
+            'attentionPatients' => fn () => PacientesDaPagina::atencao(),
+            'attentionTotal' => $patientStats['inactive'],
             'stats' => [
-                'totalPacientes' => Paciente::count(),
+                'totalPacientes' => $patientStats['total'],
                 'novosNoMes' => Paciente::where('criado_em', '>=', $hoje->copy()->startOfMonth())->count(),
                 'sessoesHoje' => $hojeConsultas->where('status', '!=', 'cancelado')->count(),
                 'cancelamentosHoje' => $hojeConsultas->where('status', 'cancelado')->count(),
-                'faturamentoMes' => (float) $pagamentos->filter(fn ($p) => $p->data_pagamento->isSameMonth($hoje))->sum('valor_pago'),
+                'faturamentoMes' => (float) ($receitaPorMes[$hoje->format('Y-m')] ?? 0),
                 'horasSemana' => round($ativasSemana->sum('duracao_minutos') / 60, 1),
             ],
             'goals' => Configuracao::atual()->metas(),
@@ -57,12 +67,12 @@ class DashboardController extends Controller
             'weekLabel' => 'semana de '.$inicioSemana->format('d/m').' a '.$inicioSemana->copy()->addDays(6)->format('d/m'),
             'revenueData' => $meses->map(fn ($mes) => [
                 'month' => self::MESES[$mes->month - 1],
-                'value' => round($pagamentos->filter(fn ($p) => $p->data_pagamento->isSameMonth($mes))->sum('valor_pago') / 1000, 1),
+                'value' => round((float) ($receitaPorMes[$mes->format('Y-m')] ?? 0) / 1000, 1),
                 'current' => $mes->isSameMonth($hoje),
             ]),
             'sessionsPerMonth' => $meses->map(fn ($mes) => [
                 'month' => self::MESES[$mes->month - 1],
-                'sessoes' => $realizadas->filter(fn ($c) => $c->data_hora_consulta->isSameMonth($mes))->count(),
+                'sessoes' => (int) ($sessoesPorMes[$mes->format('Y-m')] ?? 0),
             ]),
             'pendenciasTotal' => Cobranca::where('situacao', 'pendente')->count(),
             'pendencias' => Cobranca::where('situacao', 'pendente')

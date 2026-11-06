@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\EdicaoClinica;
 use App\Models\Anamnese;
 use App\Models\AnamneseModelo;
 use App\Models\Paciente;
+use App\Models\RegistroAcao;
+use App\Queries\PacientesDaPagina;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -19,11 +22,13 @@ class AnamneseController extends Controller
 
         return Inertia::render('Anamneses/Anamneses', [
             'selectedId' => $selecionado,
-            'anamnese' => [
+            'patientDirectory' => fn () => PacientesDaPagina::indiceClinico($request),
+            'selectedPatient' => fn () => $selecionado ? PacientesDaPagina::perfil($selecionado) : null,
+            'anamnese' => fn () => [
                 'secoes' => AnamneseModelo::with('perguntas')->first()?->secoes() ?? [],
                 'lista' => $selecionado ? Anamnese::listaDoPaciente($selecionado) : [],
             ],
-            'anamneseCounts' => Anamnese::selectRaw('paciente_id, count(*) as total')
+            'anamneseCounts' => fn () => Anamnese::selectRaw('paciente_id, count(*) as total')
                 ->groupBy('paciente_id')
                 ->pluck('total', 'paciente_id'),
         ]);
@@ -37,6 +42,7 @@ class AnamneseController extends Controller
         DB::transaction(function () use ($paciente, $titulo, $respostas, $request) {
             $anamnese = $paciente->anamneses()->create(['titulo' => $titulo, 'psicologo_id' => $request->user()->id]);
             $anamnese->gravarRespostas($respostas, $request->user()->id);
+            RegistroAcao::registrar('anamnese.criar', $anamnese);
         });
 
         return back();
@@ -45,17 +51,20 @@ class AnamneseController extends Controller
     public function update(Request $request, Anamnese $anamnese)
     {
         [$titulo, $respostas] = $this->validar($request);
+        $versao = (int) $request->validate(['versao' => 'required|integer|min:1'])['versao'];
 
-        DB::transaction(function () use ($anamnese, $titulo, $respostas, $request) {
-            $anamnese->update(['titulo' => $titulo]);
-            $anamnese->gravarRespostas($respostas, $request->user()->id);
+        EdicaoClinica::executar($anamnese, $versao, 'anamnese', function (Anamnese $atual) use ($titulo, $respostas, $request) {
+            $atual->titulo = $titulo;
+            $atual->gravarRespostas($respostas, $request->user()->id);
         });
+        RegistroAcao::registrar('anamnese.editar', $anamnese);
 
         return back();
     }
 
     public function destroy(Anamnese $anamnese)
     {
+        RegistroAcao::registrar('anamnese.excluir', $anamnese);
         $anamnese->delete();
 
         return back();

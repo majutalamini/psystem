@@ -1,7 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { router, usePage } from "@inertiajs/react";
 import { erro, errosDeCampo, sucesso } from "../utils/alertas";
 import { DataContext } from "./DataContext";
+import { writeReads } from "./refreshContracts";
+import usePageRefresh from "./usePageRefresh";
+import { claimWrite } from "./pendingWrites";
 
 /* Os dados vêm do Laravel (props do Inertia) e as ações viram requisições.
    As telas continuam usando useAppData() como antes. */
@@ -22,62 +25,108 @@ const feedback = (mensagem, opts = {}) => ({
   },
 });
 
-export const actions = {
-  addPatient: (form, opts) => router.post("/pacientes", form, feedback("Paciente cadastrado.", opts)),
-  updatePatient: (id, form, opts) => router.put(`/pacientes/${id}`, form, { ...keep, ...feedback("Cadastro atualizado.", opts) }),
-  deletePatient: (id, opts) => router.delete(`/pacientes/${id}`, { ...keep, ...feedback("Cadastro excluído.", opts) }),
-  setDiaVencimento: (id, dia, opts) => router.patch(`/pacientes/${id}/vencimento`, { dia }, { ...keep, ...feedback("Dia de vencimento atualizado.", opts) }),
-  updatePatientPhoto: (id, file) => router.post(`/pacientes/${id}/foto`, { foto: file }, { ...withFiles, ...feedback("Foto atualizada.") }),
+function createActions(current) {
+  const optionsFor = (url, options = {}) => ({
+    ...options, only: [...new Set([...writeReads(current.current, url), "errors", "flash"])],
+    onSuccess: page => {
+      window.dispatchEvent(new Event("psystem:read-refresh"));
+      return options.onSuccess?.(page);
+    },
+  });
+  function send(method, url, data, options) {
+    const release = claimWrite(`${method}:${url}`);
+    if (!release) return false;
+    const original = optionsFor(url, options);
+    const guarded = { ...original,
+      onBefore: visit => { const result = original.onBefore?.(visit); if (result === false) release(); return result; },
+      onSuccess: page => { release(); return original.onSuccess?.(page); },
+      onError: errors => { release(); return original.onError?.(errors); },
+      onCancel: () => { release(); return original.onCancel?.(); },
+      onFinish: visit => { release(); return original.onFinish?.(visit); },
+      onNetworkError: error => {
+        release(); original.onNetworkError?.(error);
+        erro("Não foi possível confirmar o envio. Suas edições foram preservadas. Confira os dados antes de tentar novamente.", "Falha de conexão");
+        return false;
+      },
+      onHttpException: response => {
+        release(); original.onHttpException?.(response);
+        erro(`O servidor não confirmou esta ação (HTTP ${response.status}). Suas edições foram preservadas. Tente novamente.`, "Falha no envio");
+        return false;
+      },
+    };
+    try { return method === "delete" ? router.delete(url, guarded) : router[method](url, data, guarded); }
+    catch (error) { release(); throw error; }
+  }
+  const visits = {
+    post: (url, data, options) => send("post", url, data, options),
+    put: (url, data, options) => send("put", url, data, options),
+    patch: (url, data, options) => send("patch", url, data, options),
+    delete: (url, options) => send("delete", url, undefined, options),
+  };
+  return {
+  addPatient: (form, opts) => visits.post("/pacientes", form, feedback("Paciente cadastrado.", opts)),
+  updatePatient: (id, form, opts) => visits.put(`/pacientes/${id}`, form, { ...keep, ...feedback("Cadastro atualizado.", opts) }),
+  deletePatient: (id, opts) => visits.delete(`/pacientes/${id}`, { ...keep, ...feedback("Cadastro excluído.", opts) }),
+  inactivatePatient: (id, opts) => visits.post(`/pacientes/${id}/inativar`, {}, { ...keep, ...feedback("Paciente inativado.", opts) }),
+  updatePatientPhoto: (id, file) => visits.post(`/pacientes/${id}/foto`, { foto: file }, { ...withFiles, ...feedback("Foto atualizada.") }),
+  setDiaVencimento: (id, dia, opts) => visits.patch(`/pacientes/${id}/vencimento`, { dia }, { ...keep, ...feedback("Dia de vencimento atualizado.", opts) }),
 
-  saveMatricula: (patientId, form, opts) => router.put(`/pacientes/${patientId}/matricula`, form, { ...keep, ...feedback("Matrícula salva.", opts) }),
-  removeMatricula: (patientId, opts) => router.delete(`/pacientes/${patientId}/matricula`, { ...keep, ...feedback("Matrícula encerrada.", opts) }),
+  saveMatricula: (patientId, form, opts) => visits.put(`/pacientes/${patientId}/matricula`, form, { ...keep, ...feedback("Matrícula salva.", opts) }),
+  removeMatricula: (patientId, opts) => visits.delete(`/pacientes/${patientId}/matricula`, { ...keep, ...feedback("Matrícula encerrada.", opts) }),
   // Várias matrículas por paciente (rotas novas do backend: P13).
-  addMatricula: (patientId, form, opts) => router.post(`/pacientes/${patientId}/matriculas`, form, { ...keep, ...feedback("Matrícula criada.", opts) }),
-  updateMatricula: (id, form, opts) => router.put(`/matriculas/${id}`, form, { ...keep, ...feedback("Matrícula atualizada.", opts) }),
-  deleteMatricula: (id, opts) => router.delete(`/matriculas/${id}`, { ...keep, ...feedback("Matrícula encerrada.", opts) }),
+  addMatricula: (patientId, form, opts) => visits.post(`/pacientes/${patientId}/matriculas`, form, { ...keep, ...feedback("Matrícula criada.", opts) }),
+  updateMatricula: (id, form, opts) => visits.put(`/matriculas/${id}`, form, { ...keep, ...feedback("Matrícula atualizada.", opts) }),
+  deleteMatricula: (id, opts, dados = {}) => visits.delete(`/matriculas/${id}`, { data: dados, ...keep, ...feedback("Matrícula encerrada.", opts) }),
 
   saveRecord: (patientId, entry, opts) => (entry.id
-    ? router.put(`/prontuarios/${entry.id}`, entry, { ...keep, ...feedback("Prontuário atualizado.", opts) })
-    : router.post(`/pacientes/${patientId}/prontuarios`, entry, { ...keep, ...feedback("Prontuário salvo.", opts) })),
+    ? visits.put(`/prontuarios/${entry.id}`, entry, { ...keep, ...feedback("Prontuário atualizado.", opts) })
+    : visits.post(`/pacientes/${patientId}/prontuarios`, entry, { ...keep, ...feedback("Prontuário salvo.", opts) })),
 
-  deleteRecord: (id, opts) => router.delete(`/prontuarios/${id}`, { ...keep, ...feedback("Prontuário excluído.", opts) }),
+  deleteRecord: (id, opts) => visits.delete(`/prontuarios/${id}`, { ...keep, ...feedback("Prontuário excluído.", opts) }),
 
   // form = { id?, titulo, respostas }: com id edita aquela anamnese; sem id cria uma nova (as outras não mudam).
   saveAnamnese: (patientId, form, opts) => {
     const { id, ...dados } = form;
     return id
-      ? router.put(`/anamneses/${id}`, dados, { ...keep, ...feedback("Anamnese atualizada.", opts) })
-      : router.post(`/pacientes/${patientId}/anamneses`, dados, { ...keep, ...feedback("Anamnese salva.", opts) });
+      ? visits.put(`/anamneses/${id}`, dados, { ...keep, ...feedback("Anamnese atualizada.", opts) })
+      : visits.post(`/pacientes/${patientId}/anamneses`, dados, { ...keep, ...feedback("Anamnese salva.", opts) });
   },
-  deleteAnamnese: (id, opts) => router.delete(`/anamneses/${id}`, { ...keep, ...feedback("Anamnese excluída.", opts) }),
+  deleteAnamnese: (id, opts) => visits.delete(`/anamneses/${id}`, { ...keep, ...feedback("Anamnese excluída.", opts) }),
 
-  addDocument: (patientId, doc, opts) => router.post(`/pacientes/${patientId}/documentos`, doc, { ...withFiles, ...feedback("Documento anexado.", opts) }),
-  removeDocument: (id, opts) => router.delete(`/documentos/${id}`, { ...keep, ...feedback("Documento removido.", opts) }),
+  addDocument: (patientId, doc, opts) => visits.post(`/pacientes/${patientId}/documentos`, doc, { ...withFiles, ...feedback("Documento anexado.", opts) }),
+  removeDocument: (id, opts) => visits.delete(`/documentos/${id}`, { ...keep, ...feedback("Documento removido.", opts) }),
 
-  addReceivable: (entry, opts) => router.post("/cobrancas", entry, { ...keep, ...feedback("Cobrança criada.", opts) }),
-  updateReceivable: (id, entry, opts) => router.patch(`/cobrancas/${id}`, entry, { ...keep, ...feedback("Vencimento atualizado.", opts) }),
-  cancelReceivable: (id, opts) => router.delete(`/cobrancas/${id}`, { ...keep, ...feedback("Título cancelado.", opts) }),
-  receiveReceivable: (id, payment, opts) => router.post(`/cobrancas/${id}/pagamento`, payment, { ...keep, ...feedback("Recebimento registrado.", opts) }),
-  reopenReceivable: (id, opts) => router.delete(`/cobrancas/${id}/pagamento`, { ...keep, ...feedback("Recebimento estornado.", opts) }),
+  addReceivable: (entry, opts) => visits.post("/cobrancas", entry, { ...keep, ...feedback("Cobrança criada.", opts) }),
+  receiveReceivable: (id, payment, opts) => visits.post(`/cobrancas/${id}/pagamento`, payment, { ...keep, ...feedback("Recebimento registrado.", opts) }),
+  reverseReceivablePayment: (id, pagamentoId, motivo, opts) => visits.post(`/cobrancas/${id}/pagamentos/${pagamentoId}/estorno`, { motivo }, { ...keep, ...feedback("Recebimento estornado.", opts) }),
 
-  addPayable: (entry, opts) => router.post("/despesas", entry, { ...keep, ...feedback("Despesa criada.", opts) }),
-  updatePayable: (id, entry, opts) => router.put(`/despesas/${id}`, entry, { ...keep, ...feedback("Conta atualizada.", opts) }),
-  cancelPayable: (id, opts) => router.delete(`/despesas/${id}`, { ...keep, ...feedback("Conta cancelada.", opts) }),
-  stopRecurrence: (id, opts) => router.delete(`/despesas/${id}/recorrencia`, { ...keep, ...feedback("Recorrência encerrada.", opts) }),
-  payPayable: (id, payment, opts) => router.post(`/despesas/${id}/pagamento`, payment, { ...keep, ...feedback("Pagamento registrado.", opts) }),
-  reopenPayable: (id, opts) => router.delete(`/despesas/${id}/pagamento`, { ...keep, ...feedback("Pagamento estornado.", opts) }),
+  addPayable: (entry, opts) => visits.post("/despesas", entry, { ...keep, ...feedback("Despesa criada.", opts) }),
+  payPayable: (id, payment, opts) => visits.post(`/despesas/${id}/pagamento`, payment, { ...keep, ...feedback("Pagamento registrado.", opts) }),
+  reversePayablePayment: (id, pagamentoId, motivo, opts) => visits.post(`/despesas/${id}/pagamentos/${pagamentoId}/estorno`, { motivo }, { ...keep, ...feedback("Pagamento estornado.", opts) }),
+  cancelReceivable: (id, opts) => visits.patch(`/cobrancas/${id}/cancelar`, {}, { ...keep, ...feedback("Lançamento cancelado.", opts) }),
+  updateReceivable: (id, entry, opts) => visits.patch(`/cobrancas/${id}`, entry, { ...keep, ...feedback("Vencimento atualizado.", opts) }),
+  updatePayable: (id, entry, opts) => visits.put(`/despesas/${id}`, entry, { ...keep, ...feedback("Conta atualizada.", opts) }),
+  cancelPayable: (id, opts) => visits.delete(`/despesas/${id}`, { ...keep, ...feedback("Conta cancelada.", opts) }),
+  stopRecurrence: (id, opts) => visits.delete(`/despesas/${id}/recorrencia`, { ...keep, ...feedback("Recorrência encerrada.", opts) }),
 
-  addAppointment: (form, opts) => router.post("/agenda", form, { ...keep, ...feedback("Consulta agendada.", opts) }),
-  setAppointmentStatus: (id, status, opts) => router.patch(`/agenda/${id}/status`, { status }, { ...keep, ...feedback("Status da consulta atualizado.", opts) }),
+  addAppointment: (form, opts) => visits.post("/agenda", form, { ...keep, ...feedback("Consulta agendada.", opts) }),
+  setAppointmentStatus: (id, status, opts) => visits.patch(`/agenda/${id}/status`, { status }, { ...keep, ...feedback("Status da consulta atualizado.", opts) }),
 
-  saveSettings: (form, opts) => router.put("/configuracoes", form, { ...keep, ...opts }),
-  updateProfilePhoto: (file) => router.post("/configuracoes/foto", { foto: file }, { ...withFiles, ...feedback("Foto atualizada.") }),
+  saveSettings: (form, opts) => visits.put("/configuracoes", form, { ...keep, ...opts }),
+  updateProfilePhoto: (file) => visits.post("/configuracoes/foto", { foto: file }, { ...withFiles, ...feedback("Foto atualizada.") }),
 
-  logout: () => router.post("/logout"),
+  logout: () => visits.post("/logout"),
 };
+}
 
 export default function DataProvider({ children }) {
-  const { props } = usePage();
-  const value = useMemo(() => ({ ...props, ...actions }), [props]);
-  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
+  const page = usePage(), current = useRef(page);
+  current.current = page;
+  const actions = useMemo(() => createActions(current), []);
+  const { failure, retry } = usePageRefresh(current);
+  const value = useMemo(() => ({ ...page.props, ...actions }), [page.props, actions]);
+  return <DataContext.Provider value={value}>
+    {failure && <div role="alert" style={{ padding: 12 }}>{failure} <button type="button" onClick={retry}>Tentar atualizar</button></div>}
+    {children}
+  </DataContext.Provider>;
 }

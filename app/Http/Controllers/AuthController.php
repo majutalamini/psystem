@@ -21,7 +21,9 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        if (! Auth::attempt($credenciais, $request->boolean('remember'))) {
+        // Conta revogada não entra (mesma mensagem, para não revelar quais contas existem).
+        $ativa = fn ($query) => $query->whereNull('revogada_em');
+        if (! Auth::attempt([...$credenciais, $ativa], $request->boolean('remember'))) {
             throw ValidationException::withMessages(['email' => 'E-mail ou senha incorretos.']);
         }
 

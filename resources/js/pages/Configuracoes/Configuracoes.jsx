@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAppData } from "../../hooks/useAppData";
 import { Check, ChevronRight, Clock, ShieldCheck, Star, User } from "lucide-react";
 import { Card, PageHeader, PrimaryButton } from "../../components/ui";
@@ -8,6 +8,7 @@ import HorarioTab from "./tabs/HorarioTab";
 import MetasTab from "./tabs/MetasTab";
 import PerfilTab from "./tabs/PerfilTab";
 import SegurancaTab from "./tabs/SegurancaTab";
+import { normalizeTime } from "../../components/ui/TimeInput";
 
 /* section: a parte do formulário (e dos erros do Laravel, ex. "perfil.nome") que cada aba edita. */
 const SETTINGS_TABS = [
@@ -28,6 +29,17 @@ export default function Configuracoes({ goals, horario }) {
     horario,
     goals,
   }));
+  const serverForm = { perfil: { nome: auth.user.nome, crp: auth.user.crp, email: auth.user.email, telefone: auth.user.telefone || "" }, horario, goals };
+  const previousServer = useRef(serverForm);
+  useEffect(() => {
+    const previous = previousServer.current;
+    previousServer.current = serverForm;
+    setForm(current => ({ ...current, ...Object.fromEntries(Object.entries(serverForm).map(([section, values]) => [section,
+      Object.fromEntries(Object.entries(values).map(([key, value]) => [key,
+        JSON.stringify(current[section][key]) === JSON.stringify(previous[section][key]) ? value : current[section][key],
+      ])),
+    ])) }));
+  }, [auth.user, horario, goals]);
 
   const update = (section) => (patch) => setForm((f) => ({ ...f, [section]: { ...f[section], ...patch } }));
   // Erros da seção sem o prefixo: errors["perfil.nome"] → sectionErrors("perfil").nome
@@ -38,7 +50,9 @@ export default function Configuracoes({ goals, horario }) {
 
   function handleSave() {
     setSaving(true);
-    saveSettings(form, {
+    const normalizedHorario = { ...form.horario };
+    for (const key of ["inicio", "fim", "almocoInicio", "almocoFim"]) normalizedHorario[key] = normalizeTime(form.horario[key]) ?? form.horario[key];
+    saveSettings({ ...form, horario: normalizedHorario }, {
       onSuccess: () => setForm((f) => ({ ...f, senha: { atual: "", nova: "" } })),
       onError: (errs) => {
         const horarioErros = Object.entries(errs).filter(([k, mensagem]) => k.startsWith("horario.") && /matrícula/.test(String(mensagem)));

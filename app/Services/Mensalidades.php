@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Actions\CriarCobranca;
 use App\Models\Cobranca;
 use App\Models\Matricula;
 use App\Models\Paciente;
@@ -110,7 +111,7 @@ class Mensalidades
             return null;
         }
 
-        return Cobranca::create([
+        return CriarCobranca::executar([
             'paciente_id' => $matricula->paciente_id,
             'matricula_id' => $matricula->id,
             'competencia' => $mes->toDateString(),

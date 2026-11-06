@@ -1,54 +1,56 @@
 import { useState } from "react";
 import { router } from "@inertiajs/react";
-import { CalendarClock, ChevronLeft, ChevronRight, Edit3, ExternalLink, FolderOpen, Mail, Phone, Plus, SlidersHorizontal, Trash2, X } from "lucide-react";
-import { Avatar, Card, Pill, PrimaryButton, RowMenu, SearchInput } from "../../components/ui";
+import { CalendarClock, Edit3, ExternalLink, FolderOpen, Mail, Phone, Plus, SlidersHorizontal, Trash2, UserX, X } from "lucide-react";
+import { Avatar, Card, Pagination, Pill, PrimaryButton, RowMenu, SearchInput } from "../../components/ui";
 import { useAppData } from "../../hooks/useAppData";
 import { filterInputStyle, iconBtn } from "../../styles/formStyles";
 import { T } from "../../styles/theme";
 import { confirmar } from "../../utils/alertas";
-import { matriculasAtivas } from "../../utils/matricula";
 import NewPatientModal from "./components/NewPatientModal";
 
-const PAGE_SIZE = 10;
 const DIAS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
 const SEM_FILTROS = { situacao: "", matricula: "", dia: "", modalidade: "", cobranca: "" };
 
-export default function Pacientes() {
-  const { patients, addPatient, deletePatient } = useAppData();
-  const [query, setQuery] = useState("");
+export default function Pacientes({ patientDirectory }) {
+  const { addPatient, deletePatient, inactivatePatient } = useAppData();
+  const { patients: visible, pagination } = patientDirectory;
+  const [query, setQuery] = useState(patientDirectory.q);
   const [showNewModal, setShowNewModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState(SEM_FILTROS);
-  const [page, setPage] = useState(1);
-  const setFilter = (key) => (e) => { setFilters((f) => ({ ...f, [key]: e.target.value })); setPage(1); };
-  const activeFilters = Object.values(filters).filter(Boolean).length;
+  const [filters, setFilters] = useState(patientDirectory.filters);
+  const activeFilters = Object.values(filters).filter(value => value !== "" && value !== null).length;
 
-  const filtered = patients.filter((p) => {
-    if (!p.name.toLowerCase().includes(query.toLowerCase())) return false;
-    if (filters.situacao && p.status !== filters.situacao) return false;
-    const mats = matriculasAtivas(p);
-    if (filters.matricula === "com" && mats.length === 0) return false;
-    if (filters.matricula === "sem" && mats.length > 0) return false;
-    if (filters.dia !== "" && !mats.some((m) => m.weekday === Number(filters.dia))) return false;
-    if (filters.modalidade && !mats.some((m) => m.tipo === filters.modalidade)) return false;
-    if (filters.cobranca === "pendente" && !p.cobrancaPendente) return false;
-    return true;
-  });
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const current = Math.min(page, totalPages);
-  const start = (current - 1) * PAGE_SIZE;
-  const visible = filtered.slice(start, start + PAGE_SIZE);
+  function visit(text, nextFilters, page = 1, replace = true) {
+    router.get("/pacientes", { q: text, ...nextFilters, page }, { preserveState: true, preserveScroll: true, replace });
+  }
+  function search(text) { setQuery(text); visit(text, filters); }
+  const setFilter = key => event => {
+    const next = { ...filters, [key]: event.target.value };
+    setFilters(next);
+    visit(query, next);
+  };
+  function clearFilters() { setFilters(SEM_FILTROS); visit(query, SEM_FILTROS); }
+  const openPatient = id => router.visit(`/pacientes/${id}`);
 
-  const openPatient = (id) => router.visit(`/pacientes/${id}`);
-
+  /* Só é possível excluir cadastro sem histórico (o servidor confere); com histórico, o caminho é inativar. */
   async function excluir(p) {
     const ok = await confirmar({
       titulo: "Excluir cadastro?",
-      texto: `Você vai excluir o cadastro de ${p.name}. Matrícula, consultas, prontuários, anamnese, documentos e cobranças deste paciente também serão apagados. Essa ação não pode ser desfeita.`,
+      texto: `Você vai excluir o cadastro de ${p.name}. Isso só é possível se ele não tiver atendimento realizado, prontuário, anamnese, documento ou cobrança; nesse caso, use "Inativar". Essa ação não pode ser desfeita.`,
       confirmar: "Excluir cadastro",
       perigo: true,
     });
     if (ok) deletePatient(p.id);
+  }
+
+  async function inativar(p) {
+    const ok = await confirmar({
+      titulo: "Inativar paciente?",
+      texto: `As matrículas de ${p.name} serão encerradas e todas as consultas futuras saem da agenda. Sessões passadas, prontuários, anamneses, documentos e cobranças continuam. Reativar (nova matrícula) não restaura o que foi apagado.`,
+      confirmar: "Inativar",
+      perigo: true,
+    });
+    if (ok) inactivatePatient(p.id);
   }
 
   return (
@@ -56,7 +58,7 @@ export default function Pacientes() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
           <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 26, fontWeight: 700, color: T.text, margin: 0 }}>Pacientes</h1>
-          <SearchInput value={query} onChange={(v) => { setQuery(v); setPage(1); }} placeholder="Pesquisar" />
+          <SearchInput value={query} onChange={search} placeholder="Pesquisar" />
         </div>
         <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
           <button
@@ -86,7 +88,7 @@ export default function Pacientes() {
             </label>
           ))}
           {activeFilters > 0 && (
-            <button onClick={() => { setFilters(SEM_FILTROS); setPage(1); }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 12px", borderRadius: 9, border: "none", background: "none", color: T.primary, fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}>
+            <button onClick={clearFilters} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 12px", borderRadius: 9, border: "none", background: "none", color: T.primary, fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}>
               <X size={16} /> Limpar filtros
             </button>
           )}
@@ -136,6 +138,7 @@ export default function Pacientes() {
                       { label: "Abrir", icon: FolderOpen, onClick: () => openPatient(p.id) },
                       { label: "Editar cadastro", icon: Edit3, onClick: () => router.visit(`/pacientes/${p.id}?editar=1`) },
                       { label: "Nova matrícula", icon: CalendarClock, onClick: () => router.visit(`/pacientes/${p.id}?aba=matricula`) },
+                      ...(p.status === "Ativo" ? [{ label: "Inativar", icon: UserX, tone: "danger", onClick: () => inativar(p) }] : []),
                       { label: "Excluir cadastro", icon: Trash2, tone: "danger", onClick: () => excluir(p) },
                     ]} />
                   </div>
@@ -145,18 +148,7 @@ export default function Pacientes() {
           </tbody>
         </table>
 
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderTop: `1px solid ${T.border}`, fontSize: 13, color: T.muted }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            Página <strong style={{ color: T.text }}>{current}</strong> de {totalPages}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-            <span>{filtered.length === 0 ? "0" : `${start + 1}–${start + visible.length}`} de {filtered.length}</span>
-            <div style={{ display: "flex", gap: 4 }}>
-              <button disabled={current <= 1} onClick={() => setPage(current - 1)} style={{ ...iconBtn, background: T.surface, opacity: current <= 1 ? 0.4 : 1, cursor: current <= 1 ? "default" : "pointer" }}><ChevronLeft size={19} /></button>
-              <button disabled={current >= totalPages} onClick={() => setPage(current + 1)} style={{ ...iconBtn, background: T.surface, opacity: current >= totalPages ? 0.4 : 1, cursor: current >= totalPages ? "default" : "pointer" }}><ChevronRight size={19} /></button>
-            </div>
-          </div>
-        </div>
+        <Pagination pagination={pagination} onPage={number => visit(query, filters, number, false)} label="pacientes" />
       </Card>
 
       {showNewModal && (

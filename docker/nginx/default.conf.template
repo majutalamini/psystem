@@ -1,0 +1,42 @@
+# Etapa 4: o mesmo identificador de requisição no log do Nginx e no log da aplicação (X-Request-ID).
+log_format timing '$request_id $request_method $status $request_time $upstream_response_time $body_bytes_sent';
+server {
+    listen 80;
+    root /var/www/public;
+    index index.php;
+    client_max_body_size 24m;
+    access_log /var/log/nginx/access.log timing;
+    add_header X-Content-Type-Options nosniff;
+    # Reconsulta o DNS do Docker: recriar o contêiner do PHP não deixa o Nginx apontando para o IP antigo (502).
+    resolver 127.0.0.11 valid=10s ipv6=off;
+    set $fpm ${FPM_UPSTREAM};
+    location / { try_files $uri $uri/ /index.php?$query_string; }
+    location /build/ { try_files $uri =404; expires 1y; add_header Cache-Control "public, immutable"; }
+    location = /index.php {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME /var/www/public/index.php;
+        fastcgi_param HTTP_X_REQUEST_ID $request_id;
+        fastcgi_pass $fpm;
+    }
+    location ~ \.php$ { return 404; }
+    location ~ /\. { deny all; }
+}
+# Não publicado no host. Métricas acessíveis somente via docker compose exec.
+server {
+    listen 127.0.0.1:9090;
+    access_log off;
+    resolver 127.0.0.11 valid=10s ipv6=off;
+    set $fpm ${FPM_UPSTREAM};
+    set $fpm_status ${FPM_STATUS_UPSTREAM};
+    location = /fpm-status {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME /fpm-status;
+        fastcgi_pass $fpm_status;
+    }
+    location = /php-probe {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME /var/www/docker/php/web-probe.php;
+        fastcgi_pass $fpm;
+    }
+    location / { return 404; }
+}

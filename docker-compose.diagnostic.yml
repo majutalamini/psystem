@@ -1,0 +1,46 @@
+services:
+  diagnostic:
+    profiles: [diagnostico]
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: app
+      args:
+        BUILD_MODE: ${DIAGNOSTIC_BUILD_MODE:-production}
+    env_file: .env
+    environment:
+      APP_ENV: local
+      APP_DEBUG: 'false'
+      APP_URL: http://localhost:8001
+      DB_CONNECTION: pgsql
+      DB_URL: ''
+      DB_DATABASE: psystem_diagnostic
+      DIAGNOSTICS_ENABLED: 'true'
+      MAIL_MAILER: array
+      SESSION_COOKIE: psystem_diagnostic_session
+      # Permite comparar o custo da sessão gravada no banco a cada requisição (etapa 3).
+      SESSION_DRIVER: ${DIAGNOSTIC_SESSION_DRIVER:-database}
+    volumes:
+      - diagnostic-storage:/var/www/storage
+    mem_limit: 768m
+    depends_on:
+      db:
+        condition: service_healthy
+  diagnostic-web:
+    profiles: [diagnostico]
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: web
+      args:
+        BUILD_MODE: ${DIAGNOSTIC_BUILD_MODE:-production}
+    environment:
+      FPM_UPSTREAM: diagnostic:9000
+      FPM_STATUS_UPSTREAM: diagnostic:9001
+    ports:
+      - '127.0.0.1:8001:80'
+    # Sem storage no Nginx (etapa 3): arquivos só saem pelo PHP autenticado.
+    depends_on:
+      - diagnostic
+volumes:
+  diagnostic-storage:

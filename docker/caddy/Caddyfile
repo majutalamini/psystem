@@ -1,0 +1,9 @@
+# HTTPS automático (Let's Encrypt) e cabeçalhos de transporte; o resto dos cabeçalhos vem da aplicação.
+{$DOMINIO} {
+	encode zstd gzip
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	request_body {
+		max_size 24MB
+	}
+	reverse_proxy web:80
+}

@@ -5,16 +5,25 @@ use App\Http\Controllers\AnamneseController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConfiguracaoController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DiagnosticoController;
 use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\FinanceiroController;
+use App\Http\Controllers\FotoController;
 use App\Http\Controllers\ImportacaoController;
 use App\Http\Controllers\MatriculaController;
 use App\Http\Controllers\PacienteController;
+use App\Http\Controllers\ProntidaoController;
 use App\Http\Controllers\ProntuarioController;
 use App\Http\Controllers\RelatorioController;
 use App\Http\Controllers\SenhaController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+// Identifica o laboratório sintético antes de qualquer captura; indisponível no consultório/produção.
+Route::get('/__diagnostico', DiagnosticoController::class);
+
+// Monitor externo (etapa 4): só ok/falha por verificação.
+Route::get('/prontidao', ProntidaoController::class)->middleware('throttle:30,1');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'create'])->name('login');
@@ -37,10 +46,14 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/pacientes', [PacienteController::class, 'index'])->name('pacientes');
     Route::post('/pacientes', [PacienteController::class, 'store']);
+    Route::get('/pacientes/opcoes', [PacienteController::class, 'opcoes'])->name('pacientes.opcoes');
     Route::get('/pacientes/{paciente}', [PacienteController::class, 'show'])->name('pacientes.show');
     Route::put('/pacientes/{paciente}', [PacienteController::class, 'update']);
     Route::delete('/pacientes/{paciente}', [PacienteController::class, 'destroy']);
+    Route::post('/pacientes/{paciente}/inativar', [PacienteController::class, 'inativar']);
     Route::post('/pacientes/{paciente}/foto', [PacienteController::class, 'foto']);
+    Route::get('/pacientes/{paciente}/foto', [FotoController::class, 'paciente'])->name('pacientes.foto');
+    Route::get('/psicologos/{psicologo}/foto', [FotoController::class, 'psicologo'])->name('psicologos.foto');
     Route::patch('/pacientes/{paciente}/vencimento', [PacienteController::class, 'vencimento']);
 
     Route::post('/pacientes/{paciente}/matriculas', [MatriculaController::class, 'store']);
@@ -58,6 +71,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/prontuarios', [ProntuarioController::class, 'index'])->name('prontuarios');
     Route::get('/anamneses', [AnamneseController::class, 'index'])->name('anamneses');
     Route::get('/importacoes', [ImportacaoController::class, 'index'])->name('importacoes');
+    Route::post('/importacoes', [ImportacaoController::class, 'store']);
     Route::post('/pacientes/{paciente}/prontuarios', [ProntuarioController::class, 'store']);
     Route::put('/prontuarios/{prontuario}', [ProntuarioController::class, 'update']);
     Route::delete('/prontuarios/{prontuario}', [ProntuarioController::class, 'destroy']);
@@ -67,13 +81,14 @@ Route::middleware('auth')->group(function () {
     Route::patch('/cobrancas/{cobranca}', [FinanceiroController::class, 'atualizarCobranca']);
     Route::delete('/cobrancas/{cobranca}', [FinanceiroController::class, 'cancelarCobranca']);
     Route::post('/cobrancas/{cobranca}/pagamento', [FinanceiroController::class, 'receber']);
-    Route::delete('/cobrancas/{cobranca}/pagamento', [FinanceiroController::class, 'estornar']);
+    Route::post('/cobrancas/{cobranca}/pagamentos/{pagamento}/estorno', [FinanceiroController::class, 'estornar'])->whereNumber('pagamento');
     Route::post('/despesas', [FinanceiroController::class, 'storeDespesa']);
     Route::put('/despesas/{despesa}', [FinanceiroController::class, 'atualizarDespesa']);
     Route::delete('/despesas/{despesa}', [FinanceiroController::class, 'cancelarDespesa']);
     Route::delete('/despesas/{despesa}/recorrencia', [FinanceiroController::class, 'encerrarRecorrencia']);
     Route::post('/despesas/{despesa}/pagamento', [FinanceiroController::class, 'pagarDespesa']);
-    Route::delete('/despesas/{despesa}/pagamento', [FinanceiroController::class, 'estornarDespesa']);
+    Route::post('/despesas/{despesa}/pagamentos/{pagamento}/estorno', [FinanceiroController::class, 'estornarDespesa'])->whereNumber('pagamento');
+    Route::patch('/cobrancas/{cobranca}/cancelar', [FinanceiroController::class, 'cancelar']);
 
     Route::get('/relatorios', RelatorioController::class)->name('relatorios');
 

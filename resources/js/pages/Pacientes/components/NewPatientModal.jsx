@@ -5,6 +5,8 @@ import { useAppData } from "../../../hooks/useAppData";
 import { T } from "../../../styles/theme";
 import { isValidBrDate, isValidCpf, maskCpf, maskDate, maskPhone, onlyDigits } from "../../../utils/format";
 
+const UFS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"];
+
 const BLANK = {
   name: "", nascimento: "", cpf: "", sexo: "", phone: "", email: "", endereco: "", cidade: "", uf: "",
   emergenciaNome: "", emergenciaTelefone: "", observacoes: "", status: "Ativo",
@@ -38,7 +40,8 @@ export default function NewPatientModal({ onClose, onSave, editingPatient }) {
       <FormField label="Endereço" {...field("endereco")} placeholder="Rua, número — bairro" />
       <div style={{ display: "grid", gridTemplateColumns: "3fr 1fr", gap: "0 16px" }}>
         <FormField label="Cidade" {...field("cidade")} />
-        <FormField label="UF" {...field("uf")} onChange={(v) => set("uf")(v.replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase())} placeholder="SC" maxLength={2} />
+        <FormField label="UF" {...field("uf")} onChange={(v) => set("uf")(v.toUpperCase().replace(/[^A-Z]/g, ""))} placeholder="SC" maxLength={2} list={UFS}
+          error={errors.uf || (form.uf && form.uf.length === 2 && !UFS.includes(form.uf) ? "UF inválida." : undefined)} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
         <FormField label="Contato de emergência" {...field("emergenciaNome")} placeholder="Nome (parentesco)" />
