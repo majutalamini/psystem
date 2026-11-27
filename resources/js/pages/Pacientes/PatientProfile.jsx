@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import { CalendarClock, Camera, Check, Edit3, FileText, HeartPulse, Paperclip, User, Wallet } from "lucide-react";
+import { router } from "@inertiajs/react";
+import { Ban, Camera, Check, ChevronRight, Edit3, FileSignature, FileText, HeartPulse, Paperclip, UserRoundCheck, User, Wallet } from "lucide-react";
 import { Avatar, BackButton, Card } from "../../components/ui";
 import { useAppData } from "../../hooks/useAppData";
 import { FONT_DISPLAY, T } from "../../styles/theme";
@@ -10,23 +11,30 @@ import ProfileActionButton from "./components/ProfileActionButton";
 import AnamneseTab from "./tabs/AnamneseTab";
 import DadosPessoaisTab from "./tabs/DadosPessoaisTab";
 import DocumentosTab from "./tabs/DocumentosTab";
+import ContratosTab from "./tabs/ContratosTab";
 import FinanceiroTab from "./tabs/FinanceiroTab";
-import MatriculaTab from "./tabs/MatriculaTab";
 import ProntuarioTab from "./tabs/ProntuarioTab";
 
 const PROFILE_TABS = [
   { key: "dados", label: "Dados pessoais", icon: User },
+  { key: "contratos", label: "Contratos", icon: FileSignature },
+  { key: "financeiro", label: "Financeiro", icon: Wallet },
   { key: "prontuario", label: "Prontuários", icon: FileText },
   { key: "anamnese", label: "Anamnese", icon: HeartPulse },
   { key: "documentos", label: "Documentos", icon: Paperclip },
-  { key: "financeiro", label: "Financeiro", icon: Wallet },
-  { key: "matricula", label: "Matrículas", icon: CalendarClock },
 ];
 
-export default function PatientProfile({ patientId, records, anamnese, documents, receivables }) {
+const STATUS_COR = {
+  Ativo: { cor: T.success, fundo: T.successTint, icon: Check },
+  Bloqueado: { cor: T.danger, fundo: T.dangerTint, icon: Ban },
+  Inativo: { cor: T.muted, fundo: T.mutedBg, icon: Check },
+};
+
+export default function PatientProfile({ patientId, records, anamnese, documents, receivables, contracts = [] }) {
   const { patients, updatePatient, updatePatientPhoto } = useAppData();
   const [tab, setTab] = useState(() => {
-    const aba = new URLSearchParams(window.location.search).get("aba");
+    let aba = new URLSearchParams(window.location.search).get("aba");
+    if (aba === "matricula") aba = "contratos"; // links antigos
     return PROFILE_TABS.some((t) => t.key === aba) ? aba : "dados";
   });
   const [showEdit, setShowEdit] = useState(() => new URLSearchParams(window.location.search).get("editar") === "1");
@@ -36,7 +44,9 @@ export default function PatientProfile({ patientId, records, anamnese, documents
   if (!patient) return null;
 
   const ativo = patient.status === "Ativo";
+  const statusCor = STATUS_COR[patient.status] || STATUS_COR.Inativo;
   const idade = ageFromBrDate(patient.nascimento);
+  const menorSemResponsavel = idade != null && idade < 18 && !patient.responsavel;
 
   function handlePhoto(e) {
     const file = e.target.files && e.target.files[0];
@@ -58,7 +68,7 @@ export default function PatientProfile({ patientId, records, anamnese, documents
               color={patient.color}
               src={patient.photo}
               size={108}
-              style={{ border: `5px solid ${T.surface}`, boxShadow: `0 0 0 3px ${ativo ? T.success : T.faint}` }}
+              style={{ border: `5px solid ${T.surface}`, boxShadow: `0 0 0 3px ${ativo ? T.success : patient.status === "Bloqueado" ? T.danger : T.faint}` }}
             />
             <button
               onClick={() => fileRef.current && fileRef.current.click()}
@@ -81,15 +91,38 @@ export default function PatientProfile({ patientId, records, anamnese, documents
               </span>
               <span style={{
                 display: "flex", alignItems: "center", gap: 6, padding: "5px 13px", borderRadius: 999,
-                background: ativo ? T.successTint : T.mutedBg, color: ativo ? T.success : T.muted,
+                background: statusCor.fundo, color: statusCor.cor,
                 fontSize: 13, fontWeight: 700,
               }}>
-                <Check size={15} /> {patient.status}
+                <statusCor.icon size={15} /> {patient.status}
               </span>
             </div>
             <div style={{ fontSize: 14.5, color: T.muted, marginTop: 6 }}>
               {[idade != null ? `${idade} anos` : null, patient.genero].filter(Boolean).join(" · ")}
             </div>
+            {patient.responsavel && (
+              <button
+                onClick={() => router.visit(`/responsaveis/${patient.responsavel.id}`)}
+                title="Abrir o perfil do responsável"
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 8, marginTop: 10, padding: "7px 12px 7px 10px",
+                  borderRadius: 999, border: `1px solid ${T.primary}`, background: T.primaryTint, color: T.primaryDark,
+                  fontSize: 13.5, fontWeight: 700, cursor: "pointer",
+                }}
+              >
+                <UserRoundCheck size={16} />
+                Responsável: {patient.responsavel.name}{patient.responsavel.parentesco ? ` (${patient.responsavel.parentesco})` : ""}
+                <ChevronRight size={16} />
+              </button>
+            )}
+            {menorSemResponsavel && (
+              <button
+                onClick={() => setShowEdit(true)}
+                style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 10, padding: "7px 12px", borderRadius: 999, border: "none", background: T.warnTint, color: T.warnText, fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}
+              >
+                <UserRoundCheck size={16} /> Menor de idade sem responsável — informar no cadastro
+              </button>
+            )}
           </div>
 
           <div>
@@ -141,7 +174,7 @@ export default function PatientProfile({ patientId, records, anamnese, documents
       {tab === "prontuario" && <ProntuarioTab patient={patient} records={records} />}
       {tab === "financeiro" && <FinanceiroTab patient={patient} receivables={receivables} />}
       {tab === "documentos" && <DocumentosTab patient={patient} documents={documents} />}
-      {tab === "matricula" && <MatriculaTab patient={patient} />}
+      {tab === "contratos" && <ContratosTab patient={patient} contracts={contracts} />}
 
       {showEdit && (
         <NewPatientModal

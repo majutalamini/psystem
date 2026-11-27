@@ -26,7 +26,7 @@ export default function ReportComAnamnese() {
       <FilterBar onApply={() => setApplied(statusFilter)}>
         <FilterField label="Situação do paciente">
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...filterInputStyle, minWidth: 150 }}>
-            {["Todos", "Ativo", "Inativo"].map((s) => <option key={s}>{s}</option>)}
+            {["Todos", "Ativo", "Bloqueado", "Inativo"].map((s) => <option key={s}>{s}</option>)}
           </select>
         </FilterField>
       </FilterBar>
@@ -40,7 +40,7 @@ export default function ReportComAnamnese() {
           <tr key={p.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
             <td style={{ ...reportCellStyle, fontWeight: 600 }}>{p.name}</td>
             <td style={reportCellStyle}>{p.ultimaAnamnese ? p.ultimaAnamnese.toLocaleDateString("pt-BR") : "—"}</td>
-            <td style={{ padding: "14px 20px" }}><Pill tone={p.status === "Ativo" ? "success" : "muted"}>{p.status}</Pill></td>
+            <td style={{ padding: "14px 20px" }}><Pill tone={p.status === "Ativo" ? "success" : p.status === "Bloqueado" ? "danger" : "muted"}>{p.status}</Pill></td>
           </tr>
         )}
       />

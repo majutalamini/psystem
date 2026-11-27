@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { router, usePage } from "@inertiajs/react";
-import { erro, errosDeCampo, sucesso } from "../utils/alertas";
+import { aviso, erro, errosDeCampo, sucesso } from "../utils/alertas";
 import { DataContext } from "./DataContext";
 
 /* Os dados vêm do Laravel (props do Inertia) e as ações viram requisições.
@@ -14,6 +14,7 @@ const feedback = (mensagem, opts = {}) => ({
     const flash = page.props.flash || {};
     if (flash.erro) erro(flash.erro);
     else sucesso(flash.sucesso || mensagem);
+    if (flash.aviso) aviso(flash.aviso);
     if (opts.onSuccess) opts.onSuccess(page);
   },
   onError: (errors) => {
@@ -26,15 +27,23 @@ export const actions = {
   addPatient: (form, opts) => router.post("/pacientes", form, feedback("Paciente cadastrado.", opts)),
   updatePatient: (id, form, opts) => router.put(`/pacientes/${id}`, form, { ...keep, ...feedback("Cadastro atualizado.", opts) }),
   deletePatient: (id, opts) => router.delete(`/pacientes/${id}`, { ...keep, ...feedback("Cadastro excluído.", opts) }),
-  setDiaVencimento: (id, dia, opts) => router.patch(`/pacientes/${id}/vencimento`, { dia }, { ...keep, ...feedback("Dia de vencimento atualizado.", opts) }),
   updatePatientPhoto: (id, file) => router.post(`/pacientes/${id}/foto`, { foto: file }, { ...withFiles, ...feedback("Foto atualizada.") }),
 
-  saveMatricula: (patientId, form, opts) => router.put(`/pacientes/${patientId}/matricula`, form, { ...keep, ...feedback("Matrícula salva.", opts) }),
-  removeMatricula: (patientId, opts) => router.delete(`/pacientes/${patientId}/matricula`, { ...keep, ...feedback("Matrícula encerrada.", opts) }),
-  // Várias matrículas por paciente (rotas novas do backend: P13).
-  addMatricula: (patientId, form, opts) => router.post(`/pacientes/${patientId}/matriculas`, form, { ...keep, ...feedback("Matrícula criada.", opts) }),
+  // Contrato = pacote de sessões; as matrículas (dias e horários fixos) ficam dentro dele.
+  addContract: (patientId, form, opts) => router.post(`/pacientes/${patientId}/contratos`, form, { ...keep, ...feedback("Contrato criado e matrícula gerada.", opts) }),
+  updateContract: (id, form, opts) => router.put(`/contratos/${id}`, form, { ...keep, ...feedback("Contrato atualizado.", opts) }),
+  endContract: (id, opts) => router.delete(`/contratos/${id}`, { ...keep, ...feedback("Contrato encerrado.", opts) }),
+  addMatricula: (contractId, form, opts) => router.post(`/contratos/${contractId}/matriculas`, form, { ...keep, ...feedback("Horário incluído no contrato.", opts) }),
   updateMatricula: (id, form, opts) => router.put(`/matriculas/${id}`, form, { ...keep, ...feedback("Matrícula atualizada.", opts) }),
-  deleteMatricula: (id, opts) => router.delete(`/matriculas/${id}`, { ...keep, ...feedback("Matrícula encerrada.", opts) }),
+  deleteMatricula: (id, opts) => router.delete(`/matriculas/${id}`, { ...keep, ...feedback("Horário removido do contrato.", opts) }),
+
+  // Bag própria: o modal do responsável abre por cima do cadastro do paciente, que tem campos com o mesmo nome.
+  addGuardian: (form, opts) => router.post("/responsaveis", form, { ...keep, errorBag: "responsavel", preserveState: true, ...feedback("Responsável cadastrado.", opts) }),
+  updateGuardian: (id, form, opts) => router.put(`/responsaveis/${id}`, form, { ...keep, errorBag: "responsavel", preserveState: true, ...feedback("Responsável atualizado.", opts) }),
+  deleteGuardian: (id, opts) => router.delete(`/responsaveis/${id}`, { ...keep, ...feedback("Responsável excluído.", opts) }),
+
+  // Sem toast: dispensar notificação é uma ação silenciosa.
+  markNotificationsRead: (chaves, opts) => router.post("/notificacoes/lidas", { chaves }, { ...keep, preserveState: true, ...opts }),
 
   saveRecord: (patientId, entry, opts) => (entry.id
     ? router.put(`/prontuarios/${entry.id}`, entry, { ...keep, ...feedback("Prontuário atualizado.", opts) })

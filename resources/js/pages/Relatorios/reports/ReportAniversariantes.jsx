@@ -51,7 +51,7 @@ export default function ReportAniversariantes() {
             <td style={{ ...reportCellStyle, fontWeight: 600 }}><span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Cake size={15} color={T.primary} /> {p.name}</span></td>
             <td style={reportCellStyle}>{p.phone}</td>
             <td style={reportCellStyle}>{p.nascimento}</td>
-            <td style={{ padding: "14px 20px" }}><Pill tone={p.status === "Ativo" ? "success" : "muted"}>{p.status}</Pill></td>
+            <td style={{ padding: "14px 20px" }}><Pill tone={p.status === "Ativo" ? "success" : p.status === "Bloqueado" ? "danger" : "muted"}>{p.status}</Pill></td>
           </tr>
         )}
       />

@@ -1,9 +1,10 @@
-import { BarChart3, CalendarDays, FileSignature, FileText, FileUp, HeartPulse, LayoutDashboard, Settings, Users, Wallet } from "lucide-react";
+import { BarChart3, CalendarDays, FileSignature, FileText, FileUp, HeartPulse, LayoutDashboard, Settings, UserRoundCheck, Users, Wallet } from "lucide-react";
 
 export const NAV = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { key: "agenda", label: "Agenda", icon: CalendarDays },
   { key: "pacientes", label: "Pacientes", icon: Users },
+  { key: "responsaveis", label: "Responsáveis", icon: UserRoundCheck },
   { key: "prontuarios", label: "Prontuários", icon: FileText },
   { key: "anamneses", label: "Anamneses", icon: HeartPulse },
   { key: "importacoes", label: "Importações", icon: FileUp },

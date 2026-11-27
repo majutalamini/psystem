@@ -1,6 +1,6 @@
 # Psystem
 
-Sistema de agendamento e gestão para consultório de psicologia: pacientes, matrículas (dia e horário fixos), agenda, prontuários, anamnese, documentos, financeiro, relatórios, declarações e avisos por e-mail.
+Sistema de agendamento e gestão para consultório de psicologia: pacientes, responsáveis, contratos (pacotes de sessões com dias e horários fixos), agenda, prontuários, anamnese, documentos, financeiro, relatórios, declarações, notificações no sistema e avisos por e-mail.
 
 Um único projeto Laravel que entrega as telas em React pelo Inertia. Não existe API separada: o controller devolve os dados como props e a tela React os recebe.
 
@@ -44,7 +44,7 @@ A pasta `vendor/` fica num volume do Docker. O `app` instala as dependências se
 
 O `db:seed` cria o login de desenvolvimento `isadora.talamini@psystem.com` / `psystem123`, as configurações padrão e o modelo de anamnese.
 
-Para ter dados de exemplo (pacientes com matrícula, quatro semanas de sessões e cobranças):
+Para ter dados de exemplo (pacientes com contrato, quatro semanas de sessões, cobranças, um menor com responsável e um contrato bloqueado):
 
 ```bash
 docker compose exec app php artisan db:seed --class=ExemploSeeder
@@ -75,6 +75,7 @@ Ao atualizar uma instalação existente, execute `docker compose exec app php ar
 ```bash
 docker compose exec app php artisan test
 docker compose exec app php artisan migrate
+docker compose exec app php artisan contratos:processar
 docker compose exec app php artisan agenda:gerar
 docker compose exec app php artisan pacientes:sincronizar-status
 npm run build
@@ -84,8 +85,8 @@ Tarefas agendadas (`routes/console.php`):
 
 | Comando | Quando | O que faz |
 |---|---|---|
-| `agenda:gerar` | todo dia 01:00 | Completa a agenda dos próximos 2 meses a partir das matrículas ativas |
-| `mensalidades:gerar` | todo dia 01:10 | Lança a mensalidade do mês (título em aberto no financeiro) das matrículas ativas com valor, sem duplicar |
+| `contratos:processar` | todo dia 00:30 | Bloqueia o contrato de quem tem título vencido (e desbloqueia quem quitou), depois renova os pacotes que terminaram lançando a mensalidade do novo pacote |
+| `agenda:gerar` | todo dia 01:00 | Completa a agenda dos próximos 2 meses a partir das matrículas ativas (só de pacientes ativos) |
 | `despesas:gerar` | todo dia 01:20 | Lança a conta a pagar do mês de cada recorrência ativa, sem duplicar |
 | `avisos:consultas` | a cada minuto | E-mail para a psicóloga cerca de 1 hora antes de cada consulta |
 | `avisos:vencimentos` | todo dia 07:00 | E-mail das contas que vencem nos próximos 3 dias |
@@ -130,17 +131,23 @@ tests/Feature/
 
 ### Regras de negócio principais
 
-**Matrículas (P13)**
-- Um paciente pode ter várias matrículas. Cada uma é um dia e horário fixos por semana, com modalidade e `valor_sessao`.
-- Ao criar ou alterar, o sistema gera as consultas dos próximos 2 meses (a agenda não abre além disso) na tabela `agenda` (`AgendaMatricula`). Ao alterar, as consultas futuras ainda "agendadas" são apagadas e geradas de novo.
-- Encerrar (`DELETE /matriculas/{id}`) não apaga a linha: marca `status_matricula = encerrada` e `fim_da_matricula`, e tira as consultas futuras não confirmadas. O histórico e as cobranças continuam.
-- Não pode haver duas matrículas ativas no mesmo dia e horário, nem de pacientes diferentes nem do mesmo.
-- Rotas: `POST /pacientes/{id}/matriculas`, `PUT /matriculas/{id}`, `DELETE /matriculas/{id}`.
+**Contratos (pacote de sessões)** — `App\Services\Contratos`
+- O contrato fica na aba **Contratos** do perfil do paciente: quantidade de sessões do pacote (ex.: 8), valor do pacote e data de início. A criação tem duas etapas e só termina com ao menos um dia e horário (a matrícula). Ao finalizar, o sistema cria as matrículas, gera a agenda e lança a mensalidade do primeiro pacote.
+- Um ciclo (pacote) termina na data da N-ésima sessão, contada pelos dias e horários do contrato e pelos dias de atendimento (`contratos.ciclo_fim`). Cada ciclo gera uma cobrança (`cobrancas.contrato_id` + `ciclo`, únicos), vencendo no início do pacote.
+- Sem encerramento, o contrato renova sozinho no dia seguinte ao fim do pacote (`contratos:processar`) e lança a próxima mensalidade.
+- Paciente só tem um contrato em vigor (ativo ou bloqueado). Alterar o pacote recalcula o fim do ciclo atual e ajusta a mensalidade em aberto ainda sem pagamento.
+- **Inadimplência:** título a receber vencido e não pago (venceu ontem ou antes) bloqueia o contrato. Bloqueado, as sessões futuras não confirmadas saem da agenda e o pacote não renova. Quitar os atrasados (ou cancelar/reagendar o título) desbloqueia na hora; se o pacote terminou durante o bloqueio, um novo pacote começa no dia do desbloqueio. O bloqueio é conferido na rotina diária e a cada recebimento, estorno, cancelamento ou mudança de vencimento.
+- Encerrar (`DELETE /contratos/{id}`) encerra as matrículas, tira as sessões futuras da agenda e cancela as mensalidades que ainda vão vencer sem pagamento. O histórico continua.
+- Rotas: `POST /pacientes/{id}/contratos`, `PUT /contratos/{id}`, `DELETE /contratos/{id}`.
+- Na migração, as matrículas ativas que já existiam viraram um contrato por paciente (4 sessões por horário semanal, valor = soma das mensalidades), começando no dia da migração, sem nova cobrança.
 
-**Mensalidade e cobranças**
-- O valor da matrícula (`valor_sessao`) é a mensalidade. Com valor maior que zero, ao lançar a matrícula o sistema cria um título em aberto no financeiro do paciente (`Mensalidades`), vencendo no dia configurado no perfil (`pacientes.dia_vencimento`, padrão 10; dia 31 vira o último dia dos meses curtos). Se o vencimento do mês já passou, o primeiro título é o do mês seguinte.
-- Depois disso, `mensalidades:gerar` lança um título por matrícula e mês (sem duplicar, índice único `matricula_id` + `competencia`).
-- Alterar o valor atualiza só os títulos em aberto sem pagamento; mudar o dia de vencimento (`PATCH /pacientes/{id}/vencimento`) reagenda os títulos em aberto; encerrar a matrícula cancela os que ainda vão vencer e não receberam nada.
+**Matrículas (dias e horários do contrato)**
+- Cada matrícula é um dia e horário fixos por semana, com modalidade, ligada ao contrato (`matriculas.contrato_id`). Ao criar ou alterar, o sistema gera as consultas dos próximos 2 meses (`AgendaMatricula`) e recalcula o fim do pacote.
+- O contrato precisa ficar com ao menos uma matrícula: para parar os atendimentos, encerre o contrato.
+- Não pode haver duas matrículas ativas no mesmo dia e horário, nem de pacientes diferentes nem do mesmo.
+- Rotas: `POST /contratos/{id}/matriculas`, `PUT /matriculas/{id}`, `DELETE /matriculas/{id}`.
+
+**Cobranças**
 - Consulta avulsa tem o campo `valor` (obrigatório; 0 = sem cobrança). Com valor, cria uma única cobrança em aberto no paciente, ligada à consulta; cancelar a consulta cancela essa cobrança (falta não).
 - Status da agenda: só **Falta** e **Cancelado**. Falta vale também direto de "Matriculado".
 
@@ -150,9 +157,18 @@ tests/Feature/
 - Conta a pagar recorrente: ao criar com "Repetir todo mês", a data informada define o dia; a primeira conta é criada na hora e `despesas:gerar` lança uma por mês, no começo do mês, vencendo no mesmo dia (31 vira o último dia dos meses curtos). Ao editar, "Aplicar também aos próximos meses" muda o modelo; `DELETE /despesas/{id}/recorrencia` encerra a recorrência.
 - Documentos do paciente: `GET /documentos/{id}` só exibe (inline); `?baixar=1` faz o download. Tipos que o navegador não exibe (ex.: Word) só têm o botão de baixar.
 
-**Status do paciente (P14)**
-- O paciente é `ativo` se tiver ao menos uma matrícula ativa, e `inativo` se não tiver. Isso é calculado em `Paciente::sincronizarStatus()`, chamado ao criar e ao encerrar matrícula.
-- Não há mais troca manual de status no cadastro. Paciente novo nasce inativo até ter matrícula.
+**Status do paciente**
+- Vem do contrato (`Paciente::sincronizarStatus()`): `ativo` com contrato ativo, `bloqueado` com contrato bloqueado por inadimplência e `inativo` sem contrato em vigor. Paciente novo nasce inativo.
+
+**Responsáveis**
+- Menu **Responsáveis** (abaixo de Pacientes): cadastro, lista e perfil com os pacientes de cada responsável. Um responsável pode ter vários pacientes.
+- Paciente menor de 18 anos só é salvo com responsável (`pacientes.responsavel_id` + `responsavel_parentesco`). O responsável pode ser criado na hora, dentro do cadastro do paciente.
+- O perfil do paciente mostra o responsável com atalho para o perfil dele. Responsável de paciente menor não pode ser excluído.
+
+**Notificações** — `App\Services\Notificacoes`
+- Sino no cabeçalho com o total; quando aparece notificação nova, uma caixinha abre sozinha embaixo do sino.
+- Financeiro: contas a pagar vencidas ou que vencem em até 3 dias, mensalidades a vencer em até 3 dias e mensalidades em atraso. Agenda: sessões que ainda vão acontecer hoje.
+- As notificações são calculadas na hora; só o que a psicóloga dispensa fica em `notificacoes_lidas`. Atrasos dispensados voltam no dia seguinte.
 
 **Cadastro (P03)**
 - CPF validado pela regra `App\Rules\Cpf`, data de nascimento não pode ser futura.

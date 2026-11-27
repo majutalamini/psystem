@@ -7,11 +7,12 @@ use App\Models\AnamneseModelo;
 use App\Models\Paciente;
 use App\Models\Prontuario;
 use App\Rules\Cpf;
-use App\Services\Mensalidades;
+use App\Support\Tela;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class PacienteController extends Controller
@@ -24,7 +25,10 @@ class PacienteController extends Controller
 
     public function show(Paciente $paciente)
     {
-        $paciente->load(['documentos' => fn ($q) => $q->latest('criado_em')]);
+        $paciente->load([
+            'documentos' => fn ($q) => $q->latest('criado_em'),
+            'contratos' => fn ($q) => $q->with('matriculas')->orderByDesc('id'),
+        ]);
 
         return Inertia::render('Pacientes/PatientProfile', [
             'patientId' => $paciente->id,
@@ -34,6 +38,7 @@ class PacienteController extends Controller
                 'lista' => Anamnese::listaDoPaciente($paciente->id),
             ],
             'documents' => $paciente->documentos->map->paraTela(),
+            'contracts' => $paciente->contratos->map(fn ($c) => $c->paraTela(comProgresso: $c->aberto()))->values(),
             'receivables' => $paciente->cobrancas()
                 ->where('situacao', '!=', 'cancelado')
                 ->with(['pagamentos', 'paciente'])
@@ -60,20 +65,6 @@ class PacienteController extends Controller
         return back();
     }
 
-    /** Dia do mês em que vence a mensalidade da matrícula; as mensalidades em aberto passam a vencer nele. */
-    public function vencimento(Request $request, Paciente $paciente, Mensalidades $mensalidades)
-    {
-        $dados = $request->validate(['dia' => 'required|integer|between:1,31'], [
-            'dia.required' => 'Informe o dia do vencimento.',
-            'dia.between' => 'O dia do vencimento deve ficar entre 1 e 31.',
-        ]);
-
-        $paciente->update(['dia_vencimento' => $dados['dia']]);
-        $mensalidades->atualizarVencimento($paciente);
-
-        return back();
-    }
-
     /** Apaga o paciente e tudo o que é dele (várias tabelas travam a exclusão, então saem na ordem certa). */
     public function destroy(Paciente $paciente)
     {
@@ -84,6 +75,7 @@ class PacienteController extends Controller
             $paciente->cobrancas()->delete();
             $paciente->consultas()->delete();
             $paciente->matriculas()->delete();
+            $paciente->contratos()->delete();
             $paciente->delete();
         });
 
@@ -111,7 +103,7 @@ class PacienteController extends Controller
     {
         $request->merge(['cpf' => preg_replace('/\D/', '', (string) $request->input('cpf'))]);
 
-        return $request->validate([
+        $dados = $request->validate([
             'name' => 'required|string|max:150',
             'cpf' => ['required', new Cpf, Rule::unique('pacientes', 'cpf')->ignore($paciente)],
             'nascimento' => 'required|date_format:d/m/Y|before_or_equal:'.today()->format('d/m/Y'),
@@ -123,7 +115,10 @@ class PacienteController extends Controller
             'emergenciaNome' => 'nullable|string|max:150',
             'emergenciaTelefone' => 'nullable|string|max:20',
             'observacoes' => 'nullable|string',
+            'responsavelId' => 'nullable|integer|exists:responsaveis,id',
+            'parentesco' => 'nullable|string|max:40',
         ], [
+            'responsavelId.exists' => 'Responsável não encontrado.',
             'nascimento.before_or_equal' => 'A data de nascimento não pode ser futura.',
             'cpf.unique' => 'Já existe um paciente cadastrado com este CPF.',
             'uf.size' => 'A UF deve ter exatamente 2 letras (ex.: SC).',
@@ -131,5 +126,13 @@ class PacienteController extends Controller
         ], [
             'name' => 'nome', 'nascimento' => 'data de nascimento', 'phone' => 'telefone',
         ]);
+
+        if (Tela::lerData($dados['nascimento'])->age < 18 && empty($dados['responsavelId'])) {
+            throw ValidationException::withMessages([
+                'responsavelId' => 'Paciente menor de idade precisa ter um responsável.',
+            ]);
+        }
+
+        return $dados;
     }
 }

@@ -28,7 +28,7 @@ export default function ReportFaixaEtaria() {
       <FilterBar onApply={() => setApplied(statusFilter)}>
         <FilterField label="Situação do paciente">
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...filterInputStyle, minWidth: 150 }}>
-            {["Todos", "Ativo", "Inativo"].map((s) => <option key={s}>{s}</option>)}
+            {["Todos", "Ativo", "Bloqueado", "Inativo"].map((s) => <option key={s}>{s}</option>)}
           </select>
         </FilterField>
       </FilterBar>

@@ -86,8 +86,8 @@ class FinanceiroAjustesTest extends ConsultorioTestCase
         $mensalidade = Cobranca::sole();
 
         $this->delete("/cobrancas/{$mensalidade->id}");
-        $this->travelTo(Carbon::parse('2026-10-05 01:10:00'));
-        $this->artisan('mensalidades:gerar')->assertSuccessful();
+        $this->travelTo(Carbon::parse('2026-10-05 00:30:00')); // ainda no primeiro pacote (termina em 21/10)
+        $this->artisan('contratos:processar')->assertSuccessful();
 
         $this->assertSame(1, Cobranca::count());
         $this->assertSame('cancelado', Cobranca::sole()->situacao);

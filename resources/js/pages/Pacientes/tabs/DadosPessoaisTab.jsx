@@ -1,4 +1,4 @@
-import { Cake, CreditCard, Home, Mail, Phone, User } from "lucide-react";
+import { Cake, CreditCard, Home, Mail, Phone, UserRoundCheck, User } from "lucide-react";
 import { Card } from "../../../components/ui";
 import { T } from "../../../styles/theme";
 import InfoRow from "../components/InfoRow";
@@ -11,6 +11,13 @@ export default function DadosPessoaisTab({ patient }) {
       <InfoRow icon={Phone} label="Telefone" value={patient.phone} />
       <InfoRow icon={Mail} label="E-mail" value={patient.email} />
       <InfoRow icon={Home} label="Endereço" value={patient.endereco} />
+      {patient.responsavel && (
+        <InfoRow
+          icon={UserRoundCheck}
+          label="Responsável"
+          value={[patient.responsavel.name, patient.responsavel.parentesco, patient.responsavel.phone].filter(Boolean).join(" · ")}
+        />
+      )}
       <InfoRow icon={User} label="Contato de emergência" value={patient.emergenciaNome && patient.emergenciaTelefone ? `${patient.emergenciaNome} · ${patient.emergenciaTelefone}` : patient.emergenciaNome} />
       <div style={{ padding: "16px 0" }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>Observações</div>

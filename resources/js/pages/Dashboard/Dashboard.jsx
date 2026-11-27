@@ -12,7 +12,7 @@ import QuickActionButton from "./components/QuickActionButton";
 import WeekOverviewCard from "./components/WeekOverviewCard";
 import { formatMoney } from "../../utils/format";
 
-const STATUS_COLORS = [T.primary, T.track];
+const STATUS_COLORS = [T.primary, T.danger, T.track];
 
 const brl = (v) => formatMoney(v);
 
@@ -38,6 +38,7 @@ export default function Dashboard({ stats, goals, todayAppointments, weekOvervie
 
   const statusData = [
     { name: "Ativos", value: patients.filter((p) => p.status === "Ativo").length },
+    { name: "Bloqueados", value: patients.filter((p) => p.status === "Bloqueado").length },
     { name: "Inativos", value: patients.filter((p) => p.status === "Inativo").length },
   ];
 

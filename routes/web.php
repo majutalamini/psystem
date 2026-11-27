@@ -4,14 +4,17 @@ use App\Http\Controllers\AgendaController;
 use App\Http\Controllers\AnamneseController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConfiguracaoController;
+use App\Http\Controllers\ContratoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\FinanceiroController;
 use App\Http\Controllers\ImportacaoController;
 use App\Http\Controllers\MatriculaController;
+use App\Http\Controllers\NotificacaoController;
 use App\Http\Controllers\PacienteController;
 use App\Http\Controllers\ProntuarioController;
 use App\Http\Controllers\RelatorioController;
+use App\Http\Controllers\ResponsavelController;
 use App\Http\Controllers\SenhaController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -41,9 +44,18 @@ Route::middleware('auth')->group(function () {
     Route::put('/pacientes/{paciente}', [PacienteController::class, 'update']);
     Route::delete('/pacientes/{paciente}', [PacienteController::class, 'destroy']);
     Route::post('/pacientes/{paciente}/foto', [PacienteController::class, 'foto']);
-    Route::patch('/pacientes/{paciente}/vencimento', [PacienteController::class, 'vencimento']);
 
-    Route::post('/pacientes/{paciente}/matriculas', [MatriculaController::class, 'store']);
+    Route::get('/responsaveis', [ResponsavelController::class, 'index'])->name('responsaveis');
+    Route::post('/responsaveis', [ResponsavelController::class, 'store']);
+    Route::get('/responsaveis/{responsavel}', [ResponsavelController::class, 'show'])->name('responsaveis.show');
+    Route::put('/responsaveis/{responsavel}', [ResponsavelController::class, 'update']);
+    Route::delete('/responsaveis/{responsavel}', [ResponsavelController::class, 'destroy']);
+
+    Route::post('/pacientes/{paciente}/contratos', [ContratoController::class, 'store']);
+    Route::put('/contratos/{contrato}', [ContratoController::class, 'update']);
+    Route::delete('/contratos/{contrato}', [ContratoController::class, 'destroy']);
+
+    Route::post('/contratos/{contrato}/matriculas', [MatriculaController::class, 'store']);
     Route::put('/matriculas/{matricula}', [MatriculaController::class, 'update']);
     Route::delete('/matriculas/{matricula}', [MatriculaController::class, 'destroy']);
 
@@ -76,6 +88,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/despesas/{despesa}/pagamento', [FinanceiroController::class, 'estornarDespesa']);
 
     Route::get('/relatorios', RelatorioController::class)->name('relatorios');
+
+    Route::post('/notificacoes/lidas', [NotificacaoController::class, 'lidas']);
 
     // Declarações são montadas no front com os dados do paciente; nada é salvo.
     Route::get('/declaracoes', fn () => Inertia::render('Declaracoes/Declaracoes'))->name('declaracoes');
