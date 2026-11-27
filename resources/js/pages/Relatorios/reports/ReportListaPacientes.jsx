@@ -28,7 +28,7 @@ export default function ReportListaPacientes() {
         </FilterField>
         <FilterField label="Situação do paciente">
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...filterInputStyle, minWidth: 150 }}>
-            {["Todos", "Ativo", "Inativo"].map((s) => <option key={s}>{s}</option>)}
+            {["Todos", "Ativo", "Bloqueado", "Inativo"].map((s) => <option key={s}>{s}</option>)}
           </select>
         </FilterField>
       </FilterBar>
@@ -44,7 +44,7 @@ export default function ReportListaPacientes() {
             <td style={reportCellStyle}>{p.sessions}</td>
             <td style={reportCellStyle}>{p.lastSession}</td>
             <td style={reportCellStyle}>{p.nextSession}</td>
-            <td style={{ padding: "14px 20px" }}><Pill tone={p.status === "Ativo" ? "success" : "muted"}>{p.status}</Pill></td>
+            <td style={{ padding: "14px 20px" }}><Pill tone={p.status === "Ativo" ? "success" : p.status === "Bloqueado" ? "danger" : "muted"}>{p.status}</Pill></td>
           </tr>
         )}
       />

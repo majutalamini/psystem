@@ -15,7 +15,7 @@ class Cobranca extends Model
 
     const UPDATED_AT = null;
 
-    protected $fillable = ['paciente_id', 'agenda_id', 'matricula_id', 'competencia', 'titulo', 'valor', 'vencimento', 'situacao'];
+    protected $fillable = ['paciente_id', 'agenda_id', 'matricula_id', 'contrato_id', 'ciclo', 'competencia', 'titulo', 'valor', 'vencimento', 'situacao'];
 
     protected function casts(): array
     {

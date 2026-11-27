@@ -12,6 +12,10 @@ export function sucesso(texto) {
   return toast.fire({ icon: "success", title: texto });
 }
 
+export function aviso(texto, titulo = "Atenção") {
+  return Swal.fire({ ...base, icon: "info", title: titulo, text: texto, confirmButtonText: "Ok" });
+}
+
 export function erro(texto, titulo = "Não foi possível concluir") {
   return Swal.fire({ ...base, icon: "error", title: titulo, text: texto, confirmButtonText: "Entendi" });
 }

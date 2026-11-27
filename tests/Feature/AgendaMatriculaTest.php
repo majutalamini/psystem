@@ -77,7 +77,7 @@ class AgendaMatriculaTest extends ConsultorioTestCase
         $this->matricular($paciente, weekday: 2);
         Consulta::where('paciente_id', $paciente->id)->orderBy('data_hora_consulta')->first()->update(['status' => 'confirmado']);
 
-        $this->alterarMatricula($paciente->matriculas()->first(), weekday: 3, time: '13:50', valor: 250);
+        $this->alterarMatricula($paciente->matriculas()->first(), weekday: 3, time: '13:50');
 
         // A quarta confirmada fica; as outras quartas saem; entram as quintas às 13:50.
         $this->assertSame(
@@ -89,7 +89,6 @@ class AgendaMatriculaTest extends ConsultorioTestCase
             $this->horarios($paciente),
         );
         $this->assertSame(['2026-09-30 08:50'], $this->horarios($paciente, 'confirmado'));
-        $this->assertEquals(250, $paciente->matriculas()->first()->valor_sessao);
     }
 
     public function test_matricula_no_mesmo_dia_e_horario_de_outro_paciente_e_recusada(): void
@@ -98,8 +97,9 @@ class AgendaMatriculaTest extends ConsultorioTestCase
         $paciente = $this->paciente();
 
         $this->matricular($paciente, weekday: 1, time: '14:40')
-            ->assertSessionHasErrors(['time' => 'Esse horário já é da matrícula de Luiza.']);
+            ->assertSessionHasErrors(['horarios.0.time' => 'Esse horário já é da matrícula de Luiza.']);
         $this->assertNull($paciente->matriculas()->first());
+        $this->assertNull($paciente->contratoAberto(), 'contrato com horário recusado não é criado');
 
         // Outro horário no mesmo dia pode.
         $this->matricular($paciente, weekday: 1, time: '15:30')->assertSessionHasNoErrors();
@@ -109,12 +109,12 @@ class AgendaMatriculaTest extends ConsultorioTestCase
     {
         $luiza = $this->paciente(['nome' => 'Luiza']);
         $this->matricular($luiza, weekday: 1, time: '14:40');
-        $this->delete('/matriculas/'.$luiza->matriculas()->first()->id);
+        $this->encerrarContrato($luiza);
 
         $this->matricular($this->paciente(), weekday: 1, time: '14:40')->assertSessionHasNoErrors();
     }
 
-    public function test_encerrar_matricula_apaga_as_consultas_futuras_guarda_o_historico_e_inativa_o_paciente(): void
+    public function test_encerrar_contrato_apaga_as_consultas_futuras_guarda_o_historico_e_inativa_o_paciente(): void
     {
         $paciente = $this->paciente();
         $this->matricular($paciente, weekday: 2);
@@ -122,7 +122,7 @@ class AgendaMatriculaTest extends ConsultorioTestCase
         $confirmada->update(['status' => 'confirmado']);
 
         $matricula = $paciente->matriculas()->first();
-        $this->delete("/matriculas/{$matricula->id}")->assertRedirect();
+        $this->encerrarContrato($paciente)->assertRedirect();
 
         // Só a consulta já confirmada continua na agenda.
         $this->assertSame(['2026-09-30 08:50'], $this->horarios($paciente));
@@ -136,7 +136,7 @@ class AgendaMatriculaTest extends ConsultorioTestCase
         $paciente = $this->paciente();
         $this->matricular($paciente, weekday: 2);
 
-        $this->delete('/matriculas/'.$paciente->matriculas()->first()->id);
+        $this->encerrarContrato($paciente);
         $this->assertSame([], $this->horarios($paciente));
         $this->assertSame('inativo', $paciente->fresh()->status_paciente);
 
@@ -223,11 +223,11 @@ class AgendaMatriculaTest extends ConsultorioTestCase
 
         // Sábado (weekday: 5) não está em dias_atendimento padrão (Seg a Sex).
         $this->matricular($paciente, weekday: 5, time: '08:50')
-            ->assertSessionHasErrors(['weekday' => 'Não há atendimento nesse dia da semana.']);
+            ->assertSessionHasErrors(['horarios.0.weekday' => 'Não há atendimento nesse dia da semana.']);
 
         // 09:00 não é múltiplo de 50 min a partir das 08:00.
         $this->matricular($paciente, weekday: 2, time: '09:00')
-            ->assertSessionHasErrors(['time' => 'Esse horário está fora do expediente.']);
+            ->assertSessionHasErrors(['horarios.0.time' => 'Esse horário está fora do expediente.']);
 
         // Na agenda avulsa: 2026-10-03 é sábado.
         $this->from('/agenda')->post('/agenda', [

@@ -94,7 +94,7 @@ export default function Prontuarios({ selectedId, records, recordCounts }) {
             <div style={{ flex: 1, minWidth: 180 }}>
               <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 23, color: T.text }}>{active.name}</div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14.5, color: T.muted, marginTop: 4 }}>
-                {active.sessions} sessões · <Pill tone={active.status === "Ativo" ? "success" : "muted"}>{active.status}</Pill>
+                {active.sessions} sessões · <Pill tone={active.status === "Ativo" ? "success" : active.status === "Bloqueado" ? "danger" : "muted"}>{active.status}</Pill>
               </div>
             </div>
             {editingId === null && (

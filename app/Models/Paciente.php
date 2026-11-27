@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\Tela;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -21,7 +22,10 @@ class Paciente extends Model
         'nome', 'cpf', 'telefone', 'email', 'data_nascimento', 'sexo', 'endereco',
         'endereco_cidade', 'endereco_uf', 'contato_emergencia_nome',
         'contato_emergencia_telefone', 'observacoes', 'status_paciente', 'foto', 'dia_vencimento',
+        'responsavel_id', 'responsavel_parentesco',
     ];
+
+    public const STATUS = ['ativo' => 'Ativo', 'bloqueado' => 'Bloqueado', 'inativo' => 'Inativo'];
 
     protected function casts(): array
     {
@@ -31,6 +35,33 @@ class Paciente extends Model
     public function matriculas(): HasMany
     {
         return $this->hasMany(Matricula::class);
+    }
+
+    public function contratos(): HasMany
+    {
+        return $this->hasMany(Contrato::class);
+    }
+
+    public function responsavel(): BelongsTo
+    {
+        return $this->belongsTo(Responsavel::class);
+    }
+
+    /** O contrato que ainda vale (ativo ou bloqueado); o paciente só tem um por vez. */
+    public function contratoAberto(): ?Contrato
+    {
+        return $this->contratos()->abertos()->latest('id')->first();
+    }
+
+    /** Tem título a receber vencido e não pago? (vencido = venceu ontem ou antes). */
+    public function inadimplente(): bool
+    {
+        return $this->cobrancas()->where('situacao', 'pendente')->whereDate('vencimento', '<', today())->exists();
+    }
+
+    public function menorDeIdade(): bool
+    {
+        return $this->data_nascimento !== null && $this->data_nascimento->age < 18;
     }
 
     public function consultas(): HasMany
@@ -68,10 +99,20 @@ class Paciente extends Model
         return $this->status_paciente === 'ativo';
     }
 
-    /** Ativo se tiver ao menos uma matrícula ativa; inativo se não tiver. */
+    public function rotuloStatus(): string
+    {
+        return self::STATUS[$this->status_paciente] ?? 'Inativo';
+    }
+
+    /** O status vem do contrato: ativo, bloqueado (inadimplente) ou inativo (sem contrato em vigor). */
     public function sincronizarStatus(): void
     {
-        $this->update(['status_paciente' => $this->matriculas()->ativas()->exists() ? 'ativo' : 'inativo']);
+        $contrato = $this->contratoAberto();
+        $this->update(['status_paciente' => match ($contrato?->status) {
+            'ativo' => 'ativo',
+            'bloqueado' => 'bloqueado',
+            default => 'inativo',
+        }]);
     }
 
     /** Sessões realizadas, última e próxima sessão, matrícula e cobranças em aberto. */
@@ -83,7 +124,7 @@ class Paciente extends Model
             ->withMin(['consultas as proxima_sessao' => fn ($q) => $q
                 ->whereIn('status', ['agendado', 'confirmado'])
                 ->where('data_hora_consulta', '>=', now()->startOfDay())], 'data_hora_consulta')
-            ->with(['matriculas' => fn ($q) => $q->orderBy('id'), 'cobrancas' => fn ($q) => $q->where('situacao', 'pendente')->orderBy('vencimento')->with('pagamentos')])
+            ->with(['responsavel', 'contratos' => fn ($q) => $q->abertos(), 'matriculas' => fn ($q) => $q->orderBy('id'), 'cobrancas' => fn ($q) => $q->where('situacao', 'pendente')->orderBy('vencimento')->with('pagamentos')])
             ->orderBy('nome');
     }
 
@@ -102,6 +143,8 @@ class Paciente extends Model
             'contato_emergencia_nome' => $f['emergenciaNome'] ?? null,
             'contato_emergencia_telefone' => $f['emergenciaTelefone'] ?? null,
             'observacoes' => $f['observacoes'] ?? null,
+            'responsavel_id' => ($f['responsavelId'] ?? null) ?: null,
+            'responsavel_parentesco' => ($f['responsavelId'] ?? null) ? ($f['parentesco'] ?? null) : null,
         ];
     }
 
@@ -111,6 +154,8 @@ class Paciente extends Model
         $pendente = $this->relationLoaded('cobrancas') ? $this->cobrancas->first() : null;
         $ultima = $this->ultima_sessao ? Carbon::parse($this->ultima_sessao) : null;
         $proxima = $this->proxima_sessao ? Carbon::parse($this->proxima_sessao) : null;
+        $contrato = $this->relationLoaded('contratos') ? $this->contratos->sortByDesc('id')->first(fn ($c) => $c->aberto()) : null;
+        $responsavel = $this->relationLoaded('responsavel') ? $this->responsavel : null;
 
         return [
             'id' => $this->id,
@@ -120,7 +165,8 @@ class Paciente extends Model
             'photo' => $this->foto ? Storage::url($this->foto) : null,
             'phone' => Tela::telefone($this->telefone),
             'email' => $this->email,
-            'status' => $this->ativo() ? 'Ativo' : 'Inativo',
+            'status' => $this->rotuloStatus(),
+            'statusKey' => $this->status_paciente,
             'sessions' => (int) ($this->sessoes ?? 0),
             'lastSession' => Tela::data($ultima) ?? '—',
             'nextSession' => Tela::data($proxima) ?? '—',
@@ -136,6 +182,21 @@ class Paciente extends Model
             'emergenciaNome' => $this->contato_emergencia_nome,
             'emergenciaTelefone' => Tela::telefone($this->contato_emergencia_telefone),
             'observacoes' => $this->observacoes,
+            'responsavelId' => $this->responsavel_id,
+            'parentesco' => $this->responsavel_parentesco,
+            'responsavel' => $responsavel ? [
+                'id' => $responsavel->id,
+                'name' => $responsavel->nome,
+                'phone' => Tela::telefone($responsavel->telefone),
+                'parentesco' => $this->responsavel_parentesco,
+            ] : null,
+            'contrato' => $contrato ? [
+                'id' => $contrato->id,
+                'status' => $contrato->status,
+                'sessoes' => $contrato->sessoes_pacote,
+                'valor' => (float) $contrato->valor_pacote,
+                'cicloFim' => Tela::data($contrato->ciclo_fim),
+            ] : null,
             'matriculas' => $this->matriculas->map->paraTela()->values(),
             'cobrancaPendente' => $pendente?->paraTela(),
         ];

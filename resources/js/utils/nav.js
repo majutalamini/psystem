@@ -4,6 +4,7 @@ export const ROUTES = {
   dashboard: "/",
   agenda: "/agenda",
   pacientes: "/pacientes",
+  responsaveis: "/responsaveis",
   prontuarios: "/prontuarios",
   anamneses: "/anamneses",
   importacoes: "/importacoes",

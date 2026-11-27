@@ -98,7 +98,7 @@ class AjustesTest extends ConsultorioTestCase
     {
         $paciente = $this->paciente();
         $this->matricular($paciente, weekday: 2);
-        $this->delete('/matriculas/'.$paciente->matriculas()->first()->id);
+        $this->encerrarContrato($paciente);
 
         $this->put('/configuracoes', $this->formularioConfig(['dias' => ['Seg', 'Ter', 'Qui', 'Sex']]))->assertSessionHasNoErrors();
     }
@@ -163,7 +163,7 @@ class AjustesTest extends ConsultorioTestCase
     {
         $paciente = $this->paciente();
         $this->matricular($paciente, weekday: 2);
-        $this->delete('/matriculas/'.$paciente->matriculas()->first()->id);
+        $this->encerrarContrato($paciente);
 
         $this->get('/agenda?data=2026-11-18')->assertOk();
 

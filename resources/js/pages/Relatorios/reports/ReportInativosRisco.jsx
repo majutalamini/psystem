@@ -35,7 +35,7 @@ export default function ReportInativosRisco() {
         renderRow={(p, i) => (
           <tr key={p.id} style={{ borderTop: i > 0 ? `1px solid ${T.border}` : "none" }}>
             <td style={{ ...reportCellStyle, fontWeight: 600 }}>{p.name}</td>
-            <td style={{ padding: "14px 20px" }}><Pill tone={p.status === "Ativo" ? "success" : "muted"}>{p.status}</Pill></td>
+            <td style={{ padding: "14px 20px" }}><Pill tone={p.status === "Ativo" ? "success" : p.status === "Bloqueado" ? "danger" : "muted"}>{p.status}</Pill></td>
             <td style={reportCellStyle}>{p.lastSession}</td>
             <td style={reportCellStyle}>{p.diasSemSessao}</td>
             <td style={{ padding: "14px 20px" }}>

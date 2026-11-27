@@ -5,6 +5,7 @@ import { Avatar } from "../ui";
 import { useAppData } from "../../hooks/useAppData";
 import { navigate } from "../../utils/nav";
 import { alternarTema, temaAtual } from "../../utils/theme";
+import NotificationBell from "./NotificationBell";
 
 const headerIconBtn = {
   width: 40, height: 40, borderRadius: "50%", border: "none", cursor: "pointer",
@@ -29,6 +30,7 @@ export default function Header() {
         <button style={headerIconBtn} title={tema === "dark" ? "Modo claro" : "Modo escuro"} onClick={() => setTema(alternarTema())}>
           {tema === "dark" ? <Sun size={20} /> : <Moon size={20} />}
         </button>
+        <NotificationBell buttonStyle={{ ...headerIconBtn, position: "relative" }} />
         <button style={headerIconBtn} title="Configurações" onClick={() => navigate("configuracoes")}><Settings size={20} /></button>
         <button style={headerIconBtn} title="Sair" onClick={logout}><LogOut size={20} /></button>
         <div style={{ display: "flex", alignItems: "center", gap: 10, paddingLeft: 4 }}>

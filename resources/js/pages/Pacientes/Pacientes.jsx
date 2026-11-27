@@ -44,7 +44,7 @@ export default function Pacientes() {
   async function excluir(p) {
     const ok = await confirmar({
       titulo: "Excluir cadastro?",
-      texto: `Você vai excluir o cadastro de ${p.name}. Matrícula, consultas, prontuários, anamnese, documentos e cobranças deste paciente também serão apagados. Essa ação não pode ser desfeita.`,
+      texto: `Você vai excluir o cadastro de ${p.name}. Contratos, matrículas, consultas, prontuários, anamnese, documentos e cobranças deste paciente também serão apagados. Essa ação não pode ser desfeita.`,
       confirmar: "Excluir cadastro",
       perigo: true,
     });
@@ -72,7 +72,7 @@ export default function Pacientes() {
       {showFilters && (
         <Card style={{ padding: 18, marginBottom: 16, display: "flex", gap: 14, flexWrap: "wrap", alignItems: "flex-end" }}>
           {[
-            { key: "situacao", label: "Situação", options: [["", "Todas"], ["Ativo", "Ativo"], ["Inativo", "Inativo"]] },
+            { key: "situacao", label: "Situação", options: [["", "Todas"], ["Ativo", "Ativo"], ["Bloqueado", "Bloqueado"], ["Inativo", "Inativo"]] },
             { key: "matricula", label: "Matrícula", options: [["", "Todas"], ["com", "Com matrícula"], ["sem", "Sem matrícula"]] },
             { key: "dia", label: "Dia da semana", options: [["", "Todos"], ...DIAS.map((d, i) => [String(i), d])] },
             { key: "modalidade", label: "Modalidade", options: [["", "Todas"], ["Consulta presencial", "Presencial"], ["Consulta online", "Online"]] },
@@ -125,7 +125,7 @@ export default function Pacientes() {
                 <td style={{ padding: "14px 20px", fontSize: 13.5, color: T.text }}>{p.lastSession}</td>
                 <td style={{ padding: "14px 20px", fontSize: 13.5, color: T.text }}>{p.nextSession}</td>
                 <td style={{ padding: "14px 20px" }}>
-                  <Pill tone={p.status === "Ativo" ? "success" : "muted"}>{p.status}</Pill>
+                  <Pill tone={p.status === "Ativo" ? "success" : p.status === "Bloqueado" ? "danger" : "muted"}>{p.status}</Pill>
                 </td>
                 <td style={{ padding: "14px 20px", textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 14 }}>
@@ -135,7 +135,7 @@ export default function Pacientes() {
                     <RowMenu items={[
                       { label: "Abrir", icon: FolderOpen, onClick: () => openPatient(p.id) },
                       { label: "Editar cadastro", icon: Edit3, onClick: () => router.visit(`/pacientes/${p.id}?editar=1`) },
-                      { label: "Nova matrícula", icon: CalendarClock, onClick: () => router.visit(`/pacientes/${p.id}?aba=matricula`) },
+                      { label: "Contratos", icon: CalendarClock, onClick: () => router.visit(`/pacientes/${p.id}?aba=contratos`) },
                       { label: "Excluir cadastro", icon: Trash2, tone: "danger", onClick: () => excluir(p) },
                     ]} />
                   </div>

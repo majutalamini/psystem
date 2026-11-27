@@ -11,11 +11,10 @@ import { T } from "../../../styles/theme";
 import DateInput from "../../../components/ui/DateInput";
 import { confirmar } from "../../../utils/alertas";
 import { parseBrDate } from "../../../utils/date";
-import { inputStyle } from "../../../styles/formStyles";
 import { maskDate, formatMoney } from "../../../utils/format";
 
 export default function FinanceiroTab({ patient, receivables }) {
-  const { addReceivable, receiveReceivable, reopenReceivable, updateReceivable, cancelReceivable, setDiaVencimento } = useAppData();
+  const { addReceivable, receiveReceivable, reopenReceivable, updateReceivable, cancelReceivable } = useAppData();
   const [showModal, setShowModal] = useState(false);
   const [receiving, setReceiving] = useState(null);   // lançamento em baixa
   const [editingDue, setEditingDue] = useState(null); // título com vencimento em ajuste
@@ -64,17 +63,9 @@ export default function FinanceiroTab({ patient, receivables }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <label htmlFor="dia-mensalidade" style={{ fontSize: 13.5, fontWeight: 600, color: T.muted }}>A mensalidade da matrícula vence todo</label>
-          <select
-            id="dia-mensalidade"
-            value={patient.diaVencimento || 10}
-            onChange={(e) => setDiaVencimento(patient.id, Number(e.target.value))}
-            style={{ ...inputStyle, width: 110, marginBottom: 0 }}
-          >
-            {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>Dia {d}</option>)}
-          </select>
-          <span style={{ fontSize: 12.5, color: T.muted }}>Vale para o título em aberto e para os próximos.</span>
+        <div style={{ fontSize: 13.5, color: T.muted, maxWidth: 520 }}>
+          A mensalidade de cada pacote do contrato é lançada aqui ao criar o contrato e a cada renovação, vencendo no início do pacote.
+          Título vencido e não pago bloqueia o contrato até ser quitado.
         </div>
         <PrimaryButton icon={Plus} style={{ padding: "15px 26px", fontSize: 16, borderRadius: 12 }} onClick={() => setShowModal(true)}>Novo lançamento</PrimaryButton>
       </div>

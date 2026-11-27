@@ -52,24 +52,42 @@ abstract class ConsultorioTestCase extends TestCase
         ]);
     }
 
-    /** Cria uma matrícula pela rota, como a tela faz. weekday: 0 = segunda ... 6 = domingo. */
-    protected function matricular(Paciente $paciente, int $weekday, string $time = '08:50', float $valor = 200)
+    /**
+     * Inclui um dia e horário pela rota, como a tela faz: sem contrato em vigor, cria o contrato (pacote de 4 sessões
+     * começando hoje, com o valor informado) com esse horário; com contrato, acrescenta o horário a ele.
+     * weekday: 0 = segunda ... 6 = domingo.
+     */
+    protected function matricular(Paciente $paciente, int $weekday, string $time = '08:50', float $valor = 200, int $sessoes = 4)
     {
-        return $this->from("/pacientes/{$paciente->id}")->post("/pacientes/{$paciente->id}/matriculas", [
-            'weekday' => $weekday,
-            'time' => $time,
-            'tipo' => 'Consulta presencial',
+        $horario = ['weekday' => $weekday, 'time' => $time, 'tipo' => 'Consulta presencial'];
+        $contrato = $paciente->contratoAberto();
+
+        return $contrato
+            ? $this->from("/pacientes/{$paciente->id}")->post("/contratos/{$contrato->id}/matriculas", $horario)
+            : $this->contratar($paciente, [$horario], $valor, $sessoes);
+    }
+
+    protected function contratar(Paciente $paciente, array $horarios, float $valor = 200, int $sessoes = 4, ?string $inicio = null)
+    {
+        return $this->from("/pacientes/{$paciente->id}")->post("/pacientes/{$paciente->id}/contratos", [
+            'sessoes' => $sessoes,
             'valor' => $valor,
+            'inicio' => $inicio ?? today()->format('d/m/Y'),
+            'horarios' => $horarios,
         ]);
     }
 
-    protected function alterarMatricula(Matricula $matricula, int $weekday, string $time = '08:50', float $valor = 200)
+    protected function encerrarContrato(Paciente $paciente)
+    {
+        return $this->from("/pacientes/{$paciente->id}")->delete('/contratos/'.$paciente->contratoAberto()->id);
+    }
+
+    protected function alterarMatricula(Matricula $matricula, int $weekday, string $time = '08:50')
     {
         return $this->from("/pacientes/{$matricula->paciente_id}")->put("/matriculas/{$matricula->id}", [
             'weekday' => $weekday,
             'time' => $time,
             'tipo' => 'Consulta presencial',
-            'valor' => $valor,
         ]);
     }
 

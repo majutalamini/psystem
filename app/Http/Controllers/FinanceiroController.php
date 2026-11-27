@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Cobranca;
 use App\Models\Despesa;
 use App\Models\DespesaRecorrente;
+use App\Models\Paciente;
+use App\Services\Contratos;
 use App\Services\DespesasRecorrentes;
 use App\Support\Tela;
 use Illuminate\Http\Request;
@@ -44,14 +46,14 @@ class FinanceiroController extends Controller
             'vencimento' => 'required|date_format:d/m/Y',
         ], [], ['referencia' => 'referência']);
 
-        Cobranca::create([
+        $cobranca = Cobranca::create([
             'paciente_id' => $dados['patientId'],
             'titulo' => $dados['referencia'],
             'valor' => $dados['valor'],
             'vencimento' => Tela::lerData($dados['vencimento']),
         ]);
 
-        return back();
+        return $this->acertarContrato($cobranca);
     }
 
     /** Ajusta a data de vencimento de uma cobrança em aberto (inclusive as mensalidades da matrícula). */
@@ -65,7 +67,7 @@ class FinanceiroController extends Controller
 
         $cobranca->update(['vencimento' => Tela::lerData($dados['vencimento'])]);
 
-        return back();
+        return $this->acertarContrato($cobranca);
     }
 
     /** Cancela o título (ele sai das telas). Com recebimento registrado, é preciso estornar antes. */
@@ -79,7 +81,7 @@ class FinanceiroController extends Controller
 
         $cobranca->update(['situacao' => 'cancelado']);
 
-        return back();
+        return $this->acertarContrato($cobranca);
     }
 
     /**
@@ -108,7 +110,7 @@ class FinanceiroController extends Controller
             $cobranca->update(['situacao' => $cobranca->saldo() <= 0 ? 'pago' : 'pendente']);
         });
 
-        return back();
+        return $this->acertarContrato($cobranca);
     }
 
     /** Estorno: apaga o último pagamento e a cobrança volta a ficar em aberto. */
@@ -119,7 +121,22 @@ class FinanceiroController extends Controller
             $cobranca->update(['situacao' => 'pendente']);
         });
 
-        return back();
+        return $this->acertarContrato($cobranca);
+    }
+
+    /** Pagar, estornar ou mudar um título pode bloquear ou liberar o contrato do paciente. */
+    private function acertarContrato(Cobranca $cobranca)
+    {
+        $paciente = Paciente::find($cobranca->paciente_id);
+        $mudou = $paciente ? app(Contratos::class)->sincronizarInadimplencia($paciente) : null;
+
+        $resposta = back();
+
+        return match ($mudou) {
+            'desbloqueado' => $resposta->with('aviso', "Pendências quitadas: o contrato de {$paciente->nome} foi desbloqueado."),
+            'bloqueado' => $resposta->with('aviso', "{$paciente->nome} tem título vencido: o contrato foi bloqueado."),
+            default => $resposta,
+        };
     }
 
     public function storeDespesa(Request $request, DespesasRecorrentes $recorrentes)

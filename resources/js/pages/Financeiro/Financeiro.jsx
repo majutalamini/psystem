@@ -12,7 +12,7 @@ import NewPayableModal from "./components/NewPayableModal";
 
 export default function Financeiro({ receivables, payables }) {
   const { addReceivable, receiveReceivable, reopenReceivable, updateReceivable, cancelReceivable, addPayable, payPayable, reopenPayable, updatePayable, cancelPayable, stopRecurrence } = useAppData();
-  const [tab, setTab] = useState("receber"); // 'receber' | 'pagar'
+  const [tab, setTab] = useState(() => (new URLSearchParams(window.location.search).get("aba") === "pagar" ? "pagar" : "receber")); // 'receber' | 'pagar'
   const [showReceivableModal, setShowReceivableModal] = useState(false);
   const [showPayableModal, setShowPayableModal] = useState(false);
   const [receiving, setReceiving] = useState(null);   // conta a receber em baixa

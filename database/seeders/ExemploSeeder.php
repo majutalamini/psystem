@@ -2,74 +2,60 @@
 
 namespace Database\Seeders;
 
-use App\Models\Cobranca;
+use App\Models\Consulta;
 use App\Models\Despesa;
+use App\Models\Matricula;
 use App\Models\Paciente;
-use App\Services\AgendaMatricula;
-use App\Services\Mensalidades;
+use App\Models\Responsavel;
+use App\Services\Contratos;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
 /**
- * Dados de exemplo para testar as telas: os pacientes do protótipo, com matrícula,
- * quatro semanas de sessões realizadas, mensalidades (as dos meses anteriores pagas) e algumas despesas.
+ * Dados de exemplo para testar as telas: os pacientes do protótipo, cada um com contrato de 4 sessões começado há
+ * quatro semanas (sessões realizadas, primeiro pacote pago e o segundo já renovado), um paciente menor de idade com
+ * responsável, um paciente bloqueado por inadimplência e algumas despesas.
  * Uso: php artisan db:seed --class=ExemploSeeder
  */
 class ExemploSeeder extends Seeder
 {
-    public function run(AgendaMatricula $agenda, Mensalidades $mensalidades): void
+    public function run(Contratos $contratos): void
     {
-        foreach (require __DIR__.'/dados/pacientes_exemplo.php' as $dados) {
+        $exemplos = require __DIR__.'/dados/pacientes_exemplo.php';
+        $ultimoComMatricula = array_key_last(array_filter($exemplos, fn ($d) => isset($d['matricula'])));
+
+        foreach ($exemplos as $i => $dados) {
             $matricula = $dados['matricula'] ?? null;
             unset($dados['matricula']);
 
-            $paciente = Paciente::forceCreate($dados); // forceCreate mantém a data de cadastro do exemplo
-            if (! $matricula) {
-                continue;
+            $paciente = Paciente::forceCreate([...$dados, 'status_paciente' => 'inativo']); // mantém a data de cadastro
+            if ($matricula) {
+                // O último fica com o pacote vencido sem pagar, para mostrar o contrato bloqueado.
+                $this->contratoComHistorico($contratos, $paciente, $matricula, pagarPrimeiro: $i !== $ultimoComMatricula);
             }
-
-            $matricula = $paciente->matriculas()->create([
-                'inicio_da_matricula' => today()->subWeeks(4),
-                'dia_da_matricula' => $matricula['dia'],
-                'horario_da_matricula' => $matricula['horario'],
-                'tipo_da_consulta' => $matricula['tipo'],
-                'valor_sessao' => $matricula['valor'],
-            ]);
-
-            // Últimas quatro semanas: sessões já realizadas.
-            for ($semana = 4; $semana >= 1; $semana--) {
-                $dia = today()->subWeeks($semana)->startOfWeek(Carbon::MONDAY)->addDays($matricula->diaIso() - 1);
-                $matricula->consultas()->create([
-                    'paciente_id' => $paciente->id,
-                    'data_hora_consulta' => $dia->setTimeFromTimeString($matricula->horario_da_matricula),
-                    'modalidade' => $matricula->tipo_da_consulta,
-                    'status' => 'realizado',
-                ]);
-            }
-
-            // Mensalidades: as dos dois meses anteriores já pagas; a próxima fica em aberto.
-            foreach ([2, 1] as $atras) {
-                $mes = today()->startOfMonth()->subMonthsNoOverflow($atras);
-                $vencimento = Mensalidades::vencimento($mes, (int) $paciente->dia_vencimento);
-                $cobranca = Cobranca::create([
-                    'paciente_id' => $paciente->id,
-                    'matricula_id' => $matricula->id,
-                    'competencia' => $mes->toDateString(),
-                    'titulo' => 'Mensalidade — '.$mes->format('m/Y'),
-                    'valor' => $matricula->valor_sessao,
-                    'vencimento' => $vencimento->toDateString(),
-                    'situacao' => 'pago',
-                ]);
-                $cobranca->pagamentos()->create([
-                    'valor_pago' => $cobranca->valor,
-                    'metodo_pagamento' => 'pix',
-                    'data_pagamento' => $vencimento,
-                ]);
-            }
-            $mensalidades->gerar($matricula->setRelation('paciente', $paciente->fresh()));
-
-            $agenda->gerar($matricula);
         }
+
+        // Paciente menor de idade: precisa de responsável.
+        $responsavel = Responsavel::create([
+            'nome' => 'Carla Mendes',
+            'cpf' => '52998224725',
+            'telefone' => '(48) 98836-4746',
+            'email' => 'carla.mendes@email.com',
+            'endereco' => 'Rua Henrique Lage, 88 — Centro',
+        ]);
+        $menor = Paciente::create([
+            'nome' => 'Lucas Mendes',
+            'cpf' => '11144477735',
+            'telefone' => '(48) 98836-4746',
+            'data_nascimento' => today()->subYears(11)->subMonths(3),
+            'sexo' => 'masculino',
+            'endereco_cidade' => 'Criciúma',
+            'endereco_uf' => 'SC',
+            'status_paciente' => 'inativo',
+            'responsavel_id' => $responsavel->id,
+            'responsavel_parentesco' => 'Mãe',
+        ]);
+        $this->contratoComHistorico($contratos, $menor, ['dia' => 'quinta-feira', 'horario' => '15:00', 'tipo' => 'presencial', 'valor' => 640], pagarPrimeiro: true, sessoes: 4);
 
         foreach ([
             ['Aluguel do consultório', 'Estrutura', 1200, 5],
@@ -84,5 +70,42 @@ class ExemploSeeder extends Seeder
                 'vencimento' => today()->startOfMonth()->addDays($dia - 1),
             ]);
         }
+    }
+
+    /** Contrato começado há quatro semanas, com as sessões já realizadas; depois renova e acerta o bloqueio. */
+    private function contratoComHistorico(Contratos $contratos, Paciente $paciente, array $m, bool $pagarPrimeiro, int $sessoes = 4): void
+    {
+        $weekday = array_search($m['dia'], Matricula::DIAS, true);
+        $inicio = today()->subWeeks(4)->startOfWeek(Carbon::MONDAY);
+
+        $contrato = $contratos->criar($paciente, ['sessoes' => $sessoes, 'valor' => $m['valor'], 'inicio' => $inicio], [[
+            'weekday' => $weekday,
+            'time' => $m['horario'],
+            'tipo' => $m['tipo'] === 'online' ? 'Consulta online' : 'Consulta presencial',
+        ]]);
+        $matricula = $contrato->matriculas()->first();
+
+        // Últimas quatro semanas: sessões já realizadas.
+        for ($semana = 4; $semana >= 1; $semana--) {
+            $dia = today()->subWeeks($semana)->startOfWeek(Carbon::MONDAY)->addDays($weekday);
+            Consulta::create([
+                'paciente_id' => $paciente->id,
+                'matricula_id' => $matricula->id,
+                'data_hora_consulta' => $dia->setTimeFromTimeString($m['horario']),
+                'modalidade' => $m['tipo'],
+                'status' => 'realizado',
+            ]);
+        }
+
+        // Primeiro pacote: venceu no início do contrato.
+        $cobranca = $contrato->cobrancas()->where('ciclo', 1)->first();
+        $cobranca->update(['vencimento' => $inicio]);
+        if ($pagarPrimeiro) {
+            $cobranca->pagamentos()->create(['valor_pago' => $cobranca->valor, 'metodo_pagamento' => 'pix', 'data_pagamento' => $inicio]);
+            $cobranca->update(['situacao' => 'pago']);
+        }
+
+        $contratos->renovar($contrato->fresh());
+        $contratos->sincronizarInadimplencia($paciente->fresh());
     }
 }
